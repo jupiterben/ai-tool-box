@@ -11,6 +11,7 @@
   width: 100%;
   overflow: hidden;
   position: relative;
+  min-height: 0;
 }
 
 .error {
