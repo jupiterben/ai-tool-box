@@ -1,0 +1,38 @@
+# AI Tool Box Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-01-27
+
+## Active Technologies
+
+- TypeScript + React + Electron + Vite (001-ai-integration)
+
+## Project Structure
+
+```text
+ai-tool-box/
+├── src/                    # React 应用源码
+│   ├── components/         # React 组件
+│   ├── App.tsx            # 主应用组件
+│   ├── main.tsx           # React 入口
+│   └── styles/            # 样式文件
+├── electron/              # Electron 相关
+│   ├── main.ts           # 主进程
+│   └── preload.ts        # 预加载脚本
+├── public/               # 静态资源
+└── package.json
+```
+
+## Commands
+
+pnpm dev; pnpm build; pnpm electron:dev; pnpm electron:build; pnpm lint; pnpm type-check
+
+## Code Style
+
+TypeScript: Follow standard conventions, use ES6+ features, prefer functional components with hooks. React: Use functional components, hooks for state management, CSS Modules for styling. Keep components small and focused on single responsibility.
+
+## Recent Changes
+
+- 001-ai-integration: Added TypeScript + React + Electron + Vite
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->
