@@ -1,7 +1,7 @@
 {
   "name": "ai-tool-box",
   "version": "1.0.0",
-  "description": "AI Tool Box - 集成多个主流 AI 工具的桌面应用",
+  "description": "AI Tool Box - 集成多个主流 AI 工具的应用",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {

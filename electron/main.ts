@@ -16,7 +16,6 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       // 优化性能：禁用不必要的功能
-      enableRemoteModule: false,
       sandbox: true,
       // 启用 webview 标签以绕过 X-Frame-Options 限制
       webviewTag: true,

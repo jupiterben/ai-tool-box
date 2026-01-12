@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef } from 'react';
-import { AITool } from '../types/ai-tool';
 import { InputDeliveryState } from '../types/input-delivery';
 import { getInputSelector } from '../utils/inputSelectors';
 import { handleWebviewInput, WebviewInputHandlerConfig } from '../components/WebviewInputHandler';
