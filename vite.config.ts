@@ -6,32 +6,35 @@ import electron from 'vite-plugin-electron/simple';
 export default defineConfig({
   plugins: [
     react(),
-    electron({
-      main: {
-        entry: 'electron/main.ts',
-        vite: {
-          build: {
-            outDir: 'dist-electron',
+    // 仅在非 Vercel 构建环境时加载 Electron 插件
+    ...(process.env.VERCEL !== '1' ? [
+      electron({
+        main: {
+          entry: 'electron/main.ts',
+          vite: {
+            build: {
+              outDir: 'dist-electron',
+            },
           },
         },
-      },
-      preload: {
-        input: 'electron/preload.ts',
-        vite: {
-          build: {
-            outDir: 'dist-electron',
+        preload: {
+          input: 'electron/preload.ts',
+          vite: {
+            build: {
+              outDir: 'dist-electron',
+            },
           },
         },
-      },
-      onstart(args) {
-        // 启动 Electron
-        if (process.env.VSCODE_DEBUG) {
-          console.log('[startup] Electron App');
-        } else {
-          args.startup();
-        }
-      },
-    }),
+        onstart(args) {
+          // 启动 Electron
+          if (process.env.VSCODE_DEBUG) {
+            console.log('[startup] Electron App');
+          } else {
+            args.startup();
+          }
+        },
+      })
+    ] : []),
   ],
   build: {
     outDir: 'dist',
