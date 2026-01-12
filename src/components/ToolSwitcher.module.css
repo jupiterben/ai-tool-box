@@ -1,33 +1,44 @@
 .switcher {
   display: flex;
-  gap: 0.5rem;
-  padding: 1rem;
-  background-color: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
+  gap: var(--spacing-2);
+  padding: var(--spacing-4);
+  background-color: var(--color-background-secondary);
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
 .button {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: white;
+  padding: var(--spacing-2) var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-base);
+  outline: none;
 }
 
 .button:hover {
-  background-color: #f0f0f0;
-  border-color: #999;
+  background-color: var(--color-background-hover);
+  border-color: var(--color-border-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .button.active {
-  background-color: #007bff;
-  color: white;
-  border-color: #007bff;
+  background-color: var(--color-primary-600);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary-600);
 }
 
-.button:focus {
-  outline: 2px solid #007bff;
+.button:focus-visible {
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
+}
+
+.button:active {
+  transform: translateY(0);
+  box-shadow: none;
 }

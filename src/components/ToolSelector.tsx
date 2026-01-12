@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { AITool } from '../types/ai-tool';
 import styles from './ToolSelector.module.css';
 
@@ -8,14 +8,18 @@ interface ToolSelectorProps {
   onSelectionChange: (selectedIds: string[]) => void;
 }
 
-const ToolSelector: React.FC<ToolSelectorProps> = ({
+const ToolSelector: React.FC<ToolSelectorProps> = memo(({
   tools,
   selectedToolIds,
   onSelectionChange,
 }) => {
-  const handleToggle = (toolId: string) => {
-    const isSelected = selectedToolIds.includes(toolId);
-    if (isSelected && selectedToolIds.length === 1) {
+  // 使用 useMemo 优化选中状态检查
+  const selectedSet = useMemo(() => new Set(selectedToolIds), [selectedToolIds]);
+  const isMinSelection = useMemo(() => selectedToolIds.length === 1, [selectedToolIds.length]);
+
+  const handleToggle = useCallback((toolId: string) => {
+    const isSelected = selectedSet.has(toolId);
+    if (isSelected && isMinSelection) {
       // 至少保留一个选中项
       return;
     }
@@ -23,12 +27,14 @@ const ToolSelector: React.FC<ToolSelectorProps> = ({
       ? selectedToolIds.filter((id) => id !== toolId)
       : [...selectedToolIds, toolId];
     onSelectionChange(newSelection);
-  };
+  }, [selectedSet, isMinSelection, selectedToolIds, onSelectionChange]);
 
   return (
     <div className={styles.container} role="group" aria-label="选择 AI 工具">
       {tools.map((tool) => {
-        const isSelected = selectedToolIds.includes(tool.id);
+        const isSelected = selectedSet.has(tool.id);
+        const isDisabled = isSelected && isMinSelection;
+
         return (
           <label
             key={tool.id}
@@ -48,7 +54,7 @@ const ToolSelector: React.FC<ToolSelectorProps> = ({
               type="checkbox"
               checked={isSelected}
               onChange={() => handleToggle(tool.id)}
-              disabled={isSelected && selectedToolIds.length === 1}
+              disabled={isDisabled}
               className={styles.checkbox}
               tabIndex={-1}
               aria-hidden="true"
@@ -59,6 +65,8 @@ const ToolSelector: React.FC<ToolSelectorProps> = ({
       })}
     </div>
   );
-};
+});
+
+ToolSelector.displayName = 'ToolSelector';
 
 export default ToolSelector;

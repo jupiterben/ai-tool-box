@@ -3,19 +3,22 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #666;
-  font-size: 1rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  background-color: var(--color-background);
+  transition: color var(--transition-base), background-color var(--transition-base);
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
   .emptyPage {
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
   }
 }
 
 @media (max-width: 480px) {
   .emptyPage {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
   }
 }

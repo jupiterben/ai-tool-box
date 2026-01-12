@@ -1,0 +1,100 @@
+/* 加载动画 */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 加载指示器 */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary-600);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  will-change: transform;
+}
+
+.loading-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+  will-change: opacity;
+}
+
+/* 状态变化动画 */
+.status-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.status-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.status-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.status-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+/* 成功状态动画 */
+.success-indicator {
+  animation: slideDown 0.3s ease-out;
+}
+
+/* 错误状态动画 */
+.error-indicator {
+  animation: slideUp 0.3s ease-out;
+}

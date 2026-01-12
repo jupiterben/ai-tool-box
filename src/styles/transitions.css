@@ -1,0 +1,96 @@
+/* 页面切换过渡动画 */
+
+.page-transition-enter {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+/* 淡入淡出动画 */
+.fade-enter {
+  opacity: 0;
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity var(--transition-base);
+}
+
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+/* 滑动动画 */
+.slide-enter {
+  transform: translateX(100%);
+}
+
+.slide-enter-active {
+  transform: translateX(0);
+  transition: transform var(--transition-base);
+}
+
+.slide-exit {
+  transform: translateX(0);
+}
+
+.slide-exit-active {
+  transform: translateX(-100%);
+  transition: transform var(--transition-base);
+}
+
+/* 缩放动画 */
+.scale-enter {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.scale-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.scale-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.scale-exit-active {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+/* 确保动画使用硬件加速 */
+.page-transition-enter-active,
+.page-transition-exit-active,
+.fade-enter-active,
+.fade-exit-active,
+.slide-enter-active,
+.slide-exit-active,
+.scale-enter-active,
+.scale-exit-active {
+  will-change: opacity, transform;
+}

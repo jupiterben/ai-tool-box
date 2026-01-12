@@ -1,0 +1,45 @@
+.card {
+  background-color: var(--color-background);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+}
+
+/* 默认变体 */
+.card--default {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+}
+
+/* 轮廓变体 */
+.card--outlined {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+}
+
+/*  elevated 变体 */
+.card--elevated {
+  background-color: var(--color-background);
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-md);
+}
+
+.card--elevated:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* 内边距变体 */
+.card--padding-none {
+  padding: 0;
+}
+
+.card--padding-sm {
+  padding: var(--spacing-3);
+}
+
+.card--padding-md {
+  padding: var(--spacing-4);
+}
+
+.card--padding-lg {
+  padding: var(--spacing-6);
+}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import UnifiedInput from './UnifiedInput';
 import ToolSelector from './ToolSelector';
 import MultiWebviewGrid from './MultiWebviewGrid';
@@ -11,10 +11,9 @@ const MultiWebviewTool: React.FC = () => {
   const [inputValue, setInputValue] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
   
-  // 工具选择状态（默认选中所有工具）
-  const [selectedToolIds, setSelectedToolIds] = useState<string[]>(
-    DEFAULT_TOOLS.map((tool) => tool.id)
-  );
+  // 工具选择状态（默认选中所有工具）- 使用 useMemo 优化初始值计算
+  const defaultSelectedIds = useMemo(() => DEFAULT_TOOLS.map((tool) => tool.id), []);
+  const [selectedToolIds, setSelectedToolIds] = useState<string[]>(defaultSelectedIds);
   
   // Webview 元素引用
   const webviewElementsRef = useRef<Record<string, HTMLElement>>({});
@@ -101,8 +100,8 @@ const MultiWebviewTool: React.FC = () => {
   }, []);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
+    <div className={styles.container} role="main" aria-label="多 Webview 工具">
+      <div className={styles.header} role="region" aria-label="输入和工具选择">
         <UnifiedInput
           value={inputValue}
           onChange={handleInputChange}
@@ -115,7 +114,7 @@ const MultiWebviewTool: React.FC = () => {
           onSelectionChange={handleSelectionChange}
         />
       </div>
-      <div className={styles.main}>
+      <div className={styles.main} role="region" aria-label="Webview 内容区域">
         <MultiWebviewGrid
           tools={DEFAULT_TOOLS}
           selectedToolIds={selectedToolIds}

@@ -1,8 +1,11 @@
 .layout {
   display: flex;
   width: 100%;
+  min-width: 800px; /* 最小宽度 */
   height: 100vh;
   overflow: hidden;
+  background-color: var(--color-background);
+  transition: background-color var(--transition-base);
 }
 
 .content {
@@ -11,4 +14,22 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  background-color: var(--color-background);
+  transition: background-color var(--transition-base), margin-left var(--transition-base);
+  position: relative;
+}
+
+/* 响应式：当侧边栏折叠时，内容区域占满 */
+@media (max-width: 1024px) {
+  .content {
+    margin-left: 0;
+  }
+}
+
+.pageContent {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
 }

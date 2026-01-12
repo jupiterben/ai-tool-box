@@ -43,12 +43,33 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
+        manualChunks: (id) => {
+          // React 和 React DOM 单独打包
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-vendor';
+          }
+          // lucide-react 图标库单独打包
+          if (id.includes('node_modules/lucide-react')) {
+            return 'icons';
+          }
+          // react-transition-group 单独打包
+          if (id.includes('node_modules/react-transition-group')) {
+            return 'transitions';
+          }
+          // 其他 node_modules 打包到一起
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
       },
     },
     chunkSizeWarningLimit: 1000,
+    // 启用 CSS 代码分割
+    cssCodeSplit: true,
+    // 优化构建输出
+    minify: 'esbuild',
+    // 启用 sourcemap（开发环境）
+    sourcemap: process.env.NODE_ENV === 'development',
   },
   server: {
     port: 5173,

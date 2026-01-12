@@ -1,0 +1,55 @@
+/* 亮色主题 - Light Theme */
+
+[data-theme='light'],
+:root {
+  /* 主色 - Primary Colors */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+
+  /* 背景色 - Background Colors */
+  --color-background: #ffffff;
+  --color-background-secondary: #f9fafb;
+  --color-background-tertiary: #f3f4f6;
+  --color-background-hover: #f9fafb;
+  --color-background-active: #f3f4f6;
+
+  /* 文本色 - Text Colors */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-text-disabled: #d1d5db;
+  --color-text-inverse: #ffffff;
+
+  /* 边框色 - Border Colors */
+  --color-border: #e5e7eb;
+  --color-border-hover: #d1d5db;
+  --color-border-focus: #3b82f6;
+  --color-border-error: #ef4444;
+
+  /* 状态色 - Status Colors */
+  --color-success: #10b981;
+  --color-success-bg: #d1fae5;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fef3c7;
+  --color-error: #ef4444;
+  --color-error-bg: #fee2e2;
+  --color-info: #3b82f6;
+  --color-info-bg: #dbeafe;
+
+  /* 侧边栏 - Sidebar */
+  --color-sidebar-bg: #f9fafb;
+  --color-sidebar-border: #e5e7eb;
+  --color-sidebar-text: #111827;
+  --color-sidebar-hover: #f3f4f6;
+  --color-sidebar-active: #eff6ff;
+  --color-sidebar-active-text: #2563eb;
+}

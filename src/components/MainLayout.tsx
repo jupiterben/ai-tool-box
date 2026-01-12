@@ -1,6 +1,8 @@
-import React, { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
+import { CSSTransition } from 'react-transition-group';
 import Sidebar, { ToolPage } from './Sidebar';
 import styles from './MainLayout.module.css';
+import '../styles/transitions.css';
 
 interface MainLayoutProps {
   pages: ToolPage[];
@@ -9,7 +11,7 @@ interface MainLayoutProps {
   children: ReactNode;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({
+const MainLayout: React.FC<MainLayoutProps> = memo(({
   pages,
   activePageId,
   onPageChange,
@@ -23,10 +25,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         onPageChange={onPageChange}
       />
       <main className={styles.content}>
-        {children}
+        <CSSTransition
+          key={activePageId}
+          in={true}
+          timeout={200}
+          classNames="page-transition"
+          unmountOnExit
+        >
+          <div className={styles.pageContent}>{children}</div>
+        </CSSTransition>
       </main>
     </div>
   );
-};
+});
+
+MainLayout.displayName = 'MainLayout';
 
 export default MainLayout;

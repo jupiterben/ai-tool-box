@@ -1,66 +1,144 @@
 .container {
   width: 100%;
-  padding: 1rem;
-  background: #fff;
-  border-bottom: 1px solid #e0e0e0;
+  padding: var(--spacing-4);
+  background-color: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
 .inputWrapper {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .container {
+    padding: var(--spacing-3);
+  }
+  
+  .inputWrapper {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 800px) {
+  .container {
+    padding: var(--spacing-2);
+  }
+  
+  .textarea {
+    min-height: 60px;
+    font-size: var(--font-size-sm);
+  }
+  
+  .footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-2);
+  }
+  
+  .sendButton {
+    width: 100%;
+  }
 }
 
 .textarea {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d0d0d0;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: inherit;
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-sans);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
   resize: vertical;
   min-height: 80px;
-  line-height: 1.5;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  outline: none;
+  will-change: border-color, box-shadow;
+}
+
+.textarea::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.textarea:hover:not(:disabled):not(:read-only) {
+  border-color: var(--color-border-hover);
 }
 
 .textarea:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
 }
 
 .textarea:disabled {
-  background-color: #f5f5f5;
+  background-color: var(--color-background-secondary);
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 0.5rem;
+  margin-top: var(--spacing-2);
+  gap: var(--spacing-2);
 }
 
 .counter {
-  font-size: 0.875rem;
-  color: #666;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-tight);
 }
 
 .sendButton {
-  padding: 0.5rem 1.5rem;
-  background: #007bff;
-  color: white;
+  padding: var(--spacing-2) var(--spacing-6);
+  background-color: var(--color-primary-600);
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all var(--transition-base);
+  outline: none;
 }
 
 .sendButton:hover:not(:disabled) {
-  background: #0056b3;
+  background-color: var(--color-primary-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.sendButton:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.sendButton:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .sendButton:disabled {
-  background: #ccc;
+  background-color: var(--color-text-disabled);
   cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.sendButton:disabled::after {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: var(--spacing-2);
+  border: 2px solid var(--color-text-inverse);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
 }

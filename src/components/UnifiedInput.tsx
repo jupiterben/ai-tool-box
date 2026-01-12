@@ -1,4 +1,4 @@
-import React, { useCallback, KeyboardEvent } from 'react';
+import { memo, useCallback, KeyboardEvent, useMemo } from 'react';
 import styles from './UnifiedInput.module.css';
 
 interface UnifiedInputProps {
@@ -10,7 +10,7 @@ interface UnifiedInputProps {
   placeholder?: string;
 }
 
-const UnifiedInput: React.FC<UnifiedInputProps> = ({
+const UnifiedInput: React.FC<UnifiedInputProps> = memo(({
   value,
   onChange,
   onSend,
@@ -18,23 +18,27 @@ const UnifiedInput: React.FC<UnifiedInputProps> = ({
   maxLength = 1000,
   placeholder = '输入您的问题...',
 }) => {
+  // 使用 useMemo 优化计算
+  const trimmedValue = useMemo(() => value.trim(), [value]);
+  const canSend = useMemo(() => !isSending && trimmedValue.length > 0, [isSending, trimmedValue]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        if (!isSending && value.trim()) {
-          onSend(value.trim());
+        if (canSend) {
+          onSend(trimmedValue);
         }
       }
     },
-    [value, onSend, isSending]
+    [canSend, onSend, trimmedValue]
   );
 
   const handleSend = useCallback(() => {
-    if (!isSending && value.trim()) {
-      onSend(value.trim());
+    if (canSend) {
+      onSend(trimmedValue);
     }
-  }, [value, onSend, isSending]);
+  }, [canSend, onSend, trimmedValue]);
 
   return (
     <div className={styles.container} role="region" aria-label="统一输入区域">
@@ -58,9 +62,9 @@ const UnifiedInput: React.FC<UnifiedInputProps> = ({
           <button
             className={styles.sendButton}
             onClick={handleSend}
-            disabled={isSending || !value.trim()}
+            disabled={!canSend}
             aria-label="发送消息"
-            aria-disabled={isSending || !value.trim()}
+            aria-disabled={!canSend}
           >
             {isSending ? '发送中...' : '发送'}
           </button>
@@ -68,6 +72,8 @@ const UnifiedInput: React.FC<UnifiedInputProps> = ({
       </div>
     </div>
   );
-};
+});
+
+UnifiedInput.displayName = 'UnifiedInput';
 
 export default UnifiedInput;

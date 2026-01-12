@@ -14,15 +14,18 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "lucide-react": "^0.562.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@types/react-transition-group": "^4.4.12",
     "@vitejs/plugin-react": "^5.1.2",
     "electron": "^39.2.7",
     "electron-builder": "^26.4.0",
+    "react-transition-group": "^4.4.5",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-electron": "^0.29.0"

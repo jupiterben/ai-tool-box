@@ -1,20 +1,3 @@
-<!--
-Sync Impact Report:
-Version change: N/A → 1.0.0 (initial creation)
-Added sections:
-  - Project Overview
-  - Principle 1: Minimal Dependencies
-  - Principle 2: Modern Standards
-  - Principle 3: Code Quality
-  - Principle 4: Performance First
-  - Governance
-Templates requiring updates:
-  - ⚠ pending: .specify/templates/plan-template.md
-  - ⚠ pending: .specify/templates/spec-template.md
-  - ⚠ pending: .specify/templates/tasks-template.md
-Follow-up TODOs: None
--->
-
 # Project Constitution
 
 **Project**: AI Tool Box  
@@ -65,6 +48,7 @@ AI Tool Box 是一个前端项目，旨在集成多个主流 AI 工具（ChatGPT
 ### Versioning Policy
 
 遵循语义化版本（Semantic Versioning）：
+
 - **MAJOR**: 向后不兼容的原则变更或移除
 - **MINOR**: 新增原则或重大指导扩展
 - **PATCH**: 澄清、措辞修正、非语义性改进
@@ -74,3 +58,4 @@ AI Tool Box 是一个前端项目，旨在集成多个主流 AI 工具（ChatGPT
 - 所有代码提交前必须符合本规范
 - 定期审查项目是否符合原则要求
 - 发现违反原则时及时修正
+

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import { memo, useMemo, useRef, useCallback } from 'react';
 import { AITool } from '../types/ai-tool';
 import { InputDeliveryState } from '../types/input-delivery';
 import { getInputSelector } from '../utils/inputSelectors';
@@ -13,7 +13,7 @@ interface MultiWebviewGridProps {
   onWebviewRef?: (toolId: string, element: HTMLElement | null) => void;
 }
 
-const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = ({
+const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
   tools,
   selectedToolIds,
   deliveryStates,
@@ -41,8 +41,8 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = ({
     return tools.filter((tool) => selectedToolIds.includes(tool.id));
   }, [tools, selectedToolIds]);
 
-  // 处理 webview 引用
-  const handleWebviewRef = (toolId: string, element: HTMLElement | null) => {
+  // 处理 webview 引用 - 使用 useCallback 优化
+  const handleWebviewRef = useCallback((toolId: string, element: HTMLElement | null) => {
     if (element) {
       webviewRefs.current[toolId] = element;
       console.log(`[MultiWebviewGrid] Webview 引用已设置: ${toolId}`, {
@@ -53,7 +53,7 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = ({
       delete webviewRefs.current[toolId];
       onWebviewRef?.(toolId, null);
     }
-  };
+  }, [onWebviewRef]);
 
   return (
     <div className={styles.grid} style={gridStyle}>
@@ -142,6 +142,8 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = ({
       })}
     </div>
   );
-};
+});
+
+MultiWebviewGrid.displayName = 'MultiWebviewGrid';
 
 export default MultiWebviewGrid;

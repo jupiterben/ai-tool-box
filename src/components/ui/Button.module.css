@@ -1,0 +1,140 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  outline: none;
+  user-select: none;
+  white-space: nowrap;
+  will-change: transform, box-shadow;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 尺寸变体 */
+.button--sm {
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-tight);
+}
+
+.button--md {
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+}
+
+.button--lg {
+  padding: var(--spacing-3) var(--spacing-6);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-normal);
+}
+
+/* 主按钮 - Primary */
+.button--primary {
+  background-color: var(--color-primary-600);
+  color: var(--color-text-inverse);
+}
+
+.button--primary:hover:not(:disabled) {
+  background-color: var(--color-primary-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.button--primary:active:not(:disabled) {
+  background-color: var(--color-primary-800);
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 次要按钮 - Secondary */
+.button--secondary {
+  background-color: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background-color: var(--color-background-hover);
+  border-color: var(--color-border-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.button--secondary:active:not(:disabled) {
+  background-color: var(--color-background-active);
+  transform: translateY(0);
+}
+
+/* 轮廓按钮 - Outline */
+.button--outline {
+  background-color: transparent;
+  color: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+}
+
+.button--outline:hover:not(:disabled) {
+  background-color: var(--color-primary-50);
+  border-color: var(--color-primary-700);
+  transform: translateY(-1px);
+}
+
+.button--outline:active:not(:disabled) {
+  background-color: var(--color-primary-100);
+  transform: translateY(0);
+}
+
+/* 幽灵按钮 - Ghost */
+.button--ghost {
+  background-color: transparent;
+  color: var(--color-text-primary);
+  border-color: transparent;
+}
+
+.button--ghost:hover:not(:disabled) {
+  background-color: var(--color-background-hover);
+  color: var(--color-text-primary);
+}
+
+.button--ghost:active:not(:disabled) {
+  background-color: var(--color-background-active);
+}
+
+/* 危险按钮 - Danger */
+.button--danger {
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
+}
+
+.button--danger:hover:not(:disabled) {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.button--danger:active:not(:disabled) {
+  background-color: #b91c1c;
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 全宽按钮 */
+.button--full-width {
+  width: 100%;
+}
