@@ -5,6 +5,7 @@ import styles from './styles/App.module.css';
 
 // 懒加载组件
 const MultiWebviewTool = lazy(() => import('./components/MultiWebviewTool'));
+const PromptExpander = lazy(() => import('./components/PromptExpander/PromptExpander'));
 
 // 定义工具页面列表
 const TOOL_PAGES: ToolPage[] = [
@@ -13,12 +14,11 @@ const TOOL_PAGES: ToolPage[] = [
     name: '多Webview工具',
     iconName: 'Globe',
   },
-  // 可以在这里添加更多工具页面
-  // {
-  //   id: 'another-tool',
-  //   name: '另一个工具',
-  //   iconName: 'Settings',
-  // },
+  {
+    id: 'prompt-expander',
+    name: 'Prompt拓展工具',
+    iconName: 'Sparkles',
+  },
 ];
 
 // 加载占位符组件
@@ -38,6 +38,12 @@ const App: React.FC = () => {
         return (
           <Suspense fallback={<LoadingPlaceholder />}>
             <MultiWebviewTool />
+          </Suspense>
+        );
+      case 'prompt-expander':
+        return (
+          <Suspense fallback={<LoadingPlaceholder />}>
+            <PromptExpander />
           </Suspense>
         );
       default:

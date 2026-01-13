@@ -1,7 +1,26 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 
 // 暴露受保护的方法给渲染进程
-// 当前不需要暴露任何方法，但保留此文件以备将来使用
 contextBridge.exposeInMainWorld('electronAPI', {
-  // 可以在这里添加需要暴露给渲染进程的 API
+  /**
+   * 调用主进程的IPC处理器
+   */
+  invoke: (channel: string, data?: any) => {
+    // 白名单：只允许特定的channel
+    const validChannels = [
+      'ai:generate-expansion-options',
+      'ai:generate-final-prompt',
+      'storage:save-prompt',
+      'storage:load-prompt-list',
+      'storage:load-prompt',
+      'storage:delete-prompt',
+      'export:save-prompt-file',
+    ];
+    
+    if (validChannels.includes(channel)) {
+      return ipcRenderer.invoke(channel, data);
+    }
+    
+    throw new Error(`Invalid IPC channel: ${channel}`);
+  },
 });

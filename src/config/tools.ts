@@ -11,4 +11,10 @@ export const DEFAULT_TOOLS: AITool[] = [
     name: 'DeepSeek',
     url: 'https://chat.deepseek.com',
   },
+  {
+    id: 'prompt-expander',
+    name: 'Prompt拓展工具',
+    url: '',
+    description: '通过AI辅助迭代拓展生成详细提示词',
+  },
 ];
