@@ -7,6 +7,7 @@ declare namespace JSX {
         style?: React.CSSProperties;
         allowpopups?: string;
         webpreferences?: string;
+        partition?: string;
         ref?: React.Ref<HTMLElement & { src?: string; reload?: () => void }>;
         onDidFinishLoad?: () => void;
         onDidFailLoad?: () => void;

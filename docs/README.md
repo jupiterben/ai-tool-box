@@ -12,4 +12,3 @@ pnpm doc      # Docsify 本地文档服务
 ## 功能
 
 - 多 AI 工具 Webview 集成（ChatGPT、DeepSeek 等）
-- 提示词拓展器（Prompt Expander）

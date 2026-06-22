@@ -4,6 +4,7 @@ import ToolSelector from './ToolSelector';
 import MultiWebviewGrid from './MultiWebviewGrid';
 import { DEFAULT_TOOLS } from '../config/tools';
 import { useWebviewInput } from '../hooks/useWebviewInput';
+import { useProxyRevision } from '../hooks/useProxySettings';
 import styles from './MultiWebviewTool.module.css';
 
 const MultiWebviewTool: React.FC = () => {
@@ -25,6 +26,7 @@ const MultiWebviewTool: React.FC = () => {
   const { deliveryStates, sendInput, retry, clearStates } = useWebviewInput(
     selectedToolIds
   );
+  const proxyRevision = useProxyRevision();
 
   // 处理输入变化
   const handleInputChange = useCallback((value: string) => {
@@ -119,6 +121,7 @@ const MultiWebviewTool: React.FC = () => {
           tools={DEFAULT_TOOLS}
           selectedToolIds={selectedToolIds}
           deliveryStates={deliveryStates}
+          proxyRevision={proxyRevision}
           onRetry={handleRetry}
           onWebviewRef={handleWebviewRef}
         />

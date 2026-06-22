@@ -11,3 +11,11 @@
 
 主页面提供统一的输入框，用户输入问题后，
 将问题发送到 内嵌的ChatGPT、DeepSeek 等页面中进行处理。
+
+
+
+
+
+https://agent.minimaxi.com/
+
+https://chatglm.cn/main/alltoolsdetail?lang=zh

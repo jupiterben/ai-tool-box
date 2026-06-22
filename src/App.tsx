@@ -3,11 +3,9 @@ import MainLayout from './components/MainLayout';
 import { ToolPage } from './components/Sidebar';
 import styles from './styles/App.module.css';
 
-// 懒加载组件
 const MultiWebviewTool = lazy(() => import('./components/MultiWebviewTool'));
-const PromptExpander = lazy(() => import('./components/PromptExpander/PromptExpander'));
+const ProxySettingsPage = lazy(() => import('./components/ProxySettings/ProxySettingsPage'));
 
-// 定义工具页面列表
 const TOOL_PAGES: ToolPage[] = [
   {
     id: 'multi-webview',
@@ -15,13 +13,12 @@ const TOOL_PAGES: ToolPage[] = [
     iconName: 'Globe',
   },
   {
-    id: 'prompt-expander',
-    name: 'Prompt拓展工具',
-    iconName: 'Sparkles',
+    id: 'proxy-settings',
+    name: '网络代理',
+    iconName: 'Settings',
   },
 ];
 
-// 加载占位符组件
 const LoadingPlaceholder: React.FC = () => (
   <div className={styles.emptyPage}>
     <p>加载中...</p>
@@ -31,7 +28,6 @@ const LoadingPlaceholder: React.FC = () => (
 const App: React.FC = () => {
   const [activePageId, setActivePageId] = useState<string>(TOOL_PAGES[0]?.id || '');
 
-  // 渲染当前选中的工具页面
   const renderActivePage = () => {
     switch (activePageId) {
       case 'multi-webview':
@@ -40,10 +36,10 @@ const App: React.FC = () => {
             <MultiWebviewTool />
           </Suspense>
         );
-      case 'prompt-expander':
+      case 'proxy-settings':
         return (
           <Suspense fallback={<LoadingPlaceholder />}>
-            <PromptExpander />
+            <ProxySettingsPage />
           </Suspense>
         );
       default:

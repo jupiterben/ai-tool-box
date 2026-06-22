@@ -1,0 +1,156 @@
+.proxySettings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-secondary, #666);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.toolCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  background: var(--color-surface, #fff);
+}
+
+.toolHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.toolName {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+.toolUrl {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary, #888);
+  word-break: break-all;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.modeOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.modeButton {
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--color-border, #d0d0d0);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.modeButton:hover {
+  border-color: var(--color-primary, #007bff);
+}
+
+.modeButtonActive {
+  border-color: var(--color-primary, #007bff);
+  background: color-mix(in srgb, var(--color-primary, #007bff) 12%, transparent);
+}
+
+.manualFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.manualFields > :first-child {
+  grid-column: span 2;
+}
+
+@media (max-width: 640px) {
+  .manualFields {
+    grid-template-columns: 1fr;
+  }
+
+  .manualFields > :first-child {
+    grid-column: span 1;
+  }
+}
+
+.select {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border, #d0d0d0);
+  border-radius: 6px;
+  background: var(--color-background, #fff);
+  color: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.message {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-success, #198754);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger, #dc3545);
+}
+
+.loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-secondary, #666);
+}

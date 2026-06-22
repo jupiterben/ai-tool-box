@@ -3,12 +3,20 @@ import { AITool } from '../types/ai-tool';
 import { InputDeliveryState } from '../types/input-delivery';
 import { getInputSelector } from '../utils/inputSelectors';
 import { preInjectScript } from './WebviewInputHandler';
+import { getToolPartition } from '../utils/toolPartition';
+import Icon from './ui/Icon';
 import styles from './MultiWebviewGrid.module.css';
+
+type WebviewElement = HTMLElement & {
+  reload?: () => void;
+  src?: string;
+};
 
 interface MultiWebviewGridProps {
   tools: AITool[];
   selectedToolIds: string[];
   deliveryStates: Record<string, InputDeliveryState>;
+  proxyRevision?: number;
   onRetry?: (toolId: string) => void;
   onWebviewRef?: (toolId: string, element: HTMLElement | null) => void;
 }
@@ -17,10 +25,11 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
   tools,
   selectedToolIds,
   deliveryStates,
+  proxyRevision = 0,
   onRetry,
   onWebviewRef,
 }) => {
-  const webviewRefs = useRef<Record<string, HTMLElement>>({});
+  const webviewRefs = useRef<Record<string, WebviewElement>>({});
 
   // 根据选中工具数量计算网格布局
   const gridStyle = useMemo(() => {
@@ -55,6 +64,23 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
     }
   }, [onWebviewRef]);
 
+  const handleRefresh = useCallback((toolId: string, url: string) => {
+    const webview = webviewRefs.current[toolId];
+    if (!webview) {
+      return;
+    }
+
+    if (typeof webview.reload === 'function') {
+      webview.reload();
+      return;
+    }
+
+    webview.src = '';
+    setTimeout(() => {
+      webview.src = url;
+    }, 100);
+  }, []);
+
   return (
     <div className={styles.grid} style={gridStyle}>
       {selectedTools.map((tool) => {
@@ -65,41 +91,53 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
           <div key={tool.id} className={styles.gridItem}>
             <div className={styles.header}>
               <span className={styles.toolName}>{tool.name}</span>
-              {status === 'sending' && (
-                <span className={styles.status} aria-label="发送中">
-                  ⏳
-                </span>
-              )}
-              {status === 'success' && (
-                <span className={styles.status} aria-label="发送成功">
-                  ✓
-                </span>
-              )}
-              {status === 'error' && (
-                <div className={styles.errorContainer}>
-                  <span className={styles.status} aria-label="发送失败">
-                    ✗
+              <div className={styles.headerActions}>
+                {status === 'sending' && (
+                  <span className={styles.status} aria-label="发送中">
+                    ⏳
                   </span>
-                  {onRetry && (
-                    <button
-                      className={styles.retryButton}
-                      onClick={() => onRetry(tool.id)}
-                      aria-label="重试"
-                    >
-                      重试
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+                {status === 'success' && (
+                  <span className={styles.status} aria-label="发送成功">
+                    ✓
+                  </span>
+                )}
+                {status === 'error' && (
+                  <div className={styles.errorContainer}>
+                    <span className={styles.status} aria-label="发送失败">
+                      ✗
+                    </span>
+                    {onRetry && (
+                      <button
+                        className={styles.retryButton}
+                        onClick={() => onRetry(tool.id)}
+                        aria-label="重试"
+                      >
+                        重试
+                      </button>
+                    )}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={styles.refreshButton}
+                  onClick={() => handleRefresh(tool.id, tool.url)}
+                  aria-label={`刷新 ${tool.name}`}
+                  title="刷新页面"
+                >
+                  <Icon name="RefreshCw" size={16} />
+                </button>
+              </div>
             </div>
             <div className={styles.webviewContainer} aria-label={`${tool.name} 内容区域`}>
               <webview
+                key={`${tool.id}-${proxyRevision}`}
                 ref={(el) => {
                   if (el) {
-                    // 确保 webview 元素正确传递并预注入脚本
                     handleWebviewRef(tool.id, el as HTMLElement);
                   }
                 }}
+                partition={getToolPartition(tool.id)}
                 data-tool-id={tool.id}
                 src={tool.url}
                 style={{
