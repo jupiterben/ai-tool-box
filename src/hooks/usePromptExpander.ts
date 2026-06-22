@@ -8,10 +8,7 @@ import { useState, useCallback } from 'react';
 import { useAIService } from './useAIService';
 import type {
   PromptExpanderState,
-  ExpansionOption,
   ExpansionStep,
-  ExpansionHistory,
-  FinalPrompt,
 } from '../types/prompt-expander';
 
 const initialState: PromptExpanderState = {
@@ -117,6 +114,47 @@ export function usePromptExpander() {
       };
     });
   }, []);
+
+  // 生成最终提示词
+  const generateFinalPrompt = useCallback(async () => {
+    const prevState = state;
+    if (!prevState.expansionHistory || !prevState.initialRequirement) {
+      setState(prev => ({
+        ...prev,
+        error: '缺少必要的数据',
+        updatedAt: new Date().toISOString(),
+      }));
+      return;
+    }
+
+    setState(prev => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+      updatedAt: new Date().toISOString(),
+    }));
+
+    try {
+      const prompt = await aiService.generateFinalPrompt(
+        prevState.initialRequirement,
+        prevState.expansionHistory
+      );
+
+      setState(prev => ({
+        ...prev,
+        finalPrompt: prompt,
+        isLoading: false,
+        updatedAt: new Date().toISOString(),
+      }));
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : '生成最终提示词失败',
+        updatedAt: new Date().toISOString(),
+      }));
+    }
+  }, [state, aiService]);
 
   // 确认选择并继续
   const confirmSelection = useCallback(async () => {
@@ -269,47 +307,6 @@ export function usePromptExpander() {
     }
   }, [state, generateFinalPrompt]);
 
-  // 生成最终提示词
-  const generateFinalPrompt = useCallback(async () => {
-    const prevState = state;
-    if (!prevState.expansionHistory || !prevState.initialRequirement) {
-      setState(prev => ({
-        ...prev,
-        error: '缺少必要的数据',
-        updatedAt: new Date().toISOString(),
-      }));
-      return;
-    }
-
-    setState(prev => ({
-      ...prev,
-      isLoading: true,
-      error: null,
-      updatedAt: new Date().toISOString(),
-    }));
-
-    try {
-      const prompt = await aiService.generateFinalPrompt(
-        prevState.initialRequirement,
-        prevState.expansionHistory
-      );
-
-      setState(prev => ({
-        ...prev,
-        finalPrompt: prompt,
-        isLoading: false,
-        updatedAt: new Date().toISOString(),
-      }));
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : '生成最终提示词失败',
-        updatedAt: new Date().toISOString(),
-      }));
-    }
-  }, [state, aiService]);
-
   // 重新生成提示词
   const regeneratePrompt = useCallback(async () => {
     await generateFinalPrompt();
@@ -427,6 +424,8 @@ export function usePromptExpander() {
 
   // 重试
   const retry = useCallback(async () => {
+    const currentState = state;
+
     setState(prev => ({
       ...prev,
       isLoading: true,
@@ -435,13 +434,13 @@ export function usePromptExpander() {
     }));
 
     try {
-      if (prev.currentIteration === 0) {
+      if (currentState.currentIteration === 0) {
         // 重试开始拓展
         await startExpansion();
-      } else if (prev.currentStep && !prev.currentStep.selectedOptionId) {
+      } else if (currentState.currentStep && !currentState.currentStep.selectedOptionId) {
         // 重试生成拓展方向
-        const requirement = prev.initialRequirement;
-        const context = prev.expansionHistory?.steps
+        const requirement = currentState.initialRequirement;
+        const context = currentState.expansionHistory?.steps
           .filter(s => s.selectedOptionId)
           .map(s => {
             const opt = s.options.find(o => o.id === s.selectedOptionId);
@@ -452,11 +451,11 @@ export function usePromptExpander() {
         const options = await aiService.generateExpansionOptions(
           requirement,
           context,
-          prev.currentIteration
+          currentState.currentIteration
         );
 
         const step: ExpansionStep = {
-          iteration: prev.currentIteration,
+          iteration: currentState.currentIteration,
           options,
           selectedOptionId: null,
           selectedAt: null,
@@ -478,7 +477,7 @@ export function usePromptExpander() {
         updatedAt: new Date().toISOString(),
       }));
     }
-  }, [startExpansion, aiService]);
+  }, [state, startExpansion, aiService]);
 
   return {
     state,

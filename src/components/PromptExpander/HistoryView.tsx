@@ -40,7 +40,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
       {expanded && (
         <div className={styles.timeline}>
-          {history.steps.map((step, index) => {
+          {history.steps.map((step, _index) => {
             const selectedOption = step.selectedOptionId
               ? step.options.find(opt => opt.id === step.selectedOptionId)
               : null;

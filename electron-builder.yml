@@ -1,14 +1,50 @@
 appId: com.ai-tool-box.app
 productName: AI Tool Box
+copyright: Copyright © 2026 AI Tool Box
+
 directories:
-  buildResources: build
+  output: ../ai-tool-box-release
+  buildResources: resources
+
 files:
-  - dist/**
-  - electron/**
+  - dist/**/*
+  - dist-electron/**/*
   - package.json
+
+extraMetadata:
+  main: dist-electron/main.mjs
+
 win:
-  target: nsis
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: zip
+      arch:
+        - x64
+  icon: resources/icon.ico
+  signAndEditExecutable: true
+
 mac:
-  target: dmg
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: resources/icon_1024.png
+
 linux:
-  target: AppImage
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  icon: resources/icon.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  differentialPackage: false
+
+publish: null

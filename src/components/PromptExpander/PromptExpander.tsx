@@ -25,7 +25,6 @@ const PromptExpanderContent: React.FC = () => {
     generateFinalPrompt,
     savePrompt,
     exportPrompt,
-    reset,
     clearError,
     retry,
   } = usePromptExpander();

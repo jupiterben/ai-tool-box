@@ -3,32 +3,53 @@
   "version": "1.0.0",
   "description": "AI Tool Box - 集成多个主流 AI 工具的应用",
   "type": "module",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/main.mjs",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "pnpm electron:dev",
+    "build": "vite build",
     "preview": "vite preview",
-    "electron:dev": "vite",
-    "electron:build": "electron-builder",
+    "electron:compile": "node electron/esbuild.mjs",
+    "electron:dev": "pnpm run electron:compile && cross-env ELECTRON_DEV=1 concurrently -k \"vite\" \"wait-on -t 120000 tcp:127.0.0.1:5173 && electron .\"",
+    "electron:dev:debug": "cross-env ELECTRON_SOURCEMAP=1 pnpm run electron:compile && cross-env ELECTRON_DEV=1 ELECTRON_SOURCEMAP=1 concurrently -k \"vite\" \"wait-on -t 120000 tcp:127.0.0.1:5173 && electron --inspect=9230 .\"",
+    "electron:build": "pnpm run build && pnpm run electron:compile && electron-builder",
+    "electron:build:win": "pnpm run build && pnpm run electron:compile && electron-builder --win --x64",
+    "build:exe": "pnpm run build && pnpm run electron:compile && electron-builder --win --x64 --dir",
+    "build:portable": "pnpm run build && pnpm run electron:compile && electron-builder --win portable --x64",
+    "generate:icon": "node scripts/generate-icon.mjs",
+    "doc": "concurrently -k \"node scripts/docsify-sidebar.mjs --watch\" \"npx --yes docsify-cli serve docs\"",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "lucide-react": "^0.562.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "lucide-react": "^1.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "electron-winstaller",
+      "esbuild",
+      "sharp"
+    ]
   },
   "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
+    "@types/node": "^26.0.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@types/react-transition-group": "^4.4.12",
-    "@vitejs/plugin-react": "^5.1.2",
-    "electron": "^39.2.7",
-    "electron-builder": "^26.4.0",
+    "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "10.0.3",
+    "cross-env": "10.0.0",
+    "electron": "41.2.1",
+    "electron-builder": "26.8.1",
+    "esbuild": "0.28.0",
+    "png-to-ico": "^3.0.1",
     "react-transition-group": "^4.4.5",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.1",
-    "vite-plugin-electron": "^0.29.0"
+    "sharp": "^0.35.2",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "wait-on": "9.0.5"
   },
   "author": "",
   "license": "MIT"

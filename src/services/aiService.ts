@@ -4,7 +4,8 @@
  * 使用Node.js原生https模块调用AI API
  */
 
-import { https, RequestOptions } from 'node:https';
+import https from 'node:https';
+import type { RequestOptions } from 'node:https';
 import { URL } from 'node:url';
 import { safeStorage } from 'electron';
 import type {
@@ -22,7 +23,6 @@ const DEFAULT_TIMEOUT = 30000; // 30秒超时
 export class AIService {
   private apiKey: string = '';
   private provider: 'openai' | 'deepseek' = 'deepseek';
-  private readonly storageKey = 'ai-service-api-key';
 
   /**
    * 设置API密钥（使用Electron safeStorage加密存储）
@@ -31,7 +31,7 @@ export class AIService {
     this.apiKey = apiKey;
     try {
       if (safeStorage.isEncryptionAvailable() && apiKey) {
-        const encrypted = safeStorage.encryptString(apiKey);
+        safeStorage.encryptString(apiKey);
         // 存储到本地（这里简化处理，实际应该使用Electron的store）
         // 注意：safeStorage主要用于临时加密，持久化需要使用其他方式
         // 这里先保存到内存，实际项目中应该使用electron-store等
@@ -293,7 +293,7 @@ ${initialRequirement}
 迭代拓展过程：
 `;
 
-    expansionHistory.steps.forEach((step, index) => {
+    expansionHistory.steps.forEach((step, _index) => {
       if (step.selectedOptionId) {
         const selectedOption = step.options.find(opt => opt.id === step.selectedOptionId);
         if (selectedOption) {

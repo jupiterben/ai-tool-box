@@ -36,7 +36,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: join(__dirname, 'preload.js'),
+      preload: join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
       // 优化性能：禁用不必要的功能
@@ -54,11 +54,10 @@ function createWindow() {
     mainWindow?.show();
   });
 
-  // 开发环境加载 Vite 开发服务器，生产环境加载构建后的文件
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-  
+  const isDev = process.env.ELECTRON_DEV === '1' || !app.isPackaged;
+
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.loadURL('http://127.0.0.1:5173');
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(join(__dirname, '../dist/index.html'));
@@ -72,7 +71,7 @@ function createWindow() {
 // 注册IPC处理器
 function registerIpcHandlers() {
   // AI服务：生成拓展方向
-  ipcMain.handle('ai:generate-expansion-options', async (event, request: GenerateExpansionOptionsRequest): Promise<GenerateExpansionOptionsResponse> => {
+  ipcMain.handle('ai:generate-expansion-options', async (_event, request: GenerateExpansionOptionsRequest): Promise<GenerateExpansionOptionsResponse> => {
     try {
       const options = await aiService.generateExpansionOptions(request);
       return { success: true, options };
@@ -85,7 +84,7 @@ function registerIpcHandlers() {
   });
 
   // AI服务：生成最终提示词
-  ipcMain.handle('ai:generate-final-prompt', async (event, request: GenerateFinalPromptRequest): Promise<GenerateFinalPromptResponse> => {
+  ipcMain.handle('ai:generate-final-prompt', async (_event, request: GenerateFinalPromptRequest): Promise<GenerateFinalPromptResponse> => {
     try {
       const prompt = await aiService.generateFinalPrompt(request);
       return { success: true, prompt };
@@ -98,7 +97,7 @@ function registerIpcHandlers() {
   });
 
   // 存储服务：保存提示词
-  ipcMain.handle('storage:save-prompt', async (event, request: SavePromptRequest): Promise<SavePromptResponse> => {
+  ipcMain.handle('storage:save-prompt', async (_event, request: SavePromptRequest): Promise<SavePromptResponse> => {
     try {
       const filePath = await storageService.savePrompt(request.prompt);
       return { success: true, filePath };
@@ -111,7 +110,7 @@ function registerIpcHandlers() {
   });
 
   // 文件导出
-  ipcMain.handle('export:save-prompt-file', async (event, request: ExportPromptRequest): Promise<ExportPromptResponse> => {
+  ipcMain.handle('export:save-prompt-file', async (_event, request: ExportPromptRequest): Promise<ExportPromptResponse> => {
     try {
       const result = await dialog.showSaveDialog(mainWindow!, {
         filters: [

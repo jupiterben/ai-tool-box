@@ -8,10 +8,13 @@ yarn.lock
 dist/
 build/
 out/
+/release/
+../ai-tool-box-release/
 *.tsbuildinfo
 
 # Electron
 dist-electron/
+/resources/icon.*
 *.exe
 *.dmg
 *.AppImage
@@ -61,3 +64,4 @@ coverage/
 ehthumbs.db
 Thumbs.db
 /ref
+/.next

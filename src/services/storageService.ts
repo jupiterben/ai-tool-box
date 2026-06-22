@@ -58,7 +58,7 @@ export class StorageService {
    * 加载提示词
    * TODO: 实现具体逻辑
    */
-  async loadPrompt(id: string): Promise<any> {
+  async loadPrompt(_id: string): Promise<any> {
     // 实现将在后续任务中完成
     throw new Error('Not implemented');
   }
@@ -67,7 +67,7 @@ export class StorageService {
    * 加载提示词列表
    * TODO: 实现具体逻辑
    */
-  async loadPromptList(limit?: number, offset?: number): Promise<any[]> {
+  async loadPromptList(_limit?: number, _offset?: number): Promise<any[]> {
     // 实现将在后续任务中完成
     throw new Error('Not implemented');
   }
@@ -76,7 +76,7 @@ export class StorageService {
    * 删除提示词
    * TODO: 实现具体逻辑
    */
-  async deletePrompt(id: string): Promise<void> {
+  async deletePrompt(_id: string): Promise<void> {
     // 实现将在后续任务中完成
     throw new Error('Not implemented');
   }

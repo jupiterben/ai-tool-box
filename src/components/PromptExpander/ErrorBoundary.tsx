@@ -4,7 +4,7 @@
  * 捕获组件树中的错误并显示友好的错误界面
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '../ui/Button';
 import styles from './ErrorBoundary.module.css';
 
