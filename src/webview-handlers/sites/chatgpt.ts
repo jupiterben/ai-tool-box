@@ -4,7 +4,8 @@ import type { SiteHandlerConfig } from '../types';
 export class ChatGptHandler extends BaseSiteHandler {
   readonly config: SiteHandlerConfig = {
     toolId: 'chatgpt',
-    urlHint: 'openai.com',
+    urlHint: 'chatgpt.com',
+    urlHints: ['chatgpt.com', 'openai.com'],
     inputSelectors: [
       "textarea[placeholder*='Message']",
       "textarea[placeholder*='message']",

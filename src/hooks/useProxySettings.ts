@@ -3,6 +3,8 @@ import { DEFAULT_TOOLS } from '../config/tools';
 import {
   PROXY_SETTINGS_VERSION,
   createDefaultToolProxyConfig,
+  createProxyProfile,
+  type ProxyProfile,
   type ProxySettings,
   type ToolProxyConfig,
 } from '../types/proxy-settings';
@@ -22,7 +24,35 @@ function buildDefaultSettings(): ProxySettings {
     if (!tool.url) continue;
     tools[tool.id] = createDefaultToolProxyConfig(tool.id);
   }
-  return { version: PROXY_SETTINGS_VERSION, tools };
+  return { version: PROXY_SETTINGS_VERSION, profiles: {}, tools };
+}
+
+function validateSettings(settings: ProxySettings): string | null {
+  for (const profile of Object.values(settings.profiles)) {
+    if (!profile.name?.trim()) {
+      return '代理名称不能为空';
+    }
+    if (!profile.host?.trim() || !profile.port?.trim()) {
+      return `代理「${profile.name}」需要填写主机和端口`;
+    }
+  }
+
+  for (const config of Object.values(settings.tools)) {
+    if (config.mode === 'profile') {
+      if (!config.profileId) {
+        const toolName =
+          DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
+        return `${toolName} 需要选择一个代理`;
+      }
+      if (!settings.profiles[config.profileId]) {
+        const toolName =
+          DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
+        return `${toolName} 引用的代理不存在，请重新选择`;
+      }
+    }
+  }
+
+  return null;
 }
 
 export function useProxyRevision(): number {
@@ -74,6 +104,10 @@ export function useProxySettings() {
     void loadSettings();
   }, [loadSettings]);
 
+  const clearSaveFeedback = useCallback(() => {
+    setSaveMessage(null);
+  }, []);
+
   const updateToolConfig = useCallback((toolId: string, patch: Partial<ToolProxyConfig>) => {
     setSettings((prev) => ({
       ...prev,
@@ -86,22 +120,69 @@ export function useProxySettings() {
         },
       },
     }));
-    setSaveMessage(null);
-  }, []);
+    clearSaveFeedback();
+  }, [clearSaveFeedback]);
+
+  const addProfile = useCallback(() => {
+    setSettings((prev) => {
+      const index = Object.keys(prev.profiles).length + 1;
+      const profile = createProxyProfile(`代理 ${index}`);
+      return {
+        ...prev,
+        profiles: {
+          ...prev.profiles,
+          [profile.id]: profile,
+        },
+      };
+    });
+    clearSaveFeedback();
+  }, [clearSaveFeedback]);
+
+  const updateProfile = useCallback((profileId: string, patch: Partial<ProxyProfile>) => {
+    setSettings((prev) => {
+      const existing = prev.profiles[profileId];
+      if (!existing) {
+        return prev;
+      }
+      return {
+        ...prev,
+        profiles: {
+          ...prev.profiles,
+          [profileId]: { ...existing, ...patch, id: profileId },
+        },
+      };
+    });
+    clearSaveFeedback();
+  }, [clearSaveFeedback]);
+
+  const removeProfile = useCallback((profileId: string) => {
+    setSettings((prev) => {
+      const { [profileId]: _removed, ...profiles } = prev.profiles;
+      const tools: Record<string, ToolProxyConfig> = {};
+
+      for (const [toolId, config] of Object.entries(prev.tools)) {
+        if (config.mode === 'profile' && config.profileId === profileId) {
+          tools[toolId] = createDefaultToolProxyConfig(toolId);
+        } else {
+          tools[toolId] = config;
+        }
+      }
+
+      return { ...prev, profiles, tools };
+    });
+    clearSaveFeedback();
+  }, [clearSaveFeedback]);
 
   const saveSettings = useCallback(async () => {
     setIsSaving(true);
     setError(null);
     setSaveMessage(null);
 
-    for (const config of Object.values(settings.tools)) {
-      if (config.mode === 'manual') {
-        if (!config.host?.trim() || !config.port?.trim()) {
-          setError(`${config.toolId} 的自定义代理需要填写主机和端口`);
-          setIsSaving(false);
-          return;
-        }
-      }
+    const validationError = validateSettings(settings);
+    if (validationError) {
+      setError(validationError);
+      setIsSaving(false);
+      return;
     }
 
     try {
@@ -134,6 +215,9 @@ export function useProxySettings() {
     saveMessage,
     loadSettings,
     updateToolConfig,
+    addProfile,
+    updateProfile,
+    removeProfile,
     saveSettings,
   };
 }

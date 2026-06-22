@@ -5,6 +5,7 @@ import {
   type ResponseSummaryDocument,
   type ToolResponseItem,
 } from '../utils/responseSummaryDocument';
+import { getWebContentsIdMap, isWebviewNotFoundError } from '../utils/webviewContentsId';
 
 function getToolName(toolId: string): string {
   return DEFAULT_TOOLS.find((t) => t.id === toolId)?.name ?? toolId;
@@ -61,11 +62,46 @@ async function extractViaRenderer(
   );
 }
 
+async function summarizeWithLlm(
+  question: string,
+  items: ToolResponseItem[]
+): Promise<{ markdown?: string; error?: string; skipped?: boolean }> {
+  if (!window.electronAPI?.summarizeResponses) {
+    return { skipped: true };
+  }
+
+  const settingsResult = await window.electronAPI.getLlmSettings?.();
+  if (!settingsResult?.success || !settingsResult.settings?.enabled) {
+    return { skipped: true };
+  }
+
+  const successful = items.filter((i) => i.success && i.content);
+  if (!successful.length) {
+    return {};
+  }
+
+  const result = await window.electronAPI.summarizeResponses({
+    question,
+    responses: successful.map((item) => ({
+      toolName: item.toolName,
+      content: item.content,
+    })),
+  });
+
+  if (result.success && result.markdown) {
+    return { markdown: result.markdown };
+  }
+
+  return { error: result.error };
+}
+
 export function useResponseCollection() {
   const [isCollecting, setIsCollecting] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const [document, setDocument] = useState<ResponseSummaryDocument | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [summarizeWarning, setSummarizeWarning] = useState<string | null>(null);
 
   const collectAndSummarize = useCallback(
     async (toolIds: string[], webviewElements: Record<string, HTMLElement>, question: string) => {
@@ -75,13 +111,19 @@ export function useResponseCollection() {
       }
 
       setIsCollecting(true);
+      setIsSummarizing(false);
       setError(null);
+      setSummarizeWarning(null);
 
       try {
         let items: ToolResponseItem[] = [];
+        const webContentsIds = getWebContentsIdMap(toolIds, webviewElements);
 
         if (window.electronAPI?.extractWebviewResponses) {
-          const result = await window.electronAPI.extractWebviewResponses({ toolIds });
+          const result = await window.electronAPI.extractWebviewResponses({
+            toolIds,
+            webContentsIds,
+          });
           items = result.responses.map((r) => ({
             toolId: r.toolId,
             toolName: getToolName(r.toolId),
@@ -90,7 +132,23 @@ export function useResponseCollection() {
             success: r.success,
             error: r.error,
           }));
-          if (!result.success && result.error) {
+
+          const failedIds = items
+            .filter((item) => !item.success && isWebviewNotFoundError(item.error))
+            .map((item) => item.toolId);
+
+          if (failedIds.length) {
+            const fallbackItems = await extractViaRenderer(failedIds, webviewElements);
+            items = items.map((item) => {
+              const fallback = fallbackItems.find((f) => f.toolId === item.toolId);
+              if (fallback && (fallback.success || !isWebviewNotFoundError(item.error))) {
+                return fallback;
+              }
+              return item;
+            });
+          }
+
+          if (!items.some((i) => i.success) && result.error) {
             setError(result.error);
           }
         } else {
@@ -102,17 +160,34 @@ export function useResponseCollection() {
           items.find((i) => i.userQuestion)?.userQuestion ||
           '';
 
-        const doc = buildSummaryDocument(resolvedQuestion, items);
+        if (!items.some((i) => i.success)) {
+          const doc = buildSummaryDocument(resolvedQuestion, items);
+          setDocument(doc);
+          setPanelOpen(true);
+          setError('未能从任何平台提取到回复，请等待 AI 回答完成后再试');
+          return;
+        }
+
+        setIsCollecting(false);
+        setIsSummarizing(true);
+
+        const { markdown: llmMarkdown, error: llmError } = await summarizeWithLlm(
+          resolvedQuestion,
+          items
+        );
+
+        if (llmError) {
+          setSummarizeWarning(`${llmError}，已使用本地汇总`);
+        }
+
+        const doc = buildSummaryDocument(resolvedQuestion, items, llmMarkdown);
         setDocument(doc);
         setPanelOpen(true);
-
-        if (!items.some((i) => i.success)) {
-          setError('未能从任何平台提取到回复，请等待 AI 回答完成后再试');
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : '收集回复失败');
       } finally {
         setIsCollecting(false);
+        setIsSummarizing(false);
       }
     },
     []
@@ -123,13 +198,18 @@ export function useResponseCollection() {
   const clearDocument = useCallback(() => {
     setDocument(null);
     setError(null);
+    setSummarizeWarning(null);
   }, []);
 
+  const isBusy = isCollecting || isSummarizing;
+
   return {
-    isCollecting,
+    isCollecting: isBusy,
+    isSummarizing,
     document,
     panelOpen,
     error,
+    summarizeWarning,
     collectAndSummarize,
     closePanel,
     openPanel,

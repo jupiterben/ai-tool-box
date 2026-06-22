@@ -6,6 +6,8 @@ export interface SiteHandlerConfig {
   toolId: string;
   /** 主进程按 URL 查找 webContents 时的域名片段 */
   urlHint: string;
+  /** 多个 URL 片段，用于 redirect 后的站点（如 chatgpt.com / openai.com） */
+  urlHints?: string[];
   inputSelectors: string[];
   inputType: InputType;
   /** 全局发送按钮选择器（逗号分隔传给 querySelector） */

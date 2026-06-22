@@ -107,6 +107,15 @@
   font-size: 12px;
 }
 
+.warning {
+  margin: 8px 14px 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  font-size: 12px;
+}
+
 .content {
   flex: 1;
   overflow: auto;
@@ -144,7 +153,8 @@
 
 .summary,
 .responseBody,
-.markdownPreview {
+.markdownPreview,
+.llmMarkdown {
   margin: 0;
   padding: 10px 12px;
   border-radius: 8px;
@@ -156,6 +166,12 @@
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--color-text);
+}
+
+.llmMarkdown {
+  font-size: 13px;
+  line-height: 1.65;
+  max-height: none;
 }
 
 .responseCard {

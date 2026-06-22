@@ -4,6 +4,9 @@ import { chatgptHandler } from './sites/chatgpt';
 import { chatglmHandler } from './sites/chatglm';
 import { claudeHandler } from './sites/claude';
 import { deepseekHandler } from './sites/deepseek';
+import { doubaoHandler } from './sites/doubao';
+import { geminiHandler } from './sites/gemini';
+import { kimiHandler } from './sites/kimi';
 import { minimaxHandler } from './sites/minimax';
 import { qianwenHandler } from './sites/qianwen';
 import type { WebviewInputSelector } from './types';
@@ -19,6 +22,9 @@ const HANDLERS: Record<string, BaseSiteHandler> = {
   minimax: minimaxHandler,
   chatglm: chatglmHandler,
   claude: claudeHandler,
+  gemini: geminiHandler,
+  kimi: kimiHandler,
+  doubao: doubaoHandler,
 };
 
 export function getSiteHandler(toolId: string): BaseSiteHandler | undefined {
@@ -46,4 +52,7 @@ export {
   minimaxHandler,
   chatglmHandler,
   claudeHandler,
+  geminiHandler,
+  kimiHandler,
+  doubaoHandler,
 };

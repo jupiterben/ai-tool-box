@@ -8,7 +8,9 @@ interface ResponseSummaryPanelProps {
   open: boolean;
   document: ResponseSummaryDocument | null;
   isCollecting: boolean;
+  isSummarizing?: boolean;
   error: string | null;
+  summarizeWarning?: string | null;
   onClose: () => void;
   onCollect: () => void;
   onClear: () => void;
@@ -18,7 +20,9 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
   open,
   document,
   isCollecting,
+  isSummarizing = false,
   error,
+  summarizeWarning,
   onClose,
   onCollect,
   onClear,
@@ -33,6 +37,12 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
   if (!open) {
     return null;
   }
+
+  const statusText = isCollecting
+    ? '正在从各 Webview 提取回复…'
+    : isSummarizing
+      ? '正在调用 LLM 生成智能汇总…'
+      : null;
 
   return (
     <aside className={styles.panel} aria-label="回复汇总面板">
@@ -78,7 +88,7 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
           onClick={onCollect}
           disabled={isCollecting}
         >
-          {isCollecting ? '收集中…' : '收集各平台回复'}
+          {isCollecting ? (isSummarizing ? 'LLM 汇总中…' : '收集中…') : '收集各平台回复'}
         </button>
         {document && (
           <button type="button" className={styles.clearButton} onClick={onClear}>
@@ -93,19 +103,32 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
         </div>
       )}
 
+      {summarizeWarning && (
+        <div className={styles.warning} role="status">
+          {summarizeWarning}
+        </div>
+      )}
+
       <div className={styles.content}>
         {!document && !isCollecting && (
           <p className={styles.placeholder}>
-            向各 AI 发送问题并等待回复后，点击「收集各平台回复」生成汇总文档。
+            向各 AI 发送问题并等待回复后，点击「收集各平台回复」生成 LLM 智能汇总文档。
           </p>
         )}
 
-        {isCollecting && (
-          <p className={styles.placeholder}>正在从各 Webview 提取回复…</p>
+        {statusText && (
+          <p className={styles.placeholder}>{statusText}</p>
         )}
 
-        {document && (
+        {document && !isCollecting && (
           <>
+            {document.llmSummarized && (
+              <section className={styles.section}>
+                <h3 className={styles.sectionTitle}>AI 智能汇总</h3>
+                <pre className={styles.llmMarkdown}>{document.llmMarkdown ?? document.markdown}</pre>
+              </section>
+            )}
+
             {document.question && (
               <section className={styles.section}>
                 <h3 className={styles.sectionTitle}>问题</h3>
@@ -114,12 +137,12 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
             )}
 
             <section className={styles.section}>
-              <h3 className={styles.sectionTitle}>概要</h3>
+              <h3 className={styles.sectionTitle}>收集状态</h3>
               <pre className={styles.summary}>{document.summarySection}</pre>
             </section>
 
             <section className={styles.section}>
-              <h3 className={styles.sectionTitle}>详细回复</h3>
+              <h3 className={styles.sectionTitle}>各平台原文</h3>
               {document.responses.map((item) => (
                 <article key={item.toolId} className={styles.responseCard}>
                   <h4 className={styles.responseTitle}>{item.toolName}</h4>

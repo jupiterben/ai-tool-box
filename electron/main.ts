@@ -9,7 +9,10 @@ import {
 } from './proxyManager';
 import { sendWebviewInput } from './webviewInput';
 import { extractWebviewResponses } from './webviewExtract';
+import { loadLlmSettings, saveLlmSettings } from './llmManager';
+import { summarizeResponses } from './llmService';
 import type { ProxySettings } from '../src/types/proxy-settings';
+import type { LlmSettingsInput, SummarizeResponsesPayload } from '../src/types/llm-settings';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -93,6 +96,41 @@ function registerIpcHandlers() {
         success: false,
         responses: [],
         error: error instanceof Error ? error.message : '提取回复失败',
+      };
+    }
+  });
+
+  ipcMain.handle('llm:get-settings', async () => {
+    try {
+      const settings = await loadLlmSettings();
+      return { success: true, settings };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '读取 LLM 设置失败',
+      };
+    }
+  });
+
+  ipcMain.handle('llm:save-settings', async (_event, input: LlmSettingsInput) => {
+    try {
+      const settings = await saveLlmSettings(input);
+      return { success: true, settings };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '保存 LLM 设置失败',
+      };
+    }
+  });
+
+  ipcMain.handle('llm:summarize-responses', async (_event, payload: SummarizeResponsesPayload) => {
+    try {
+      return await summarizeResponses(payload);
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'LLM 汇总失败',
       };
     }
   });

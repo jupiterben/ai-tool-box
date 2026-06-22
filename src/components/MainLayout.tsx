@@ -1,8 +1,6 @@
 import { ReactNode, memo } from 'react';
-import { CSSTransition } from 'react-transition-group';
 import Sidebar, { ToolPage } from './Sidebar';
 import styles from './MainLayout.module.css';
-import '../styles/transitions.css';
 
 interface MainLayoutProps {
   pages: ToolPage[];
@@ -25,15 +23,7 @@ const MainLayout: React.FC<MainLayoutProps> = memo(({
         onPageChange={onPageChange}
       />
       <main className={styles.content}>
-        <CSSTransition
-          key={activePageId}
-          in={true}
-          timeout={200}
-          classNames="page-transition"
-          unmountOnExit
-        >
-          <div className={styles.pageContent}>{children}</div>
-        </CSSTransition>
+        <div className={styles.pageContainer}>{children}</div>
       </main>
     </div>
   );

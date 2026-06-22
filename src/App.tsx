@@ -1,16 +1,35 @@
-import { useState, Suspense, lazy } from 'react';
+import { useState, Suspense, lazy, useEffect, type ComponentType, type LazyExoticComponent } from 'react';
 import MainLayout from './components/MainLayout';
+import KeepAlivePage from './components/KeepAlivePage';
 import { ToolPage } from './components/Sidebar';
 import styles from './styles/App.module.css';
 
-const MultiWebviewTool = lazy(() => import('./components/MultiWebviewTool'));
-const ProxySettingsPage = lazy(() => import('./components/ProxySettings/ProxySettingsPage'));
+function lazyPage(
+  factory: () => Promise<{ default: ComponentType }>,
+): LazyExoticComponent<ComponentType> {
+  return lazy(factory);
+}
+
+const MultiWebviewTool = lazyPage(
+  () => import('./components/MultiWebviewTool') as Promise<{ default: ComponentType }>,
+);
+const ProxySettingsPage = lazyPage(
+  () => import('./components/ProxySettings/ProxySettingsPage') as Promise<{ default: ComponentType }>,
+);
+const LlmSettingsPage = lazyPage(
+  () => import('./components/LlmSettings/LlmSettingsPage') as Promise<{ default: ComponentType }>,
+);
 
 const TOOL_PAGES: ToolPage[] = [
   {
     id: 'multi-webview',
     name: '多Webview工具',
     iconName: 'Globe',
+  },
+  {
+    id: 'llm-settings',
+    name: 'LLM 设置',
+    iconName: 'Sparkles',
   },
   {
     id: 'proxy-settings',
@@ -27,29 +46,19 @@ const LoadingPlaceholder: React.FC = () => (
 
 const App: React.FC = () => {
   const [activePageId, setActivePageId] = useState<string>(TOOL_PAGES[0]?.id || '');
+  const [visitedPageIds, setVisitedPageIds] = useState<Set<string>>(
+    () => new Set(activePageId ? [activePageId] : []),
+  );
 
-  const renderActivePage = () => {
-    switch (activePageId) {
-      case 'multi-webview':
-        return (
-          <Suspense fallback={<LoadingPlaceholder />}>
-            <MultiWebviewTool />
-          </Suspense>
-        );
-      case 'proxy-settings':
-        return (
-          <Suspense fallback={<LoadingPlaceholder />}>
-            <ProxySettingsPage />
-          </Suspense>
-        );
-      default:
-        return (
-          <div className={styles.emptyPage}>
-            <p>请从侧边栏选择一个工具</p>
-          </div>
-        );
-    }
-  };
+  useEffect(() => {
+    if (!activePageId) return;
+    setVisitedPageIds((prev) => {
+      if (prev.has(activePageId)) return prev;
+      const next = new Set(prev);
+      next.add(activePageId);
+      return next;
+    });
+  }, [activePageId]);
 
   return (
     <MainLayout
@@ -57,7 +66,27 @@ const App: React.FC = () => {
       activePageId={activePageId}
       onPageChange={setActivePageId}
     >
-      {renderActivePage()}
+      {visitedPageIds.has('multi-webview') && (
+        <KeepAlivePage id="multi-webview" active={activePageId === 'multi-webview'}>
+          <Suspense fallback={<LoadingPlaceholder />}>
+            <MultiWebviewTool />
+          </Suspense>
+        </KeepAlivePage>
+      )}
+      {visitedPageIds.has('llm-settings') && (
+        <KeepAlivePage id="llm-settings" active={activePageId === 'llm-settings'}>
+          <Suspense fallback={<LoadingPlaceholder />}>
+            <LlmSettingsPage />
+          </Suspense>
+        </KeepAlivePage>
+      )}
+      {visitedPageIds.has('proxy-settings') && (
+        <KeepAlivePage id="proxy-settings" active={activePageId === 'proxy-settings'}>
+          <Suspense fallback={<LoadingPlaceholder />}>
+            <ProxySettingsPage />
+          </Suspense>
+        </KeepAlivePage>
+      )}
     </MainLayout>
   );
 };

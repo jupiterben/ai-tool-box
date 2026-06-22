@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ElectronWebView } from './ElectronWebView';
 
 interface AIFrameProps {
   url: string;
@@ -116,15 +117,14 @@ const AIFrame: React.FC<AIFrameProps> = ({ url, toolName, onLoad, onError }) => 
 
   // 使用 webview 标签（Electron 特有，可以绕过 X-Frame-Options）
   return (
-    <webview
-      ref={webviewRef as any}
+    <ElectronWebView
+      ref={webviewRef}
       src={url}
       style={{
         width: '100%',
         height: '100%',
         display: 'inline-flex',
       }}
-      allowpopups="true"
       webpreferences="allowRunningInsecureContent=true, javascript=yes"
     />
   );

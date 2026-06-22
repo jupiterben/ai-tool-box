@@ -1,47 +1,127 @@
-.grid {
-  display: grid;
-  gap: var(--spacing-4);
-  padding: var(--spacing-4);
+.tabsRoot {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   width: 100%;
+  min-height: 0;
   background-color: var(--color-background);
   transition: background-color var(--transition-base);
 }
 
-.gridItem {
+.tabBar {
   display: flex;
-  flex-direction: column;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background-color: var(--color-background);
-  min-height: 0;
-  transition: border-color var(--transition-base), background-color var(--transition-base);
-  animation: fadeInScale 0.3s ease-out;
-  will-change: transform, opacity;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-2) var(--spacing-4);
-  background-color: var(--color-background-secondary);
+  gap: var(--spacing-1);
+  flex-shrink: 0;
+  padding: var(--spacing-2) var(--spacing-3) 0;
   border-bottom: 1px solid var(--color-border);
-  transition: background-color var(--transition-base), border-color var(--transition-base);
+  background-color: var(--color-background-secondary);
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
-.toolName {
-  font-weight: var(--font-weight-semibold);
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-base) var(--radius-base) 0 0;
+  background: transparent;
+  color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base);
+}
+
+.tab:hover {
   color: var(--color-text-primary);
+  background-color: var(--color-background);
+}
+
+.tabActive {
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+  border-color: var(--color-border);
+  margin-bottom: -1px;
+  padding-bottom: calc(var(--spacing-2) + 1px);
+}
+
+.tabLabel {
   line-height: var(--line-height-tight);
 }
 
-.headerActions {
+.tabStatus {
+  font-size: var(--font-size-sm);
+  display: inline-flex;
+  align-items: center;
+}
+
+.tabStatus[aria-label='发送中'] {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.tabStatus[aria-label='发送成功'] {
+  color: var(--color-success);
+}
+
+.tabStatus[aria-label='发送失败'] {
+  color: var(--color-error);
+}
+
+.tabBarActions {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
+  margin-left: auto;
+  padding-bottom: var(--spacing-2);
+  flex-shrink: 0;
+}
+
+.tabPanels {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tabPane {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background-color: var(--color-background);
+}
+
+.tabPaneHidden {
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+}
+
+.tabPaneActive {
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.webviewContainer {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
 
 .refreshButton {
@@ -74,36 +154,6 @@
   transform: rotate(-30deg);
 }
 
-.status {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 0.2s ease-out;
-  will-change: opacity;
-}
-
-.status[aria-label="发送中"] {
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.status[aria-label="发送成功"] {
-  color: var(--color-success);
-  animation: slideDown 0.3s ease-out;
-}
-
-.status[aria-label="发送失败"] {
-  color: var(--color-error);
-  animation: slideUp 0.3s ease-out;
-}
-
-.errorContainer {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-
 .retryButton {
   padding: var(--spacing-1) var(--spacing-3);
   background-color: var(--color-primary-600);
@@ -119,19 +169,11 @@
 
 .retryButton:hover {
   background-color: var(--color-primary-700);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
 }
 
 .retryButton:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
-}
-
-.webviewContainer {
-  flex: 1;
-  position: relative;
-  min-height: 0;
 }
 
 .errorMessage {
@@ -141,39 +183,16 @@
   font-size: var(--font-size-sm);
   border-top: 1px solid var(--color-border);
   line-height: var(--line-height-normal);
-  animation: slideUp 0.3s ease-out;
-  will-change: transform, opacity;
-}
-
-/* 响应式设计 */
-@media (max-width: 1024px) {
-  .grid {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: auto !important;
-    gap: var(--spacing-3);
-    padding: var(--spacing-3);
-  }
-  
-  .gridItem {
-    min-height: 400px;
-  }
+  flex-shrink: 0;
 }
 
 @media (max-width: 800px) {
-  .grid {
-    gap: var(--spacing-2);
-    padding: var(--spacing-2);
+  .tabBar {
+    padding: var(--spacing-1) var(--spacing-2) 0;
   }
-  
-  .gridItem {
-    min-height: 300px;
-  }
-  
-  .header {
+
+  .tab {
     padding: var(--spacing-2) var(--spacing-3);
-  }
-  
-  .toolName {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs, 12px);
   }
 }

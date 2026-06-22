@@ -25,9 +25,11 @@ const MultiWebviewTool: React.FC = () => {
 
   const {
     isCollecting,
+    isSummarizing,
     document: summaryDocument,
     panelOpen,
     error: collectError,
+    summarizeWarning,
     collectAndSummarize,
     closePanel,
     clearDocument,
@@ -159,7 +161,9 @@ const MultiWebviewTool: React.FC = () => {
         open={panelOpen}
         document={summaryDocument}
         isCollecting={isCollecting}
+        isSummarizing={isSummarizing}
         error={collectError}
+        summarizeWarning={summarizeWarning}
         onClose={closePanel}
         onCollect={handleCollectResponses}
         onClear={clearDocument}

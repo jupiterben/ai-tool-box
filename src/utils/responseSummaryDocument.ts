@@ -13,12 +13,16 @@ export interface ResponseSummaryDocument {
   question: string;
   markdown: string;
   summarySection: string;
+  /** LLM 生成的智能汇总 Markdown */
+  llmMarkdown?: string;
+  llmSummarized: boolean;
   responses: ToolResponseItem[];
 }
 
 export function buildSummaryDocument(
   question: string,
-  responses: ToolResponseItem[]
+  responses: ToolResponseItem[],
+  llmMarkdown?: string
 ): ResponseSummaryDocument {
   const generatedAt = new Date().toLocaleString('zh-CN');
   const successful = responses.filter((r) => r.success && r.content);
@@ -27,6 +31,10 @@ export function buildSummaryDocument(
   const summaryLines: string[] = [
     `- 共 ${responses.length} 个 AI 工具，${successful.length} 个成功返回回复`,
   ];
+
+  if (llmMarkdown) {
+    summaryLines.push('- 已使用 LLM 生成智能汇总');
+  }
 
   for (const item of successful) {
     const preview = item.content.replace(/\s+/g, ' ').slice(0, 120);
@@ -39,6 +47,26 @@ export function buildSummaryDocument(
 
   const summarySection = summaryLines.join('\n');
 
+  const markdown = llmMarkdown ?? buildFallbackMarkdown(question, generatedAt, summarySection, responses);
+
+  return {
+    title: question ? `AI回复汇总 - ${question.slice(0, 40)}` : 'AI 回复汇总',
+    generatedAt,
+    question,
+    markdown,
+    summarySection,
+    llmMarkdown,
+    llmSummarized: !!llmMarkdown,
+    responses,
+  };
+}
+
+function buildFallbackMarkdown(
+  question: string,
+  generatedAt: string,
+  summarySection: string,
+  responses: ToolResponseItem[]
+): string {
   const bodyParts: string[] = [
     `# AI 回复汇总`,
     ``,
@@ -59,16 +87,7 @@ export function buildSummaryDocument(
     bodyParts.push('');
   }
 
-  const markdown = bodyParts.filter(Boolean).join('\n');
-
-  return {
-    title: question ? `AI回复汇总 - ${question.slice(0, 40)}` : 'AI 回复汇总',
-    generatedAt,
-    question,
-    markdown,
-    summarySection,
-    responses,
-  };
+  return bodyParts.filter(Boolean).join('\n');
 }
 
 export function downloadMarkdownFile(filename: string, content: string): void {

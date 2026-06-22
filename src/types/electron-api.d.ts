@@ -1,9 +1,11 @@
+import type { LlmSettings, LlmSettingsInput, SummarizeResponsesPayload, SummarizeResponsesResult } from './llm-settings';
 import type { ProxySettings } from './proxy-settings';
 
 export interface WebviewSendInputPayload {
   toolId: string;
   partition: string;
   content: string;
+  webContentsId?: number;
 }
 
 export interface WebviewSendInputResult {
@@ -22,6 +24,7 @@ export interface ExtractedToolResponse {
 
 export interface ExtractWebviewResponsesPayload {
   toolIds: string[];
+  webContentsIds?: Record<string, number>;
 }
 
 export interface ExtractWebviewResponsesResult {
@@ -45,6 +48,17 @@ export interface ElectronAPI {
   extractWebviewResponses: (
     payload: ExtractWebviewResponsesPayload
   ) => Promise<ExtractWebviewResponsesResult>;
+  getLlmSettings: () => Promise<{
+    success: boolean;
+    settings?: LlmSettings;
+    error?: string;
+  }>;
+  saveLlmSettings: (input: LlmSettingsInput) => Promise<{
+    success: boolean;
+    settings?: LlmSettings;
+    error?: string;
+  }>;
+  summarizeResponses: (payload: SummarizeResponsesPayload) => Promise<SummarizeResponsesResult>;
 }
 
 declare global {

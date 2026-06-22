@@ -54,11 +54,27 @@ function getExecuteJavaScript(webview: HTMLElement): ((code: string) => Promise<
 
 async function tryNativeWebviewSendViaIpc(
   handler: BaseSiteHandler,
-  inputContent: string
+  inputContent: string,
+  webviewElement: WebviewInputHandlerConfig['webviewElement']
 ): Promise<WebviewInputHandlerResult | null> {
   if (!window.electronAPI?.sendWebviewInput) {
     console.log(`[WebviewInputHandler] ${handler.toolId} IPC sendWebviewInput 不可用`);
     return null;
+  }
+
+  let webContentsId: number | undefined;
+  const w = webviewElement as WebviewInputHandlerConfig['webviewElement'] & {
+    getWebContentsId?: () => number;
+  };
+  if (typeof w.getWebContentsId === 'function') {
+    try {
+      const id = w.getWebContentsId();
+      if (typeof id === 'number' && id > 0) {
+        webContentsId = id;
+      }
+    } catch {
+      // ignore
+    }
   }
 
   console.log(`[WebviewInputHandler] ${handler.toolId} 通过主进程 IPC 发送`);
@@ -66,6 +82,7 @@ async function tryNativeWebviewSendViaIpc(
     toolId: handler.toolId,
     partition: getToolPartition(handler.toolId),
     content: inputContent,
+    webContentsId,
   });
 }
 
@@ -200,7 +217,7 @@ export async function handleWebviewInput(
 
     // 1. 主进程 IPC 原生输入（优先）
     try {
-      const ipcResult = await tryNativeWebviewSendViaIpc(handler, inputContent);
+      const ipcResult = await tryNativeWebviewSendViaIpc(handler, inputContent, webviewElement);
       if (ipcResult?.success) {
         console.log(`[WebviewInputHandler] ${config.toolId} IPC 原生输入发送成功`);
         return ipcResult;

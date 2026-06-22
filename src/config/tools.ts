@@ -4,7 +4,7 @@ export const DEFAULT_TOOLS: AITool[] = [
   {
     id: 'chatgpt',
     name: 'ChatGPT',
-    url: 'https://chat.openai.com',
+    url: 'https://chatgpt.com',
   },
   {
     id: 'deepseek',
@@ -30,5 +30,20 @@ export const DEFAULT_TOOLS: AITool[] = [
     id: 'claude',
     name: 'Claude',
     url: 'https://claude.ai/',
+  },
+  {
+    id: 'gemini',
+    name: 'Gemini',
+    url: 'https://gemini.google.com/app',
+  },
+  {
+    id: 'kimi',
+    name: 'Kimi',
+    url: 'https://www.kimi.com/zh',
+  },
+  {
+    id: 'doubao',
+    name: '豆包',
+    url: 'https://www.doubao.com/chat/',
   },
 ];

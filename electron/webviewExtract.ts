@@ -1,5 +1,6 @@
 import { getSiteHandler } from '../src/webview-handlers/index.js';
-import { findWebContentsByPartition } from './webviewInput.js';
+import { findToolWebContents, getUrlHints } from './webviewLocate.js';
+import { getToolPartition } from '../src/utils/toolPartition.js';
 
 export interface ExtractedToolResponse {
   toolId: string;
@@ -12,6 +13,8 @@ export interface ExtractedToolResponse {
 
 export interface ExtractWebviewResponsesPayload {
   toolIds: string[];
+  /** 渲染进程 webview.getWebContentsId()，优先用于定位 guest webview */
+  webContentsIds?: Record<string, number>;
 }
 
 export interface ExtractWebviewResponsesResult {
@@ -37,8 +40,10 @@ export async function extractWebviewResponses(
       continue;
     }
 
-    const partition = `persist:tool-${toolId}`;
-    const wc = findWebContentsByPartition(partition, handler.config.urlHint);
+    const partition = getToolPartition(toolId);
+    const webContentsId = payload.webContentsIds?.[toolId];
+    const wc = findToolWebContents(partition, webContentsId, getUrlHints(handler.config));
+
     if (!wc) {
       responses.push({
         toolId,
