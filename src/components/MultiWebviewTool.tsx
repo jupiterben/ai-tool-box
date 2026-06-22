@@ -103,19 +103,6 @@ const MultiWebviewTool: React.FC = () => {
 
   return (
     <div className={styles.container} role="main" aria-label="多 Webview 工具">
-      <div className={styles.header} role="region" aria-label="输入和工具选择">
-        <UnifiedInput
-          value={inputValue}
-          onChange={handleInputChange}
-          onSend={handleSend}
-          isSending={isSending}
-        />
-        <ToolSelector
-          tools={DEFAULT_TOOLS}
-          selectedToolIds={selectedToolIds}
-          onSelectionChange={handleSelectionChange}
-        />
-      </div>
       <div className={styles.main} role="region" aria-label="Webview 内容区域">
         <MultiWebviewGrid
           tools={DEFAULT_TOOLS}
@@ -124,6 +111,19 @@ const MultiWebviewTool: React.FC = () => {
           proxyRevision={proxyRevision}
           onRetry={handleRetry}
           onWebviewRef={handleWebviewRef}
+        />
+      </div>
+      <div className={styles.footer} role="region" aria-label="输入和工具选择">
+        <ToolSelector
+          tools={DEFAULT_TOOLS}
+          selectedToolIds={selectedToolIds}
+          onSelectionChange={handleSelectionChange}
+        />
+        <UnifiedInput
+          value={inputValue}
+          onChange={handleInputChange}
+          onSend={handleSend}
+          isSending={isSending}
         />
       </div>
     </div>

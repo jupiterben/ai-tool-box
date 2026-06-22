@@ -1,11 +1,3 @@
-/**
- * Webview 输入框选择器配置类型定义
- */
-
-export interface WebviewInputSelector {
-  toolId: string;
-  selectors: string[];
-  inputType: 'textarea' | 'input' | 'contenteditable';
-  sendButtonSelector?: string;
-  sendMethod: 'click' | 'enter' | 'submit';
-}
+/** @deprecated 请使用 webview-handlers 模块 */
+export type { WebviewInputSelector } from '../webview-handlers/types';
+export { getInputSelector } from '../webview-handlers';

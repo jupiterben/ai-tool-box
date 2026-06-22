@@ -7,6 +7,7 @@ import {
   registerProxyLoginHandler,
   saveProxySettings,
 } from './proxyManager';
+import { sendWebviewInput } from './webviewInput';
 import type { ProxySettings } from '../src/types/proxy-settings';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -68,6 +69,17 @@ function registerIpcHandlers() {
       return {
         success: false,
         error: error instanceof Error ? error.message : '保存代理设置失败',
+      };
+    }
+  });
+
+  ipcMain.handle('webview:send-input', async (_event, payload) => {
+    try {
+      return await sendWebviewInput(payload);
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'webview 输入发送失败',
       };
     }
   });

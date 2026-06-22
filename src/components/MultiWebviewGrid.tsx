@@ -1,7 +1,7 @@
 import { memo, useMemo, useRef, useCallback } from 'react';
 import { AITool } from '../types/ai-tool';
 import { InputDeliveryState } from '../types/input-delivery';
-import { getInputSelector } from '../utils/inputSelectors';
+import { getSiteHandler } from '../webview-handlers';
 import { preInjectScript } from './WebviewInputHandler';
 import { getToolPartition } from '../utils/toolPartition';
 import Icon from './ui/Icon';
@@ -152,19 +152,16 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
                   console.log(`[MultiWebviewGrid] ${tool.name} webview 加载完成`);
                   // 在加载完成后预注入脚本
                   const element = webviewRefs.current[tool.id];
-                  if (element) {
-                    const selector = getInputSelector(tool.id);
-                    if (selector) {
-                      try {
-                        console.log(`[MultiWebviewGrid] ${tool.name} 在 did-finish-load 后预注入脚本`);
-                        await preInjectScript(
-                          element as HTMLElement & { executeJavaScript?: (code: string) => Promise<any> },
-                          selector,
-                          5000
-                        );
-                      } catch (error) {
-                        console.error(`[MultiWebviewGrid] ${tool.name} 预注入脚本失败:`, error);
-                      }
+                  if (element && getSiteHandler(tool.id)) {
+                    try {
+                      console.log(`[MultiWebviewGrid] ${tool.name} 在 did-finish-load 后预注入脚本`);
+                      await preInjectScript(
+                        element as HTMLElement & { executeJavaScript?: (code: string) => Promise<unknown> },
+                        tool.id,
+                        5000
+                      );
+                    } catch (error) {
+                      console.error(`[MultiWebviewGrid] ${tool.name} 预注入脚本失败:`, error);
                     }
                   }
                 }}

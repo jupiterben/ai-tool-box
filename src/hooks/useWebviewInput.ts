@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { InputDeliveryState } from '../types/input-delivery';
-import { getInputSelector } from '../utils/inputSelectors';
+import { getSiteHandler } from '../webview-handlers';
 import { handleWebviewInput, WebviewInputHandlerConfig } from '../components/WebviewInputHandler';
 
 export interface UseWebviewInputReturn {
@@ -73,11 +73,11 @@ export function useWebviewInput(
           isLoading: (webviewElement as any).isLoading,
         });
 
-        const selector = getInputSelector(toolId);
-        if (!selector) {
+        const siteHandler = getSiteHandler(toolId);
+        if (!siteHandler) {
           updateDeliveryState(toolId, {
             status: 'error',
-            errorMessage: '未找到输入框选择器配置',
+            errorMessage: '未找到站点 handler 配置',
             timestamp: Date.now(),
           });
           return;
@@ -85,10 +85,9 @@ export function useWebviewInput(
 
         const config: WebviewInputHandlerConfig = {
           toolId,
-          webviewElement: webviewElement as HTMLElement & { executeJavaScript?: (code: string) => Promise<any> },
+          webviewElement: webviewElement as HTMLElement & { executeJavaScript?: (code: string) => Promise<unknown> },
           inputContent: content,
-          selectors: selector,
-          timeout: 5000, // 增加超时时间，等待 webview 加载
+          timeout: 5000,
         };
 
         try {
@@ -116,11 +115,11 @@ export function useWebviewInput(
 
   const retry = useCallback(
     async (toolId: string, content: string, webviewElement: HTMLElement) => {
-      const selector = getInputSelector(toolId);
-      if (!selector) {
+      const siteHandler = getSiteHandler(toolId);
+      if (!siteHandler) {
         updateDeliveryState(toolId, {
           status: 'error',
-          errorMessage: '未找到输入框选择器配置',
+          errorMessage: '未找到站点 handler 配置',
           timestamp: Date.now(),
         });
         return;
@@ -133,10 +132,9 @@ export function useWebviewInput(
 
       const config: WebviewInputHandlerConfig = {
         toolId,
-        webviewElement: webviewElement as HTMLElement & { executeJavaScript?: (code: string) => Promise<any> },
+        webviewElement: webviewElement as HTMLElement & { executeJavaScript?: (code: string) => Promise<unknown> },
         inputContent: content,
-        selectors: selector,
-        timeout: 5000, // 增加超时时间，等待 webview 加载
+        timeout: 5000,
       };
 
       try {

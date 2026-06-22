@@ -1,12 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ProxySettings } from '../src/types/proxy-settings';
+import type { WebviewSendInputPayload, WebviewSendInputResult } from '../src/types/electron-api';
 
-const PROXY_CHANNELS = ['proxy:get-settings', 'proxy:save-settings'] as const;
+const IPC_CHANNELS = ['proxy:get-settings', 'proxy:save-settings', 'webview:send-input'] as const;
 
-type ProxyChannel = (typeof PROXY_CHANNELS)[number];
+type IpcChannel = (typeof IPC_CHANNELS)[number];
 
-function invoke<T>(channel: ProxyChannel, data?: unknown): Promise<T> {
-  if (!PROXY_CHANNELS.includes(channel)) {
+function invoke<T>(channel: IpcChannel, data?: unknown): Promise<T> {
+  if (!IPC_CHANNELS.includes(channel)) {
     throw new Error(`Invalid IPC channel: ${channel}`);
   }
   return ipcRenderer.invoke(channel, data);
@@ -20,4 +21,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'proxy:save-settings',
       settings
     ),
+  sendWebviewInput: (payload: WebviewSendInputPayload) =>
+    invoke<WebviewSendInputResult>('webview:send-input', payload),
 });

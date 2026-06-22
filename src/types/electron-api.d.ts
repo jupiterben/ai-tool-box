@@ -1,5 +1,16 @@
 import type { ProxySettings } from './proxy-settings';
 
+export interface WebviewSendInputPayload {
+  toolId: string;
+  partition: string;
+  content: string;
+}
+
+export interface WebviewSendInputResult {
+  success: boolean;
+  error?: string;
+}
+
 export interface ElectronAPI {
   getProxySettings: () => Promise<{
     success: boolean;
@@ -11,6 +22,7 @@ export interface ElectronAPI {
     settings?: ProxySettings;
     error?: string;
   }>;
+  sendWebviewInput: (payload: WebviewSendInputPayload) => Promise<WebviewSendInputResult>;
 }
 
 declare global {
