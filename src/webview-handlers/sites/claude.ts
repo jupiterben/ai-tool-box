@@ -20,6 +20,13 @@ export class ClaudeHandler extends BaseSiteHandler {
       "button[type='submit']",
     ],
     sendMethod: 'click',
+    responseSelectors: [
+      '.font-claude-response',
+      '[data-is-streaming]',
+      '[data-testid="assistant-message"]',
+      '[class*="assistant"]',
+    ],
+    userMessageSelectors: ['[data-testid="user-message"]', '.font-user-message'],
   };
 }
 

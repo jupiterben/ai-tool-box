@@ -27,6 +27,14 @@ export class QianwenHandler extends BaseSiteHandler {
     ],
     sendDisabledClasses: ['ant-sender-actions-btn-disabled'],
     sendMethod: 'enter',
+    responseSelectors: [
+      '.ant-bubble-content',
+      '[class*="assistant"]',
+      '[class*="Assistant"]',
+      '.ds-markdown',
+      '[data-role="assistant"]',
+    ],
+    userMessageSelectors: ['[class*="user"]', '[class*="User"]', '[data-role="user"]'],
   };
 }
 

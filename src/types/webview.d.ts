@@ -9,8 +9,6 @@ declare namespace JSX {
         webpreferences?: string;
         partition?: string;
         ref?: React.Ref<HTMLElement & { src?: string; reload?: () => void }>;
-        onDidFinishLoad?: () => void;
-        onDidFailLoad?: () => void;
       },
       HTMLElement & { src?: string; reload?: () => void }
     >;

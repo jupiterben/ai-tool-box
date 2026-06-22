@@ -1,8 +1,18 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ProxySettings } from '../src/types/proxy-settings';
-import type { WebviewSendInputPayload, WebviewSendInputResult } from '../src/types/electron-api';
+import type {
+  ExtractWebviewResponsesPayload,
+  ExtractWebviewResponsesResult,
+  WebviewSendInputPayload,
+  WebviewSendInputResult,
+} from '../src/types/electron-api';
 
-const IPC_CHANNELS = ['proxy:get-settings', 'proxy:save-settings', 'webview:send-input'] as const;
+const IPC_CHANNELS = [
+  'proxy:get-settings',
+  'proxy:save-settings',
+  'webview:send-input',
+  'webview:extract-responses',
+] as const;
 
 type IpcChannel = (typeof IPC_CHANNELS)[number];
 
@@ -23,4 +33,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ),
   sendWebviewInput: (payload: WebviewSendInputPayload) =>
     invoke<WebviewSendInputResult>('webview:send-input', payload),
+  extractWebviewResponses: (payload: ExtractWebviewResponsesPayload) =>
+    invoke<ExtractWebviewResponsesResult>('webview:extract-responses', payload),
 });

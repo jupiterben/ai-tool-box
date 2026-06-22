@@ -23,6 +23,13 @@ export class MinimaxHandler extends BaseSiteHandler {
       '[aria-label*="发送"]',
     ],
     sendMethod: 'click',
+    responseSelectors: [
+      '.markdown',
+      '[class*="assistant"]',
+      '[class*="Assistant"]',
+      '[class*="message-content"]',
+    ],
+    userMessageSelectors: ['[class*="user"]', '[class*="User"]'],
   };
 }
 

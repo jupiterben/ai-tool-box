@@ -10,6 +10,8 @@ import styles from './MultiWebviewGrid.module.css';
 type WebviewElement = HTMLElement & {
   reload?: () => void;
   src?: string;
+  addEventListener?: (type: string, listener: () => void) => void;
+  removeEventListener?: (type: string, listener: () => void) => void;
 };
 
 interface MultiWebviewGridProps {
@@ -30,6 +32,7 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
   onWebviewRef,
 }) => {
   const webviewRefs = useRef<Record<string, WebviewElement>>({});
+  const listenerCleanups = useRef<Record<string, () => void>>({});
 
   // 根据选中工具数量计算网格布局
   const gridStyle = useMemo(() => {
@@ -51,13 +54,39 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
   }, [tools, selectedToolIds]);
 
   // 处理 webview 引用 - 使用 useCallback 优化
-  const handleWebviewRef = useCallback((toolId: string, element: HTMLElement | null) => {
+  const handleWebviewRef = useCallback((toolId: string, toolName: string, element: HTMLElement | null) => {
+    listenerCleanups.current[toolId]?.();
+    delete listenerCleanups.current[toolId];
+
     if (element) {
-      webviewRefs.current[toolId] = element;
+      const webview = element as WebviewElement;
+      webviewRefs.current[toolId] = webview;
       console.log(`[MultiWebviewGrid] Webview 引用已设置: ${toolId}`, {
         hasExecuteJavaScript: typeof (element as any).executeJavaScript === 'function',
       });
       onWebviewRef?.(toolId, element);
+
+      const onLoad = async () => {
+        console.log(`[MultiWebviewGrid] ${toolName} webview 加载完成`);
+        const el = webviewRefs.current[toolId];
+        if (el && getSiteHandler(toolId)) {
+          try {
+            console.log(`[MultiWebviewGrid] ${toolName} 在 did-finish-load 后预注入脚本`);
+            await preInjectScript(
+              el as HTMLElement & { executeJavaScript?: (code: string) => Promise<unknown> },
+              toolId,
+              5000
+            );
+          } catch (error) {
+            console.error(`[MultiWebviewGrid] ${toolName} 预注入脚本失败:`, error);
+          }
+        }
+      };
+
+      webview.addEventListener?.('did-finish-load', onLoad);
+      listenerCleanups.current[toolId] = () => {
+        webview.removeEventListener?.('did-finish-load', onLoad);
+      };
     } else {
       delete webviewRefs.current[toolId];
       onWebviewRef?.(toolId, null);
@@ -132,11 +161,7 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
             <div className={styles.webviewContainer} aria-label={`${tool.name} 内容区域`}>
               <webview
                 key={`${tool.id}-${proxyRevision}`}
-                ref={(el) => {
-                  if (el) {
-                    handleWebviewRef(tool.id, el as HTMLElement);
-                  }
-                }}
+                ref={(el) => handleWebviewRef(tool.id, tool.name, el as HTMLElement | null)}
                 partition={getToolPartition(tool.id)}
                 data-tool-id={tool.id}
                 src={tool.url}
@@ -148,23 +173,6 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
                 allowpopups="true"
                 webpreferences="allowRunningInsecureContent=true, javascript=yes"
                 aria-label={`${tool.name} Webview`}
-                onDidFinishLoad={async () => {
-                  console.log(`[MultiWebviewGrid] ${tool.name} webview 加载完成`);
-                  // 在加载完成后预注入脚本
-                  const element = webviewRefs.current[tool.id];
-                  if (element && getSiteHandler(tool.id)) {
-                    try {
-                      console.log(`[MultiWebviewGrid] ${tool.name} 在 did-finish-load 后预注入脚本`);
-                      await preInjectScript(
-                        element as HTMLElement & { executeJavaScript?: (code: string) => Promise<unknown> },
-                        tool.id,
-                        5000
-                      );
-                    } catch (error) {
-                      console.error(`[MultiWebviewGrid] ${tool.name} 预注入脚本失败:`, error);
-                    }
-                  }
-                }}
               />
             </div>
             {deliveryState?.status === 'error' && deliveryState.errorMessage && (

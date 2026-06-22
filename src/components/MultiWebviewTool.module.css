@@ -1,11 +1,20 @@
 .container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background-color: var(--color-background);
   transition: background-color var(--transition-base);
+}
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .footer {
@@ -15,6 +24,60 @@
   background-color: var(--color-background);
   border-top: 1px solid var(--color-border);
   transition: background-color var(--transition-base), border-color var(--transition-base);
+}
+
+.footerToolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 0;
+  flex-wrap: wrap;
+}
+
+.collectToolbarButton,
+.panelToggleButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color var(--transition-base), border-color var(--transition-base), color var(--transition-base);
+  white-space: nowrap;
+}
+
+.collectToolbarButton {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+.collectToolbarButton:hover:not(:disabled) {
+  background-color: var(--color-surface-hover);
+}
+
+.collectToolbarButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.panelToggleButton {
+  margin-left: auto;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.panelToggleButton:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.panelToggleActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: rgba(59, 130, 246, 0.08);
 }
 
 .main {

@@ -24,6 +24,13 @@ export class DeepSeekHandler extends BaseSiteHandler {
       "button[type='submit']",
     ],
     sendMethod: 'click',
+    responseSelectors: [
+      '[data-message-author-role="assistant"]',
+      '.ds-markdown',
+      '[class*="AssistantMessage"]',
+      '[class*="markdown-body"]',
+    ],
+    userMessageSelectors: ['[data-message-author-role="user"]', '.user-message'],
   };
 
   protected buildFindSendButtonNearInputBody(): string {

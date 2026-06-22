@@ -8,6 +8,7 @@ import {
   saveProxySettings,
 } from './proxyManager';
 import { sendWebviewInput } from './webviewInput';
+import { extractWebviewResponses } from './webviewExtract';
 import type { ProxySettings } from '../src/types/proxy-settings';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -80,6 +81,18 @@ function registerIpcHandlers() {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'webview 输入发送失败',
+      };
+    }
+  });
+
+  ipcMain.handle('webview:extract-responses', async (_event, payload) => {
+    try {
+      return await extractWebviewResponses(payload);
+    } catch (error) {
+      return {
+        success: false,
+        responses: [],
+        error: error instanceof Error ? error.message : '提取回复失败',
       };
     }
   });

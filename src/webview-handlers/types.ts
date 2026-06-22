@@ -15,6 +15,10 @@ export interface SiteHandlerConfig {
   nearInputSendSelectors?: string[];
   /** 发送按钮处于禁用状态时匹配的 class（如 ant-sender-actions-btn-disabled） */
   sendDisabledClasses?: string[];
+  /** AI 回复消息的 DOM 选择器（按优先级，取最后一个匹配节点） */
+  responseSelectors?: string[];
+  /** 用户消息的 DOM 选择器（可选，用于汇总文档上下文） */
+  userMessageSelectors?: string[];
 }
 
 /** 与旧版 inputSelectors 兼容 */

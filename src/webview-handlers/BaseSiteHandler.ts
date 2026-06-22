@@ -4,6 +4,7 @@ import {
   buildInjectScript,
   sendButtonSelectorString,
 } from './browserRuntime';
+import { buildExtractResponsesScript } from './responseRuntime';
 import type { SiteHandlerConfig, WebviewInputSelector } from './types';
 
 export const HANDLER_VERSION = 5;
@@ -26,6 +27,10 @@ export abstract class BaseSiteHandler {
 
   buildInjectScript(): string {
     return buildInjectScript(this.config, this.buildFindSendButtonNearInputBody(), HANDLER_VERSION);
+  }
+
+  buildExtractResponsesScript(): string {
+    return buildExtractResponsesScript(this.config);
   }
 
   /** 兼容旧 API */

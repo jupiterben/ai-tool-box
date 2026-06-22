@@ -21,6 +21,13 @@ export class ChatGlmHandler extends BaseSiteHandler {
       '[aria-label*="Send"]',
     ],
     sendMethod: 'enter',
+    responseSelectors: [
+      '.markdown-body',
+      '[class*="answer"]',
+      '[class*="assistant"]',
+      '[class*="Assistant"]',
+    ],
+    userMessageSelectors: ['[class*="question"]', '[class*="user"]'],
   };
 }
 

@@ -17,6 +17,13 @@ export class ChatGptHandler extends BaseSiteHandler {
     inputType: 'textarea',
     sendButtonSelectors: ["button[type='submit']"],
     sendMethod: 'click',
+    responseSelectors: [
+      '[data-message-author-role="assistant"]',
+      '.markdown.prose',
+      '[data-testid*="assistant"]',
+      '.agent-turn',
+    ],
+    userMessageSelectors: ['[data-message-author-role="user"]', '[data-testid="user-message"]'],
   };
 }
 
