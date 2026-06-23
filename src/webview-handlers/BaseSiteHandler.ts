@@ -2,12 +2,13 @@ import {
   buildBrowserRuntime,
   buildDefaultNearInputSearch,
   buildInjectScript,
+  type InjectScriptOverrides,
   sendButtonSelectorString,
 } from './browserRuntime';
 import { buildExtractResponsesScript } from './responseRuntime';
 import type { SiteHandlerConfig, WebviewInputSelector } from './types';
 
-export const HANDLER_VERSION = 5;
+export const HANDLER_VERSION = 11;
 
 export abstract class BaseSiteHandler {
   abstract readonly config: SiteHandlerConfig;
@@ -25,8 +26,18 @@ export abstract class BaseSiteHandler {
     return buildBrowserRuntime(this.config, this.buildFindSendButtonNearInputBody());
   }
 
+  /** 子类可覆写：自定义填词/发送逻辑（如千问 Ant Design X） */
+  protected buildInjectOverrides(): InjectScriptOverrides | undefined {
+    return undefined;
+  }
+
   buildInjectScript(): string {
-    return buildInjectScript(this.config, this.buildFindSendButtonNearInputBody(), HANDLER_VERSION);
+    return buildInjectScript(
+      this.config,
+      this.buildFindSendButtonNearInputBody(),
+      HANDLER_VERSION,
+      this.buildInjectOverrides()
+    );
   }
 
   buildExtractResponsesScript(): string {

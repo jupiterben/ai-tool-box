@@ -87,7 +87,7 @@ export function useWebviewInput(
           toolId,
           webviewElement: webviewElement as HTMLElement & { executeJavaScript?: (code: string) => Promise<unknown> },
           inputContent: content,
-          timeout: 5000,
+          timeout: 15000,
         };
 
         try {
@@ -134,7 +134,7 @@ export function useWebviewInput(
         toolId,
         webviewElement: webviewElement as HTMLElement & { executeJavaScript?: (code: string) => Promise<unknown> },
         inputContent: content,
-        timeout: 5000,
+        timeout: 15000,
       };
 
       try {

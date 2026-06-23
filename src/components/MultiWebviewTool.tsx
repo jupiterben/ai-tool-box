@@ -7,6 +7,7 @@ import { DEFAULT_TOOLS } from '../config/tools';
 import { useWebviewInput } from '../hooks/useWebviewInput';
 import { useResponseCollection } from '../hooks/useResponseCollection';
 import { useProxyRevision } from '../hooks/useProxySettings';
+import { useSelectedTools } from '../hooks/useSelectedTools';
 import Icon from './ui/Icon';
 import styles from './MultiWebviewTool.module.css';
 
@@ -14,8 +15,8 @@ const MultiWebviewTool: React.FC = () => {
   const [inputValue, setInputValue] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
 
-  const defaultSelectedIds = useMemo(() => DEFAULT_TOOLS.map((tool) => tool.id), []);
-  const [selectedToolIds, setSelectedToolIds] = useState<string[]>(defaultSelectedIds);
+  const allToolIds = useMemo(() => DEFAULT_TOOLS.map((tool) => tool.id), []);
+  const { selectedToolIds, setSelectedToolIds } = useSelectedTools(allToolIds);
 
   const webviewElementsRef = useRef<Record<string, HTMLElement>>({});
   const [inputHistory, setInputHistory] = useState<string[]>([]);

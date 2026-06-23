@@ -9,7 +9,7 @@ import {
 } from '../src/types/llm-settings';
 import { getLlmApiKey, loadLlmSettings } from './llmManager';
 
-const REQUEST_TIMEOUT_MS = 60_000;
+const REQUEST_TIMEOUT_MS = 180_000;
 
 function resolveApiUrl(settings: LlmSettings): string {
   if (settings.provider === 'custom') {
@@ -38,8 +38,7 @@ function buildSummarizePrompt(payload: SummarizeResponsesPayload): string {
 1. 使用中文
 2. 包含「问题」「综合摘要」「共识与差异」「各平台要点对比」「推荐结论」等章节
 3. 综合摘要要提炼各平台的共同观点与分歧点
-4. 在文末附上「各平台原文」章节，保留各平台完整回复（可适当排版）
-5. 只输出 Markdown，不要包裹在代码块中
+4. 只输出 Markdown，不要包裹在代码块中（各平台原文会单独展示，无需重复输出）
 
 ## 用户问题
 
@@ -48,6 +47,34 @@ ${payload.question || '（未提供明确问题，请根据回复内容推断）
 ## 各平台回复
 
 ${responseBlocks}`;
+}
+
+function buildChatRequestBody(settings: LlmSettings, prompt: string): Record<string, unknown> {
+  const messages = [
+    {
+      role: 'system',
+      content:
+        '你是专业的 AI 回复分析助手，擅长对比多个 AI 的回答并生成结构化的 Markdown 汇总。',
+    },
+    { role: 'user', content: prompt },
+  ];
+
+  if (settings.provider === 'minimax') {
+    return {
+      model: settings.model,
+      temperature: settings.temperature,
+      max_completion_tokens: settings.maxTokens,
+      thinking: { type: 'disabled' },
+      messages,
+    };
+  }
+
+  return {
+    model: settings.model,
+    temperature: settings.temperature,
+    max_tokens: settings.maxTokens,
+    messages,
+  };
 }
 
 function extractAssistantContent(data: unknown): string {
@@ -139,19 +166,11 @@ export async function summarizeResponses(
     const apiUrl = resolveApiUrl(settings);
     const prompt = buildSummarizePrompt(payload);
 
-    const response = await postJson(apiUrl, apiKey, {
-      model: settings.model,
-      temperature: settings.temperature,
-      max_tokens: settings.maxTokens,
-      messages: [
-        {
-          role: 'system',
-          content:
-            '你是专业的 AI 回复分析助手，擅长对比多个 AI 的回答并生成结构化的 Markdown 汇总。',
-        },
-        { role: 'user', content: prompt },
-      ],
-    });
+    const response = await postJson(
+      apiUrl,
+      apiKey,
+      buildChatRequestBody(settings, prompt)
+    );
 
     const markdown = extractAssistantContent(response);
     return { success: true, markdown };

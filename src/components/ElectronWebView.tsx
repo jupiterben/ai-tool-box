@@ -5,8 +5,8 @@ export type ElectronWebViewElement = HTMLElement & {
   reload?: () => void;
   executeJavaScript?: (code: string) => Promise<unknown>;
   isLoading?: boolean;
-  addEventListener?: (type: string, listener: () => void) => void;
-  removeEventListener?: (type: string, listener: () => void) => void;
+  addEventListener?: (type: string, listener: EventListener) => void;
+  removeEventListener?: (type: string, listener: EventListener) => void;
 };
 
 export interface ElectronWebViewProps {

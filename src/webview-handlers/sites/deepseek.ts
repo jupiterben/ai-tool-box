@@ -6,6 +6,7 @@ export class DeepSeekHandler extends BaseSiteHandler {
   readonly config: SiteHandlerConfig = {
     toolId: 'deepseek',
     urlHint: 'deepseek.com',
+    urlHints: ['deepseek.com', 'chat.deepseek.com'],
     inputSelectors: [
       '#chat-input',
       'textarea[name="search"]',

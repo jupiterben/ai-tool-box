@@ -23,16 +23,19 @@ export class KimiHandler extends BaseSiteHandler {
     ],
     sendMethod: 'enter',
     responseSelectors: [
-      '.markdown-body',
-      '[class*="assistant-message"]',
-      '[class*="bot-message"]',
-      '[data-role="assistant"]',
-      '[class*="message-content"]',
+      '.chat-content-list .chat-content-item-assistant .markdown-body',
+      '.chat-content-list .chat-content-item-assistant',
+      '.segment-assistant .markdown-body',
+      '.segment-assistant',
+      '.message-list .chat-content-item-assistant',
+      '.chat-content-list .segment-assistant',
+      '[class*="markdown"]:not([class*="user-content"])',
     ],
     userMessageSelectors: [
-      '[class*="user-message"]',
-      '[data-role="user"]',
-      '[class*="human-message"]',
+      '.chat-content-list .chat-content-item-user',
+      '.segment-user',
+      '[class*="user-content"]',
+      '.chat-content-list .chat-content-item:not(.chat-content-item-assistant)',
     ],
   };
 }

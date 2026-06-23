@@ -41,6 +41,15 @@ export const DEEPSEEK_NEAR_INPUT_SEARCH = `
   return null;
 `;
 
+export interface InjectScriptOverrides {
+  /** 替换默认 __fillInput 函数体（含 function 声明） */
+  fillInputFunction?: string;
+  /** 替换填词后的发送逻辑（不含 sendMethod 分支） */
+  sendAfterFillBody?: string;
+  /** 注入到 runtime 之后的额外脚本（如千问原生发送辅助函数） */
+  extraInjectRuntime?: string;
+}
+
 export function buildBrowserRuntime(
   config: SiteHandlerConfig,
   findSendButtonNearInputBody: string
@@ -48,6 +57,10 @@ export function buildBrowserRuntime(
   const disabledClasses = json(config.sendDisabledClasses ?? ['ant-sender-actions-btn-disabled']);
   const inputSelectors = json(config.inputSelectors);
   const sendSelectorStr = json(sendButtonSelectorString(config));
+  const preferNear = config.preferNearInputSendButton === true;
+  const findSendButtonBody = preferNear
+    ? 'return __findSendButtonNearInput(inputEl) || __findSendButtonGlobal();'
+    : 'return __findSendButtonGlobal() || __findSendButtonNearInput(inputEl);';
 
   return `
     var __SITE_INPUT_SELECTORS__ = ${inputSelectors};
@@ -93,7 +106,7 @@ export function buildBrowserRuntime(
     }
 
     function __findSendButton(inputEl) {
-      return __findSendButtonGlobal() || __findSendButtonNearInput(inputEl);
+      ${findSendButtonBody}
     }
 
     function __focusInput() {
@@ -135,51 +148,15 @@ export function buildBrowserRuntime(
 export function buildInjectScript(
   config: SiteHandlerConfig,
   findSendButtonNearInputBody: string,
-  version: number
+  version: number,
+  overrides?: InjectScriptOverrides
 ): string {
   const runtime = buildBrowserRuntime(config, findSendButtonNearInputBody);
   const inputType = json(config.inputType);
   const sendMethod = json(config.sendMethod);
+  const sendButtonWaitMs = config.sendButtonWaitMs ?? 2000;
 
-  return `
-    (function() {
-      var HANDLER_VERSION = ${version};
-      var SITE_ID = ${json(config.toolId)};
-      if (window.__inputHandlerInjected__ && window.__inputHandlerVersion__ === HANDLER_VERSION && window.__inputHandlerSiteId__ === SITE_ID) {
-        return { success: true, message: '脚本已存在' };
-      }
-
-      ${runtime}
-
-      function __clickElement(el) {
-        if (!el) return;
-        ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(function(type) {
-          el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
-        });
-      }
-
-      function __triggerEnter(inputEl) {
-        var opts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
-        inputEl.dispatchEvent(new KeyboardEvent('keydown', opts));
-        inputEl.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, charCode: 13, bubbles: true, cancelable: true }));
-        inputEl.dispatchEvent(new KeyboardEvent('keyup', opts));
-        var form = inputEl.closest('form');
-        if (form && typeof form.requestSubmit === 'function') {
-          try { form.requestSubmit(); } catch (e) {}
-        }
-      }
-
-      async function __waitForSendButtonReady(btn, inputEl, maxMs) {
-        var start = Date.now();
-        var current = btn;
-        while (Date.now() - start < maxMs) {
-          if (__isSendReady(current)) return current;
-          await new Promise(function(r) { setTimeout(r, 100); });
-          current = __findSendButton(inputEl) || current;
-        }
-        return __isSendReady(current) ? current : null;
-      }
-
+  const defaultFillInput = `
       function __fillInput(inputElement, content, configuredType) {
         var tag = inputElement.tagName;
         var effectiveType = tag === 'TEXTAREA' ? 'textarea'
@@ -222,7 +199,73 @@ export function buildInjectScript(
           }
           inputElement.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: content }));
         }
+      }`;
+
+  const defaultSendAfterFill = `
+          var sendMethod = ${sendMethod};
+          if (sendMethod === 'click') {
+            var sendButton = __findSendButton(inputElement);
+            sendButton = await __waitForSendButtonReady(sendButton, inputElement, ${sendButtonWaitMs});
+            if (sendButton) {
+              __clickElement(sendButton);
+            } else {
+              __triggerEnter(inputElement);
+            }
+          } else if (sendMethod === 'enter') {
+            __triggerEnter(inputElement);
+          } else if (sendMethod === 'submit') {
+            var form = inputElement.closest('form');
+            if (form && typeof form.requestSubmit === 'function') form.requestSubmit();
+            else if (form) form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            else __triggerEnter(inputElement);
+          }`;
+
+  const fillInputBlock = overrides?.fillInputFunction ?? defaultFillInput;
+  const sendAfterFillBlock = overrides?.sendAfterFillBody ?? defaultSendAfterFill;
+  const extraRuntime = overrides?.extraInjectRuntime ?? '';
+
+  return `
+    (function() {
+      var HANDLER_VERSION = ${version};
+      var SITE_ID = ${json(config.toolId)};
+      if (window.__inputHandlerInjected__ && window.__inputHandlerVersion__ === HANDLER_VERSION && window.__inputHandlerSiteId__ === SITE_ID) {
+        return { success: true, message: '脚本已存在' };
       }
+
+      ${runtime}
+
+      ${extraRuntime}
+
+      function __clickElement(el) {
+        if (!el) return;
+        ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(function(type) {
+          el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+        });
+      }
+
+      function __triggerEnter(inputEl) {
+        var opts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
+        inputEl.dispatchEvent(new KeyboardEvent('keydown', opts));
+        inputEl.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, charCode: 13, bubbles: true, cancelable: true }));
+        inputEl.dispatchEvent(new KeyboardEvent('keyup', opts));
+        var form = inputEl.closest('form');
+        if (form && typeof form.requestSubmit === 'function') {
+          try { form.requestSubmit(); } catch (e) {}
+        }
+      }
+
+      async function __waitForSendButtonReady(btn, inputEl, maxMs) {
+        var start = Date.now();
+        var current = btn;
+        while (Date.now() - start < maxMs) {
+          if (__isSendReady(current)) return current;
+          await new Promise(function(r) { setTimeout(r, 100); });
+          current = __findSendButton(inputEl) || current;
+        }
+        return __isSendReady(current) ? current : null;
+      }
+
+      ${fillInputBlock}
 
       window.__injectInput__ = async function(content) {
         try {
@@ -250,23 +293,7 @@ export function buildInjectScript(
           __fillInput(inputElement, content, ${inputType});
           await new Promise(function(r) { setTimeout(r, 300); });
 
-          var sendMethod = ${sendMethod};
-          if (sendMethod === 'click') {
-            var sendButton = __findSendButton(inputElement);
-            sendButton = await __waitForSendButtonReady(sendButton, inputElement, 2000);
-            if (sendButton) {
-              __clickElement(sendButton);
-            } else {
-              __triggerEnter(inputElement);
-            }
-          } else if (sendMethod === 'enter') {
-            __triggerEnter(inputElement);
-          } else if (sendMethod === 'submit') {
-            var form = inputElement.closest('form');
-            if (form && typeof form.requestSubmit === 'function') form.requestSubmit();
-            else if (form) form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-            else __triggerEnter(inputElement);
-          }
+          ${sendAfterFillBlock}
 
           return { success: true };
         } catch (error) {

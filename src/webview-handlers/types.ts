@@ -17,6 +17,10 @@ export interface SiteHandlerConfig {
   nearInputSendSelectors?: string[];
   /** 发送按钮处于禁用状态时匹配的 class（如 ant-sender-actions-btn-disabled） */
   sendDisabledClasses?: string[];
+  /** 优先在输入框附近查找发送按钮（千问等 Ant Design X 站点） */
+  preferNearInputSendButton?: boolean;
+  /** click 发送时等待按钮就绪的最长时间（毫秒） */
+  sendButtonWaitMs?: number;
   /** AI 回复消息的 DOM 选择器（按优先级，取最后一个匹配节点） */
   responseSelectors?: string[];
   /** 用户消息的 DOM 选择器（可选，用于汇总文档上下文） */

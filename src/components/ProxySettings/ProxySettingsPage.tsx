@@ -53,7 +53,7 @@ const ProxySettingsPage: React.FC = () => {
       <header className={styles.header}>
         <h1 className={styles.title}>网络代理设置</h1>
         <p className={styles.description}>
-          先在代理库中定义代理，再为各网站选择网络环境。保存后对应 Webview 将重新加载并应用新代理。
+          先在代理库中定义代理，再为各网站选择网络环境。修改后会自动保存并应用到 Webview。
         </p>
       </header>
 
@@ -234,7 +234,7 @@ const ProxySettingsPage: React.FC = () => {
         {saveMessage && <p className={styles.message}>{saveMessage}</p>}
         <div className={styles.actions}>
           <Button onClick={() => void saveSettings()} disabled={isSaving}>
-            {isSaving ? '保存中...' : '保存并应用'}
+            {isSaving ? '保存中...' : '立即应用'}
           </Button>
           <Button variant="outline" onClick={() => void loadSettings()} disabled={isSaving}>
             重新加载

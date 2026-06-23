@@ -163,7 +163,8 @@ async function waitForWebviewLoad(
 
 async function callInjectedInput(
   inputContent: string,
-  executeJavaScript: (code: string) => Promise<unknown>
+  executeJavaScript: (code: string) => Promise<unknown>,
+  timeout = 15000
 ): Promise<WebviewInputHandlerResult> {
   const contentJson = JSON.stringify(inputContent);
   const callCode = `
@@ -177,13 +178,41 @@ async function callInjectedInput(
 
   const executePromise = executeJavaScript(callCode);
   const timeoutPromise = new Promise<WebviewInputHandlerResult>((resolve) =>
-    setTimeout(() => resolve({ success: false, error: '操作超时' }), 5000)
+    setTimeout(() => resolve({ success: false, error: '操作超时' }), timeout)
   );
   const result = (await Promise.race([executePromise, timeoutPromise])) as WebviewInputHandlerResult;
   if (result && typeof result === 'object' && 'success' in result) {
     return result;
   }
   return { success: false, error: '未知错误' };
+}
+
+async function ensureScriptReady(
+  toolId: string,
+  handler: BaseSiteHandler,
+  webviewElement: WebviewInputHandlerConfig['webviewElement'],
+  executeJavaScript: (code: string) => Promise<unknown>,
+  timeout: number
+): Promise<WebviewInputHandlerResult | null> {
+  let isInjected = await checkScriptInjected(toolId, executeJavaScript);
+  if (!isInjected) {
+    try {
+      await waitForWebviewLoad(webviewElement as never, executeJavaScript, timeout);
+    } catch (error) {
+      console.warn(`[WebviewInputHandler] ${toolId} 等待加载:`, error);
+    }
+    await sleep(500);
+    isInjected = await checkScriptInjected(toolId, executeJavaScript);
+  }
+
+  if (!isInjected) {
+    const injectResult = await injectSiteScript(handler, executeJavaScript, timeout);
+    if (!injectResult.success) {
+      return injectResult;
+    }
+  }
+
+  return null;
 }
 
 export async function handleWebviewInput(
@@ -194,7 +223,7 @@ export async function handleWebviewInput(
     return { success: false, error: `未找到站点 handler: ${config.toolId}` };
   }
 
-  const { webviewElement, inputContent, timeout = 5000 } = config;
+  const { webviewElement, inputContent, timeout = 15000 } = config;
   const executeJavaScript = getExecuteJavaScript(webviewElement);
 
   if (!executeJavaScript) {
@@ -204,42 +233,61 @@ export async function handleWebviewInput(
   try {
     console.log(`[WebviewInputHandler] 开始处理 ${config.toolId} 的输入传递 (v${HANDLER_VERSION})`);
 
-    let isInjected = await checkScriptInjected(config.toolId, executeJavaScript);
-    if (!isInjected) {
-      try {
-        await waitForWebviewLoad(webviewElement as never, executeJavaScript, timeout);
-      } catch (error) {
-        console.warn(`[WebviewInputHandler] ${config.toolId} 等待加载:`, error);
-      }
-      await sleep(500);
-      isInjected = await checkScriptInjected(config.toolId, executeJavaScript);
+    const prepareError = await ensureScriptReady(
+      config.toolId,
+      handler,
+      webviewElement,
+      executeJavaScript,
+      timeout
+    );
+    if (prepareError) {
+      return prepareError;
     }
 
-    // 1. 主进程 IPC 原生输入（优先）
+    // 千问：优先 IPC 原生 insertText + 鼠标点击（合成事件无法触发 Ant Design X）
+    if (config.toolId === 'qianwen') {
+      try {
+        const ipcResult = await tryNativeWebviewSendViaIpc(handler, inputContent, webviewElement);
+        console.log(`[WebviewInputHandler] qianwen IPC 执行结果:`, ipcResult);
+        if (ipcResult?.success) {
+          return ipcResult;
+        }
+        if (ipcResult && !ipcResult.success) {
+          console.warn(`[WebviewInputHandler] qianwen IPC 失败:`, ipcResult.error);
+        }
+      } catch (error) {
+        console.warn(`[WebviewInputHandler] qianwen IPC 异常:`, error);
+      }
+    }
+
+    // 1. 渲染进程直连当前 webview
+    try {
+      const rendererResult = await callInjectedInput(inputContent, executeJavaScript, timeout);
+      console.log(`[WebviewInputHandler] ${config.toolId} 渲染进程执行结果:`, rendererResult);
+      if (rendererResult.success) {
+        return rendererResult;
+      }
+      console.warn(`[WebviewInputHandler] ${config.toolId} 渲染进程失败:`, rendererResult.error);
+    } catch (error) {
+      console.warn(`[WebviewInputHandler] ${config.toolId} 渲染进程异常:`, error);
+    }
+
+    // 2. IPC 回退
     try {
       const ipcResult = await tryNativeWebviewSendViaIpc(handler, inputContent, webviewElement);
       if (ipcResult?.success) {
-        console.log(`[WebviewInputHandler] ${config.toolId} IPC 原生输入发送成功`);
+        console.log(`[WebviewInputHandler] ${config.toolId} IPC 发送成功`);
         return ipcResult;
       }
       if (ipcResult && !ipcResult.success) {
         console.warn(`[WebviewInputHandler] ${config.toolId} IPC 失败:`, ipcResult.error);
+        return ipcResult;
       }
     } catch (error) {
       console.warn(`[WebviewInputHandler] ${config.toolId} IPC 异常:`, error);
     }
 
-    // 2. 回退：注入站点独立脚本
-    if (!isInjected) {
-      const injectResult = await injectSiteScript(handler, executeJavaScript, timeout);
-      if (!injectResult.success) {
-        return injectResult;
-      }
-    }
-
-    const result = await callInjectedInput(inputContent, executeJavaScript);
-    console.log(`[WebviewInputHandler] ${config.toolId} 注入脚本执行结果:`, result);
-    return result;
+    return { success: false, error: '发送失败，请刷新 webview 后重试' };
   } catch (error) {
     return {
       success: false,

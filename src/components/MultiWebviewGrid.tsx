@@ -5,8 +5,11 @@ import { getSiteHandler } from '../webview-handlers';
 import { preInjectScript } from './WebviewInputHandler';
 import { ElectronWebView, type ElectronWebViewElement } from './ElectronWebView';
 import { getToolPartition } from '../utils/toolPartition';
+import { getFaviconFallbackUrl } from '../utils/favicon';
 import Icon from './ui/Icon';
 import styles from './MultiWebviewGrid.module.css';
+
+type PageFaviconUpdatedEvent = Event & { favicons?: string[] };
 
 type WebviewElement = ElectronWebViewElement;
 
@@ -55,6 +58,7 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
   const webviewRefs = useRef<Record<string, WebviewElement>>({});
   const listenerCleanups = useRef<Record<string, () => void>>({});
   const [activeTabId, setActiveTabId] = useState<string>('');
+  const [favicons, setFavicons] = useState<Record<string, string>>({});
 
   const selectedTools = useMemo(() => {
     return tools.filter((tool) => selectedToolIds.includes(tool.id));
@@ -99,9 +103,18 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
         }
       };
 
+      const onFaviconUpdated = (event: Event) => {
+        const faviconUrl = (event as PageFaviconUpdatedEvent).favicons?.[0];
+        if (faviconUrl) {
+          setFavicons((prev) => ({ ...prev, [toolId]: faviconUrl }));
+        }
+      };
+
       webview.addEventListener?.('did-finish-load', onLoad);
+      webview.addEventListener?.('page-favicon-updated', onFaviconUpdated);
       listenerCleanups.current[toolId] = () => {
         webview.removeEventListener?.('did-finish-load', onLoad);
+        webview.removeEventListener?.('page-favicon-updated', onFaviconUpdated);
       };
     } else {
       delete webviewRefs.current[toolId];
@@ -141,6 +154,8 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
           const deliveryState = deliveryStates[tool.id];
           const status = deliveryState?.status || 'pending';
           const isActive = tool.id === activeTabId;
+          const faviconUrl =
+            favicons[tool.id] || tool.icon || getFaviconFallbackUrl(tool.url);
 
           return (
             <button
@@ -153,6 +168,14 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
               className={`${styles.tab} ${isActive ? styles.tabActive : ''}`}
               onClick={() => setActiveTabId(tool.id)}
             >
+              {faviconUrl && (
+                <img
+                  src={faviconUrl}
+                  alt=""
+                  className={styles.tabIcon}
+                  aria-hidden="true"
+                />
+              )}
               <span className={styles.tabLabel}>{tool.name}</span>
               {renderTabStatus(status)}
             </button>

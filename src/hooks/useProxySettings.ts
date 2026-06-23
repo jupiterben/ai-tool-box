@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_TOOLS } from '../config/tools';
 import {
   PROXY_SETTINGS_VERSION,
@@ -8,8 +8,13 @@ import {
   type ProxySettings,
   type ToolProxyConfig,
 } from '../types/proxy-settings';
+import {
+  loadProxySettingsFromStorage,
+  saveProxySettingsToStorage,
+} from '../utils/settingsStorage';
 
 const PROXY_CHANGED_EVENT = 'proxy-settings-changed';
+const AUTO_SAVE_DELAY_MS = 800;
 
 let proxyRevision = 0;
 
@@ -27,8 +32,36 @@ function buildDefaultSettings(): ProxySettings {
   return { version: PROXY_SETTINGS_VERSION, profiles: {}, tools };
 }
 
+function sanitizeProxySettingsForSave(settings: ProxySettings): ProxySettings {
+  const usedProfileIds = new Set(
+    Object.values(settings.tools)
+      .filter((config) => config.mode === 'profile' && config.profileId)
+      .map((config) => config.profileId!)
+  );
+
+  const profiles: Record<string, ProxyProfile> = {};
+  for (const [id, profile] of Object.entries(settings.profiles)) {
+    const hasContent = Boolean(
+      profile.host?.trim() || profile.port?.trim() || profile.name?.trim()
+    );
+    if (usedProfileIds.has(id) || hasContent) {
+      profiles[id] = profile;
+    }
+  }
+
+  return { ...settings, profiles };
+}
+
 function validateSettings(settings: ProxySettings): string | null {
-  for (const profile of Object.values(settings.profiles)) {
+  const sanitized = sanitizeProxySettingsForSave(settings);
+
+  for (const profile of Object.values(sanitized.profiles)) {
+    const isUsed = Object.values(sanitized.tools).some(
+      (config) => config.mode === 'profile' && config.profileId === profile.id
+    );
+    if (!isUsed) {
+      continue;
+    }
     if (!profile.name?.trim()) {
       return '代理名称不能为空';
     }
@@ -37,14 +70,14 @@ function validateSettings(settings: ProxySettings): string | null {
     }
   }
 
-  for (const config of Object.values(settings.tools)) {
+  for (const config of Object.values(sanitized.tools)) {
     if (config.mode === 'profile') {
       if (!config.profileId) {
         const toolName =
           DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
         return `${toolName} 需要选择一个代理`;
       }
-      if (!settings.profiles[config.profileId]) {
+      if (!sanitized.profiles[config.profileId]) {
         const toolName =
           DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
         return `${toolName} 引用的代理不存在，请重新选择`;
@@ -77,13 +110,75 @@ export function useProxySettings() {
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  const loadSettings = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const settingsRef = useRef(settings);
+  const skipAutoSaveRef = useRef(true);
+
+  settingsRef.current = settings;
+
+  const persistSettings = useCallback(async (options?: { silent?: boolean }) => {
+    const currentSettings = sanitizeProxySettingsForSave(settingsRef.current);
+    const validationError = validateSettings(currentSettings);
+
+    if (validationError) {
+      if (!options?.silent) {
+        setError(validationError);
+      }
+      return false;
+    }
+
+    setIsSaving(true);
+    if (!options?.silent) {
+      setError(null);
+      setSaveMessage(null);
+    }
 
     try {
       if (!window.electronAPI) {
-        setSettings(buildDefaultSettings());
+        saveProxySettingsToStorage(currentSettings);
+        setSettings(currentSettings);
+        if (!options?.silent) {
+          setSaveMessage('已保存（浏览器预览模式）');
+        } else {
+          setSaveMessage('已自动保存');
+        }
+        notifyProxyChanged();
+        return true;
+      }
+
+      const response = await window.electronAPI.saveProxySettings(currentSettings);
+      if (!response.success || !response.settings) {
+        throw new Error(response.error || '保存代理设置失败');
+      }
+
+      setSettings(response.settings);
+      setError(null);
+      setSaveMessage(
+        options?.silent
+          ? '已自动保存'
+          : '代理设置已保存，Webview 将使用新网络环境'
+      );
+      notifyProxyChanged();
+      return true;
+    } catch (err) {
+      if (!options?.silent) {
+        setError(err instanceof Error ? err.message : '保存代理设置失败');
+      }
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
+  const loadSettings = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    skipAutoSaveRef.current = true;
+
+    const defaults = buildDefaultSettings();
+
+    try {
+      if (!window.electronAPI) {
+        setSettings(loadProxySettingsFromStorage(defaults) ?? defaults);
         return;
       }
 
@@ -94,7 +189,7 @@ export function useProxySettings() {
       setSettings(response.settings);
     } catch (err) {
       setError(err instanceof Error ? err.message : '读取代理设置失败');
-      setSettings(buildDefaultSettings());
+      setSettings(loadProxySettingsFromStorage(defaults) ?? defaults);
     } finally {
       setIsLoading(false);
     }
@@ -103,6 +198,20 @@ export function useProxySettings() {
   useEffect(() => {
     void loadSettings();
   }, [loadSettings]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (skipAutoSaveRef.current) {
+      skipAutoSaveRef.current = false;
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void persistSettings({ silent: true });
+    }, AUTO_SAVE_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [settings, isLoading, persistSettings]);
 
   const clearSaveFeedback = useCallback(() => {
     setSaveMessage(null);
@@ -174,38 +283,8 @@ export function useProxySettings() {
   }, [clearSaveFeedback]);
 
   const saveSettings = useCallback(async () => {
-    setIsSaving(true);
-    setError(null);
-    setSaveMessage(null);
-
-    const validationError = validateSettings(settings);
-    if (validationError) {
-      setError(validationError);
-      setIsSaving(false);
-      return;
-    }
-
-    try {
-      if (!window.electronAPI) {
-        setSaveMessage('当前为浏览器预览模式，代理设置仅在 Electron 中生效');
-        notifyProxyChanged();
-        return;
-      }
-
-      const response = await window.electronAPI.saveProxySettings(settings);
-      if (!response.success || !response.settings) {
-        throw new Error(response.error || '保存代理设置失败');
-      }
-
-      setSettings(response.settings);
-      setSaveMessage('代理设置已保存，Webview 将使用新网络环境');
-      notifyProxyChanged();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '保存代理设置失败');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [settings]);
+    await persistSettings();
+  }, [persistSettings]);
 
   return {
     settings,

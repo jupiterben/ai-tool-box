@@ -40,7 +40,7 @@ const LlmSettingsPage: React.FC = () => {
       <header className={styles.header}>
         <h1 className={styles.title}>LLM 汇总设置</h1>
         <p className={styles.description}>
-          配置 LLM API 后，收集各平台回复时将自动调用 AI 生成结构化 Markdown 汇总。
+          配置 LLM API 后，收集各平台回复时将自动调用 AI 生成结构化 Markdown 汇总。修改后会自动保存。
         </p>
       </header>
 
@@ -154,7 +154,7 @@ const LlmSettingsPage: React.FC = () => {
 
       <div className={styles.actions}>
         <Button onClick={() => void saveSettings()} disabled={isSaving}>
-          {isSaving ? '保存中…' : '保存设置'}
+          {isSaving ? '保存中…' : '立即保存'}
         </Button>
       </div>
     </div>
