@@ -1,0 +1,127 @@
+.markdownContent {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.markdownContent :global(h1),
+.markdownContent :global(h2),
+.markdownContent :global(h3),
+.markdownContent :global(h4) {
+  margin: 1em 0 0.5em;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.markdownContent :global(h1) {
+  font-size: 1.35em;
+}
+
+.markdownContent :global(h2) {
+  font-size: 1.2em;
+}
+
+.markdownContent :global(h3) {
+  font-size: 1.1em;
+}
+
+.markdownContent :global(h4) {
+  font-size: 1em;
+}
+
+.markdownContent :global(h1:first-child),
+.markdownContent :global(h2:first-child),
+.markdownContent :global(h3:first-child),
+.markdownContent :global(h4:first-child) {
+  margin-top: 0;
+}
+
+.markdownContent :global(p) {
+  margin: 0.5em 0;
+}
+
+.markdownContent :global(p:first-child) {
+  margin-top: 0;
+}
+
+.markdownContent :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.markdownContent :global(ul),
+.markdownContent :global(ol) {
+  margin: 0.5em 0;
+  padding-left: 1.4em;
+}
+
+.markdownContent :global(li) {
+  margin: 0.25em 0;
+}
+
+.markdownContent :global(blockquote) {
+  margin: 0.75em 0;
+  padding: 0.25em 0 0.25em 0.75em;
+  border-left: 3px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.markdownContent :global(code) {
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.markdownContent :global(pre) {
+  margin: 0.75em 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  overflow: auto;
+}
+
+.markdownContent :global(pre code) {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+}
+
+.markdownContent :global(table) {
+  width: 100%;
+  margin: 0.75em 0;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.markdownContent :global(th),
+.markdownContent :global(td) {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.markdownContent :global(th) {
+  background-color: var(--color-surface);
+  font-weight: 600;
+}
+
+.markdownContent :global(hr) {
+  margin: 1em 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.markdownContent :global(a) {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.markdownContent :global(a:hover) {
+  text-decoration: underline;
+}

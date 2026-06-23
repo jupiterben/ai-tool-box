@@ -94,6 +94,19 @@
   background: var(--color-surface, #fff);
 }
 
+.toolGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.toolGroupTitle {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary, #666);
+}
+
 .toolHeader {
   display: flex;
   flex-direction: column;

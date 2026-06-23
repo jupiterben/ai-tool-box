@@ -92,7 +92,12 @@ export function useWebviewInput(
 
         try {
           const result = await handleWebviewInput(config);
-          console.log(`[useWebviewInput] ${toolId} 传递结果:`, result);
+          console.log(`[useWebviewInput] ${toolId} 传递结果:`, JSON.stringify({
+            success: result.success,
+            error: result.error,
+            fillMethod: (result as { fillMethod?: string }).fillMethod,
+            sendMethod: (result as { sendMethod?: string }).sendMethod,
+          }));
           updateDeliveryState(toolId, {
             status: result.success ? 'success' : 'error',
             errorMessage: result.error,

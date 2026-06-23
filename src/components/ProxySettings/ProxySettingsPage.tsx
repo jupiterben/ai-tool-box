@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { DEFAULT_TOOLS } from '../../config/tools';
+import { DEFAULT_TOOLS, groupToolsByRegion } from '../../config/tools';
 import { useProxySettings } from '../../hooks/useProxySettings';
 import type { ProxyMode, ProxyProtocol } from '../../types/proxy-settings';
 import { formatProxyProfile } from '../../types/proxy-settings';
@@ -34,8 +34,8 @@ const ProxySettingsPage: React.FC = () => {
     saveSettings,
   } = useProxySettings();
 
-  const webviewTools = useMemo(
-    () => DEFAULT_TOOLS.filter((tool) => Boolean(tool.url)),
+  const toolGroups = useMemo(
+    () => groupToolsByRegion(DEFAULT_TOOLS.filter((tool) => Boolean(tool.url))),
     []
   );
 
@@ -156,73 +156,78 @@ const ProxySettingsPage: React.FC = () => {
       <section className={styles.section} aria-label="站点分配">
         <h2 className={styles.sectionTitle}>站点分配</h2>
 
-        {webviewTools.map((tool) => {
-          const config = settings.tools[tool.id] ?? { toolId: tool.id, mode: 'system' as const };
+        {toolGroups.map((group) => (
+          <div key={group.region} className={styles.toolGroup} aria-label={group.label}>
+            <h3 className={styles.toolGroupTitle}>{group.label}</h3>
+            {group.tools.map((tool) => {
+              const config = settings.tools[tool.id] ?? { toolId: tool.id, mode: 'system' as const };
 
-          return (
-            <article key={tool.id} className={styles.toolCard} aria-label={`${tool.name} 代理设置`}>
-              <div className={styles.toolHeader}>
-                <h3 className={styles.toolName}>{tool.name}</h3>
-                <p className={styles.toolUrl}>{tool.url}</p>
-              </div>
+              return (
+                <article key={tool.id} className={styles.toolCard} aria-label={`${tool.name} 代理设置`}>
+                  <div className={styles.toolHeader}>
+                    <h4 className={styles.toolName}>{tool.name}</h4>
+                    <p className={styles.toolUrl}>{tool.url}</p>
+                  </div>
 
-              <div className={styles.fieldGroup}>
-                <span className={styles.label}>网络模式</span>
-                <div className={styles.modeOptions} role="group" aria-label={`${tool.name} 网络模式`}>
-                  {MODE_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`${styles.modeButton} ${
-                        config.mode === option.value ? styles.modeButtonActive : ''
-                      }`}
-                      onClick={() => {
-                        if (option.value === 'profile') {
-                          const firstProfileId = profileList[0]?.id;
-                          updateToolConfig(tool.id, {
-                            mode: 'profile',
-                            profileId: config.profileId ?? firstProfileId,
-                          });
-                          return;
-                        }
-                        updateToolConfig(tool.id, { mode: option.value, profileId: undefined });
-                      }}
-                      aria-pressed={config.mode === option.value}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {config.mode === 'profile' && (
-                <div className={styles.fieldGroup}>
-                  <label className={styles.label} htmlFor={`${tool.id}-profile`}>
-                    选择代理
-                  </label>
-                  {profileList.length === 0 ? (
-                    <p className={styles.emptyHint}>请先在代理库中添加代理。</p>
-                  ) : (
-                    <select
-                      id={`${tool.id}-profile`}
-                      className={styles.select}
-                      value={config.profileId || profileList[0]?.id || ''}
-                      onChange={(event) =>
-                        updateToolConfig(tool.id, { profileId: event.target.value })
-                      }
-                    >
-                      {profileList.map((profile) => (
-                        <option key={profile.id} value={profile.id}>
-                          {formatProxyProfile(profile)}
-                        </option>
+                  <div className={styles.fieldGroup}>
+                    <span className={styles.label}>网络模式</span>
+                    <div className={styles.modeOptions} role="group" aria-label={`${tool.name} 网络模式`}>
+                      {MODE_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`${styles.modeButton} ${
+                            config.mode === option.value ? styles.modeButtonActive : ''
+                          }`}
+                          onClick={() => {
+                            if (option.value === 'profile') {
+                              const firstProfileId = profileList[0]?.id;
+                              updateToolConfig(tool.id, {
+                                mode: 'profile',
+                                profileId: config.profileId ?? firstProfileId,
+                              });
+                              return;
+                            }
+                            updateToolConfig(tool.id, { mode: option.value, profileId: undefined });
+                          }}
+                          aria-pressed={config.mode === option.value}
+                        >
+                          {option.label}
+                        </button>
                       ))}
-                    </select>
+                    </div>
+                  </div>
+
+                  {config.mode === 'profile' && (
+                    <div className={styles.fieldGroup}>
+                      <label className={styles.label} htmlFor={`${tool.id}-profile`}>
+                        选择代理
+                      </label>
+                      {profileList.length === 0 ? (
+                        <p className={styles.emptyHint}>请先在代理库中添加代理。</p>
+                      ) : (
+                        <select
+                          id={`${tool.id}-profile`}
+                          className={styles.select}
+                          value={config.profileId || profileList[0]?.id || ''}
+                          onChange={(event) =>
+                            updateToolConfig(tool.id, { profileId: event.target.value })
+                          }
+                        >
+                          {profileList.map((profile) => (
+                            <option key={profile.id} value={profile.id}>
+                              {formatProxyProfile(profile)}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
-            </article>
-          );
-        })}
+                </article>
+              );
+            })}
+          </div>
+        ))}
       </section>
 
       <footer className={styles.footer}>

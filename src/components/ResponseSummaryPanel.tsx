@@ -1,14 +1,16 @@
 import { memo, useCallback } from 'react';
 import type { ResponseSummaryDocument } from '../utils/responseSummaryDocument';
 import { downloadMarkdownFile } from '../utils/responseSummaryDocument';
+import MarkdownContent from './MarkdownContent';
+import { Button } from './ui/Button';
 import Icon from './ui/Icon';
 import styles from './ResponseSummaryPanel.module.css';
 
 interface ResponseSummaryPanelProps {
-  open: boolean;
   document: ResponseSummaryDocument | null;
   isCollecting: boolean;
   isSummarizing?: boolean;
+  isBusy?: boolean;
   error: string | null;
   summarizeWarning?: string | null;
   onClose: () => void;
@@ -17,10 +19,10 @@ interface ResponseSummaryPanelProps {
 }
 
 const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
-  open,
   document,
   isCollecting,
   isSummarizing = false,
+  isBusy: isBusyProp,
   error,
   summarizeWarning,
   onClose,
@@ -34,9 +36,7 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
     downloadMarkdownFile(filename, document.markdown);
   }, [document]);
 
-  if (!open) {
-    return null;
-  }
+  const isBusy = isBusyProp ?? (isCollecting || isSummarizing);
 
   const statusText = isCollecting
     ? '正在从各 Webview 提取回复…'
@@ -49,18 +49,22 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
       <header className={styles.header}>
         <h2 className={styles.title}>回复汇总</h2>
         <div className={styles.headerActions}>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             className={styles.iconButton}
             onClick={onCollect}
-            disabled={isCollecting}
+            disabled={isBusy}
             title="重新收集"
             aria-label="重新收集回复"
           >
             <Icon name="RefreshCw" size={16} />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             className={styles.iconButton}
             onClick={handleDownload}
             disabled={!document}
@@ -68,32 +72,42 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
             aria-label="下载汇总文档"
           >
             <Icon name="Download" size={16} />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             className={styles.iconButton}
             onClick={onClose}
             title="关闭面板"
             aria-label="关闭汇总面板"
           >
             <Icon name="X" size={16} />
-          </button>
+          </Button>
         </div>
       </header>
 
       <div className={styles.toolbar}>
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="sm"
           className={styles.collectButton}
           onClick={onCollect}
-          disabled={isCollecting}
+          disabled={isBusy}
         >
-          {isCollecting ? (isSummarizing ? 'LLM 汇总中…' : '收集中…') : '收集各平台回复'}
-        </button>
+          {isSummarizing ? 'LLM 汇总中…' : isCollecting ? '收集中…' : '收集各平台回复'}
+        </Button>
         {document && (
-          <button type="button" className={styles.clearButton} onClick={onClear}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className={styles.clearButton}
+            onClick={onClear}
+          >
             清空
-          </button>
+          </Button>
         )}
       </div>
 
@@ -110,7 +124,7 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
       )}
 
       <div className={styles.content}>
-        {!document && !isCollecting && (
+        {!document && !isBusy && (
           <p className={styles.placeholder}>
             向各 AI 发送问题并等待回复后，点击「收集各平台回复」生成 LLM 智能汇总文档。
           </p>
@@ -120,12 +134,14 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
           <p className={styles.placeholder}>{statusText}</p>
         )}
 
-        {document && !isCollecting && (
+        {document && !isBusy && (
           <>
             {document.llmSummarized && (
               <section className={styles.section}>
                 <h3 className={styles.sectionTitle}>AI 智能汇总</h3>
-                <pre className={styles.llmMarkdown}>{document.llmMarkdown ?? document.markdown}</pre>
+                <div className={styles.markdownBox}>
+                  <MarkdownContent content={document.llmMarkdown ?? document.markdown} />
+                </div>
               </section>
             )}
 
@@ -138,7 +154,9 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
 
             <section className={styles.section}>
               <h3 className={styles.sectionTitle}>收集状态</h3>
-              <pre className={styles.summary}>{document.summarySection}</pre>
+              <div className={styles.markdownBox}>
+                <MarkdownContent content={document.summarySection} />
+              </div>
             </section>
 
             <section className={styles.section}>
@@ -147,7 +165,9 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
                 <article key={item.toolId} className={styles.responseCard}>
                   <h4 className={styles.responseTitle}>{item.toolName}</h4>
                   {item.success ? (
-                    <pre className={styles.responseBody}>{item.content}</pre>
+                    <div className={styles.markdownBox}>
+                      <MarkdownContent content={item.content} />
+                    </div>
                   ) : (
                     <p className={styles.responseError}>
                       {item.error || '未获取到回复'}
@@ -155,11 +175,6 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
                   )}
                 </article>
               ))}
-            </section>
-
-            <section className={styles.section}>
-              <h3 className={styles.sectionTitle}>完整 Markdown</h3>
-              <pre className={styles.markdownPreview}>{document.markdown}</pre>
             </section>
           </>
         )}

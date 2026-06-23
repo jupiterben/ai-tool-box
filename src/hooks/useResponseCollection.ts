@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { DEFAULT_TOOLS } from '../config/tools';
 import {
   buildSummaryDocument,
@@ -6,6 +6,18 @@ import {
   type ToolResponseItem,
 } from '../utils/responseSummaryDocument';
 import { getWebContentsIdMap, isWebviewNotFoundError } from '../utils/webviewContentsId';
+
+const SUMMARY_PANEL_OPEN_STORAGE_KEY = 'response-summary-panel-open';
+
+function readStoredPanelOpen(): boolean {
+  try {
+    const saved = localStorage.getItem(SUMMARY_PANEL_OPEN_STORAGE_KEY);
+    if (saved === null) return false;
+    return saved === 'true';
+  } catch {
+    return false;
+  }
+}
 
 function getToolName(toolId: string): string {
   return DEFAULT_TOOLS.find((t) => t.id === toolId)?.name ?? toolId;
@@ -99,9 +111,17 @@ export function useResponseCollection() {
   const [isCollecting, setIsCollecting] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [document, setDocument] = useState<ResponseSummaryDocument | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(() => readStoredPanelOpen());
   const [error, setError] = useState<string | null>(null);
   const [summarizeWarning, setSummarizeWarning] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SUMMARY_PANEL_OPEN_STORAGE_KEY, String(panelOpen));
+    } catch {
+      // ignore storage errors
+    }
+  }, [panelOpen]);
 
   const collectAndSummarize = useCallback(
     async (toolIds: string[], webviewElements: Record<string, HTMLElement>, question: string) => {
@@ -204,8 +224,9 @@ export function useResponseCollection() {
   const isBusy = isCollecting || isSummarizing;
 
   return {
-    isCollecting: isBusy,
+    isCollecting,
     isSummarizing,
+    isBusy,
     document,
     panelOpen,
     error,

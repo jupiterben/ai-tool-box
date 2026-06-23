@@ -215,6 +215,18 @@ async function ensureScriptReady(
   return null;
 }
 
+function formatHandlerResult(result: WebviewInputHandlerResult): string {
+  return JSON.stringify({
+    success: result.success,
+    error: result.error,
+    fillMethod: (result as WebviewInputHandlerResult & { fillMethod?: string }).fillMethod,
+    sendMethod: (result as WebviewInputHandlerResult & { sendMethod?: string }).sendMethod,
+    btnReady: (result as WebviewInputHandlerResult & { btnReady?: boolean }).btnReady,
+    inputTag: (result as WebviewInputHandlerResult & { inputTag?: string }).inputTag,
+    remaining: (result as WebviewInputHandlerResult & { remaining?: string }).remaining,
+  });
+}
+
 export async function handleWebviewInput(
   config: WebviewInputHandlerConfig
 ): Promise<WebviewInputHandlerResult> {
@@ -244,16 +256,16 @@ export async function handleWebviewInput(
       return prepareError;
     }
 
-    // 千问：优先 IPC 原生 insertText + 鼠标点击（合成事件无法触发 Ant Design X）
+    // 千问词槽 DIV 须 trusted 输入，优先 IPC 原生 insertText
     if (config.toolId === 'qianwen') {
       try {
         const ipcResult = await tryNativeWebviewSendViaIpc(handler, inputContent, webviewElement);
-        console.log(`[WebviewInputHandler] qianwen IPC 执行结果:`, ipcResult);
+        console.log(
+          `[WebviewInputHandler] qianwen IPC 执行结果:`,
+          formatHandlerResult(ipcResult ?? { success: false, error: 'IPC 无响应' })
+        );
         if (ipcResult?.success) {
           return ipcResult;
-        }
-        if (ipcResult && !ipcResult.success) {
-          console.warn(`[WebviewInputHandler] qianwen IPC 失败:`, ipcResult.error);
         }
       } catch (error) {
         console.warn(`[WebviewInputHandler] qianwen IPC 异常:`, error);
@@ -263,7 +275,10 @@ export async function handleWebviewInput(
     // 1. 渲染进程直连当前 webview
     try {
       const rendererResult = await callInjectedInput(inputContent, executeJavaScript, timeout);
-      console.log(`[WebviewInputHandler] ${config.toolId} 渲染进程执行结果:`, rendererResult);
+      console.log(
+        `[WebviewInputHandler] ${config.toolId} 渲染进程执行结果:`,
+        formatHandlerResult(rendererResult)
+      );
       if (rendererResult.success) {
         return rendererResult;
       }
@@ -272,7 +287,7 @@ export async function handleWebviewInput(
       console.warn(`[WebviewInputHandler] ${config.toolId} 渲染进程异常:`, error);
     }
 
-    // 2. IPC 回退
+    // 2. IPC 回退（非千问）
     try {
       const ipcResult = await tryNativeWebviewSendViaIpc(handler, inputContent, webviewElement);
       if (ipcResult?.success) {

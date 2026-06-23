@@ -7,7 +7,9 @@ import { deepseekHandler } from './sites/deepseek';
 import { doubaoHandler } from './sites/doubao';
 import { geminiHandler } from './sites/gemini';
 import { kimiHandler } from './sites/kimi';
+import { mimoHandler } from './sites/mimo';
 import { minimaxHandler } from './sites/minimax';
+import { perplexityHandler } from './sites/perplexity';
 import { qianwenHandler } from './sites/qianwen';
 import type { WebviewInputSelector } from './types';
 
@@ -25,6 +27,8 @@ const HANDLERS: Record<string, BaseSiteHandler> = {
   gemini: geminiHandler,
   kimi: kimiHandler,
   doubao: doubaoHandler,
+  perplexity: perplexityHandler,
+  mimo: mimoHandler,
 };
 
 export function getSiteHandler(toolId: string): BaseSiteHandler | undefined {
@@ -55,4 +59,6 @@ export {
   geminiHandler,
   kimiHandler,
   doubaoHandler,
+  perplexityHandler,
+  mimoHandler,
 };

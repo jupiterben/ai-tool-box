@@ -7,6 +7,8 @@ function json(value: unknown): string {
 export function buildExtractResponsesScript(config: SiteHandlerConfig): string {
   const responseSelectors = json(config.responseSelectors ?? []);
   const userSelectors = json(config.userMessageSelectors ?? []);
+  const responseRootSelectors = json(config.responseRootSelectors ?? []);
+  const responseIgnoreTexts = json(config.responseIgnoreTexts ?? []);
 
   return `
     (function() {
@@ -15,14 +17,35 @@ export function buildExtractResponsesScript(config: SiteHandlerConfig): string {
         return (node.innerText || node.textContent || '').trim();
       }
 
-      function extractBySelectors(selectors) {
+      function isIgnoredText(text, ignoreTexts) {
+        if (!text) return true;
+        var normalized = text.replace(/\\s+/g, ' ').trim();
+        if (!normalized) return true;
+        for (var i = 0; i < ignoreTexts.length; i++) {
+          if (normalized === ignoreTexts[i]) return true;
+        }
+        return false;
+      }
+
+      function findSearchRoot(rootSelectors) {
+        if (!rootSelectors || !rootSelectors.length) return document;
+        for (var i = 0; i < rootSelectors.length; i++) {
+          try {
+            var root = document.querySelector(rootSelectors[i]);
+            if (root) return root;
+          } catch (e) {}
+        }
+        return document;
+      }
+
+      function extractBySelectors(selectors, root, ignoreTexts) {
+        var searchRoot = root || document;
         for (var i = 0; i < selectors.length; i++) {
           try {
-            var nodes = document.querySelectorAll(selectors[i]);
-            if (nodes.length) {
-              var last = nodes[nodes.length - 1];
-              var text = pickText(last);
-              if (text) {
+            var nodes = searchRoot.querySelectorAll(selectors[i]);
+            for (var j = nodes.length - 1; j >= 0; j--) {
+              var text = pickText(nodes[j]);
+              if (text && !isIgnoredText(text, ignoreTexts)) {
                 return { success: true, content: text, selector: selectors[i], count: nodes.length };
               }
             }
@@ -31,14 +54,15 @@ export function buildExtractResponsesScript(config: SiteHandlerConfig): string {
         return { success: false, content: '', count: 0 };
       }
 
-      function extractAllBySelectors(selectors) {
+      function extractAllBySelectors(selectors, root, ignoreTexts) {
         var all = [];
+        var searchRoot = root || document;
         for (var i = 0; i < selectors.length; i++) {
           try {
-            var nodes = document.querySelectorAll(selectors[i]);
+            var nodes = searchRoot.querySelectorAll(selectors[i]);
             for (var j = 0; j < nodes.length; j++) {
               var text = pickText(nodes[j]);
-              if (text) all.push(text);
+              if (text && !isIgnoredText(text, ignoreTexts)) all.push(text);
             }
             if (all.length) break;
           } catch (e) {}
@@ -48,14 +72,19 @@ export function buildExtractResponsesScript(config: SiteHandlerConfig): string {
 
       var responseSelectors = ${responseSelectors};
       var userSelectors = ${userSelectors};
+      var responseRootSelectors = ${responseRootSelectors};
+      var responseIgnoreTexts = ${responseIgnoreTexts};
+      var searchRoot = findSearchRoot(responseRootSelectors);
 
       if (!responseSelectors.length) {
         return { success: false, error: '未配置回复选择器', toolId: ${json(config.toolId)} };
       }
 
-      var latest = extractBySelectors(responseSelectors);
-      var userLatest = userSelectors.length ? extractBySelectors(userSelectors) : { success: false, content: '' };
-      var allResponses = extractAllBySelectors(responseSelectors);
+      var latest = extractBySelectors(responseSelectors, searchRoot, responseIgnoreTexts);
+      var userLatest = userSelectors.length
+        ? extractBySelectors(userSelectors, searchRoot, responseIgnoreTexts)
+        : { success: false, content: '' };
+      var allResponses = extractAllBySelectors(responseSelectors, searchRoot, responseIgnoreTexts);
 
       return {
         success: latest.success,

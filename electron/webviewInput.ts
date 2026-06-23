@@ -14,6 +14,11 @@ export interface WebviewSendInputPayload {
 export interface WebviewSendInputResult {
   success: boolean;
   error?: string;
+  fillMethod?: string;
+  sendMethod?: string;
+  btnReady?: boolean;
+  inputTag?: string;
+  remaining?: string;
 }
 
 export function findWebContentsByPartition(partition: string, urlHint?: string): WebContents | null {
@@ -75,6 +80,7 @@ interface NativeSendCoords {
   x?: number;
   y?: number;
   error?: string;
+  btnDisabled?: boolean | null;
 }
 
 interface VerifySentResult {
@@ -82,8 +88,8 @@ interface VerifySentResult {
   remaining?: string;
 }
 
-/** 千问：insertText 触发 React trusted 输入，再原生点击发送 */
-async function sendQianwenWithNativeEvents(
+/** 千问词槽 DIV：insertText 产生 trusted 事件，再原生点击/Enter */
+async function sendQianwenNative(
   wc: WebContents,
   handler: BaseSiteHandler,
   content: string
@@ -94,26 +100,34 @@ async function sendQianwenWithNativeEvents(
   }
 
   try {
-    const prep = (await wc.executeJavaScript(
-      `typeof window.__qianwenFocusInput__ === 'function' ? window.__qianwenFocusInput__() : { success: false, error: '辅助函数未就绪' }`
-    )) as { success?: boolean; error?: string };
+    const prep = (await wc.executeJavaScript(`window.__qianwenFocusInput__()`)) as {
+      success?: boolean;
+      error?: string;
+      inputTag?: string;
+    };
     if (!prep?.success) {
       return { success: false, error: prep?.error || '聚焦千问输入框失败' };
     }
 
     await clearFocusedInput(wc);
-    await sleep(100);
+    await sleep(150);
     wc.insertText(content);
+    await sleep(400);
 
     let sendInfo: NativeSendCoords = { ready: false };
-    const deadline = Date.now() + 5000;
+    const deadline = Date.now() + 6000;
     while (Date.now() < deadline) {
       sendInfo = (await wc.executeJavaScript(`window.__qianwenGetSendCoords__()`)) as NativeSendCoords;
       if (sendInfo?.ready) {
         break;
       }
-      await sleep(150);
+      await sleep(200);
     }
+
+    const sendMethod =
+      sendInfo?.ready && sendInfo.x != null && sendInfo.y != null
+        ? 'native-click'
+        : 'native-enter';
 
     if (sendInfo?.ready && sendInfo.x != null && sendInfo.y != null) {
       await clickAt(wc, sendInfo.x, sendInfo.y);
@@ -121,19 +135,31 @@ async function sendQianwenWithNativeEvents(
       await pressEnter(wc);
     }
 
-    await sleep(600);
+    await sleep(800);
     const contentJson = JSON.stringify(content);
     const verify = (await wc.executeJavaScript(
       `window.__qianwenVerifySent__(${contentJson})`
     )) as VerifySentResult;
 
     if (verify?.sent) {
-      return { success: true };
+      return {
+        success: true,
+        fillMethod: 'native-insertText',
+        sendMethod,
+        btnReady: !!sendInfo?.ready,
+        inputTag: prep.inputTag,
+        remaining: verify.remaining,
+      };
     }
 
     return {
       success: false,
-      error: `千问消息未发出（输入框仍有内容: ${verify?.remaining ?? '未知'}）`,
+      error: `千问原生发送失败（剩余: ${verify?.remaining ?? '未知'}）`,
+      fillMethod: 'native-insertText',
+      sendMethod,
+      btnReady: !!sendInfo?.ready,
+      inputTag: prep.inputTag,
+      remaining: verify?.remaining,
     };
   } catch (error) {
     return {
@@ -143,7 +169,6 @@ async function sendQianwenWithNativeEvents(
   }
 }
 
-/** 通过页面内 JS 填词并提交 */
 async function sendWithInjectScript(
   wc: WebContents,
   handler: BaseSiteHandler,
@@ -196,11 +221,11 @@ export async function sendWebviewInput(
 
   try {
     if (payload.toolId === 'qianwen') {
-      const nativeResult = await sendQianwenWithNativeEvents(wc, handler, payload.content);
+      const nativeResult = await sendQianwenNative(wc, handler, payload.content);
       if (nativeResult.success) {
         return nativeResult;
       }
-      console.warn('[webviewInput] qianwen 原生发送失败，回退注入脚本:', nativeResult.error);
+      console.warn('[webviewInput] qianwen 原生失败，回退注入:', nativeResult.error);
     }
 
     return await sendWithInjectScript(wc, handler, payload.content);

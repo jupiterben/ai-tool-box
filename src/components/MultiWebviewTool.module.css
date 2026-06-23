@@ -1,18 +1,31 @@
-.container {
-  display: flex;
-  flex-direction: row;
+.splitter {
   width: 100%;
   height: 100%;
-  overflow: hidden;
   background-color: var(--color-background);
-  transition: background-color var(--transition-base);
+}
+
+.splitter :global(.ant-splitter-bar) {
+  background: transparent;
+}
+
+.splitter :global(.ant-splitter-bar-dragger::before) {
+  background-color: var(--color-border);
+}
+
+.splitter :global(.ant-splitter-bar-dragger:hover::before),
+.splitter :global(.ant-splitter-bar-dragger-active::before) {
+  background-color: var(--color-primary);
+}
+
+.workspacePanel,
+.summaryPanel {
+  overflow: hidden;
 }
 
 .workspace {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   height: 100%;
   overflow: hidden;
 }

@@ -21,10 +21,14 @@ export interface SiteHandlerConfig {
   preferNearInputSendButton?: boolean;
   /** click 发送时等待按钮就绪的最长时间（毫秒） */
   sendButtonWaitMs?: number;
-  /** AI 回复消息的 DOM 选择器（按优先级，取最后一个匹配节点） */
+  /** AI 回复消息的 DOM 选择器（按优先级，取最后一个有效匹配节点） */
   responseSelectors?: string[];
   /** 用户消息的 DOM 选择器（可选，用于汇总文档上下文） */
   userMessageSelectors?: string[];
+  /** 限定回复查找范围（按顺序尝试，命中即用） */
+  responseRootSelectors?: string[];
+  /** 忽略与 UI 标签完全一致的短文本（如侧边栏「最近对话」） */
+  responseIgnoreTexts?: string[];
 }
 
 /** 与旧版 inputSelectors 兼容 */

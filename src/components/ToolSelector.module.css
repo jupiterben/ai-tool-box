@@ -1,11 +1,41 @@
 .container {
   display: flex;
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
   padding: var(--spacing-3) var(--spacing-4);
   background-color: var(--color-background-secondary);
   border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;
+  align-items: center;
   transition: background-color var(--transition-base), border-color var(--transition-base);
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.groupDivider {
+  width: 1px;
+  height: 1.25rem;
+  background-color: var(--color-border);
+  flex-shrink: 0;
+}
+
+.groupLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.groupItems {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
 }
 
 .label {

@@ -46,8 +46,10 @@ export interface InjectScriptOverrides {
   fillInputFunction?: string;
   /** 替换填词后的发送逻辑（不含 sendMethod 分支） */
   sendAfterFillBody?: string;
-  /** 注入到 runtime 之后的额外脚本（如千问原生发送辅助函数） */
+  /** 注入到 runtime 之后的额外脚本（如千问 React 辅助函数） */
   extraInjectRuntime?: string;
+  /** 完全替换 window.__injectInput__（千问等 React 受控站点） */
+  injectInputFunction?: string;
 }
 
 export function buildBrowserRuntime(
@@ -224,6 +226,43 @@ export function buildInjectScript(
   const sendAfterFillBlock = overrides?.sendAfterFillBody ?? defaultSendAfterFill;
   const extraRuntime = overrides?.extraInjectRuntime ?? '';
 
+  const defaultInjectInput = `
+      window.__injectInput__ = async function(content) {
+        try {
+          if (document.readyState !== 'complete') {
+            await new Promise(function(resolve) {
+              if (document.readyState === 'complete') resolve();
+              else window.addEventListener('load', resolve, { once: true });
+            });
+          }
+          await new Promise(function(r) { setTimeout(r, 500); });
+
+          var inputElement = null;
+          for (var attempt = 0; attempt < 5; attempt++) {
+            inputElement = __findInputElement();
+            if (inputElement) break;
+            await new Promise(function(r) { setTimeout(r, 500); });
+          }
+          if (!inputElement) {
+            return { success: false, error: '未找到输入框，站点: ' + SITE_ID };
+          }
+          if (inputElement.disabled || inputElement.readOnly) {
+            return { success: false, error: '输入框被禁用或只读' };
+          }
+
+          __fillInput(inputElement, content, ${inputType});
+          await new Promise(function(r) { setTimeout(r, 300); });
+
+          ${sendAfterFillBlock}
+
+          return { success: true };
+        } catch (error) {
+          return { success: false, error: error.message || '未知错误' };
+        }
+      };`;
+
+  const injectInputBlock = overrides?.injectInputFunction ?? defaultInjectInput;
+
   return `
     (function() {
       var HANDLER_VERSION = ${version};
@@ -267,39 +306,7 @@ export function buildInjectScript(
 
       ${fillInputBlock}
 
-      window.__injectInput__ = async function(content) {
-        try {
-          if (document.readyState !== 'complete') {
-            await new Promise(function(resolve) {
-              if (document.readyState === 'complete') resolve();
-              else window.addEventListener('load', resolve, { once: true });
-            });
-          }
-          await new Promise(function(r) { setTimeout(r, 500); });
-
-          var inputElement = null;
-          for (var attempt = 0; attempt < 5; attempt++) {
-            inputElement = __findInputElement();
-            if (inputElement) break;
-            await new Promise(function(r) { setTimeout(r, 500); });
-          }
-          if (!inputElement) {
-            return { success: false, error: '未找到输入框，站点: ' + SITE_ID };
-          }
-          if (inputElement.disabled || inputElement.readOnly) {
-            return { success: false, error: '输入框被禁用或只读' };
-          }
-
-          __fillInput(inputElement, content, ${inputType});
-          await new Promise(function(r) { setTimeout(r, 300); });
-
-          ${sendAfterFillBlock}
-
-          return { success: true };
-        } catch (error) {
-          return { success: false, error: error.message || '未知错误' };
-        }
-      };
+      ${injectInputBlock}
 
       window.__inputHandlerInjected__ = true;
       window.__inputHandlerVersion__ = HANDLER_VERSION;
