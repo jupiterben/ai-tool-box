@@ -1,3 +1,4 @@
+import type { GeolocationSettings } from './geolocation-settings';
 import type { LlmSettings, LlmSettingsInput, SummarizeResponsesPayload, SummarizeResponsesResult } from './llm-settings';
 import type { ProxySettings } from './proxy-settings';
 
@@ -34,6 +35,20 @@ export interface ExtractWebviewResponsesResult {
 }
 
 export interface ElectronAPI {
+  getGeolocationSettings: () => Promise<{
+    success: boolean;
+    settings?: GeolocationSettings;
+    error?: string;
+  }>;
+  saveGeolocationSettings: (settings: GeolocationSettings) => Promise<{
+    success: boolean;
+    settings?: GeolocationSettings;
+    error?: string;
+  }>;
+  applyToolGeolocation: (toolId: string) => Promise<{
+    success: boolean;
+    error?: string;
+  }>;
   getProxySettings: () => Promise<{
     success: boolean;
     settings?: ProxySettings;

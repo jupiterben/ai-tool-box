@@ -14,6 +14,12 @@ files:
 extraMetadata:
   main: dist-electron/main.mjs
 
+extraResources:
+  - from: resources/icon.ico
+    to: icon.ico
+  - from: resources/icon.png
+    to: icon.png
+
 win:
   target:
     - target: nsis
@@ -22,7 +28,7 @@ win:
     - target: zip
       arch:
         - x64
-  icon: resources/icon.ico
+  icon: icon.ico
   signAndEditExecutable: true
 
 mac:
@@ -31,14 +37,14 @@ mac:
       arch:
         - x64
         - arm64
-  icon: resources/icon_1024.png
+  icon: icon_1024.png
 
 linux:
   target:
     - target: AppImage
       arch:
         - x64
-  icon: resources/icon.png
+  icon: icon.png
 
 nsis:
   oneClick: false

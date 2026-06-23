@@ -2,6 +2,13 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import {
+  initializeGeolocationSettings,
+  loadGeolocationSettings,
+  registerGeolocationWebContentsListener,
+  saveGeolocationSettings,
+  applyToolGeolocationById,
+} from './geolocationManager';
+import {
   initializeProxySettings,
   loadProxySettings,
   registerProxyLoginHandler,
@@ -11,6 +18,7 @@ import { sendWebviewInput } from './webviewInput';
 import { extractWebviewResponses } from './webviewExtract';
 import { loadLlmSettings, saveLlmSettings } from './llmManager';
 import { summarizeResponses } from './llmService';
+import type { GeolocationSettings } from '../src/types/geolocation-settings';
 import type { ProxySettings } from '../src/types/proxy-settings';
 import type { LlmSettingsInput, SummarizeResponsesPayload } from '../src/types/llm-settings';
 
@@ -19,10 +27,19 @@ const __dirname = dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
 
+function getAppIconPath(): string {
+  const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+  if (app.isPackaged) {
+    return join(process.resourcesPath, iconFile);
+  }
+  return join(__dirname, '../resources', iconFile);
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: getAppIconPath(),
     webPreferences: {
       preload: join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -61,6 +78,42 @@ function registerIpcHandlers() {
       return {
         success: false,
         error: error instanceof Error ? error.message : '读取代理设置失败',
+      };
+    }
+  });
+
+  ipcMain.handle('geolocation:get-settings', async () => {
+    try {
+      const settings = await loadGeolocationSettings();
+      return { success: true, settings };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '读取 GPS 设置失败',
+      };
+    }
+  });
+
+  ipcMain.handle('geolocation:save-settings', async (_event, settings: GeolocationSettings) => {
+    try {
+      const saved = await saveGeolocationSettings(settings);
+      return { success: true, settings: saved };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '保存 GPS 设置失败',
+      };
+    }
+  });
+
+  ipcMain.handle('geolocation:apply-for-tool', async (_event, toolId: string) => {
+    try {
+      await applyToolGeolocationById(toolId);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '应用 GPS 设置失败',
       };
     }
   });
@@ -137,9 +190,11 @@ function registerIpcHandlers() {
 }
 
 registerProxyLoginHandler();
+registerGeolocationWebContentsListener();
 
 app.whenReady().then(async () => {
   await initializeProxySettings();
+  await initializeGeolocationSettings();
   registerIpcHandlers();
   createWindow();
 

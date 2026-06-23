@@ -45,12 +45,13 @@ export const DEFAULT_TOOLS: AITool[] = [
     url: 'https://www.doubao.com/chat/',
     region: 'domestic',
   },
-  {
-    id: 'mimo',
-    name: 'MiMo Studio',
-    url: 'https://aistudio.xiaomimimo.com/#/c',
-    region: 'domestic',
-  },
+  // 暂时屏蔽 MiMo Studio（小米）
+  // {
+  //   id: 'mimo',
+  //   name: 'MiMo Studio',
+  //   url: 'https://aistudio.xiaomimimo.com/#/c',
+  //   region: 'domestic',
+  // },
   // 国外
   {
     id: 'chatgpt',
@@ -76,6 +77,13 @@ export const DEFAULT_TOOLS: AITool[] = [
     url: 'https://www.perplexity.ai/',
     region: 'international',
   },
+  // 暂时屏蔽 Meta AI
+  // {
+  //   id: 'meta',
+  //   name: 'Meta AI',
+  //   url: 'https://www.meta.ai/',
+  //   region: 'international',
+  // },
 ];
 
 export function groupToolsByRegion(tools: AITool[]): ToolRegionGroup[] {

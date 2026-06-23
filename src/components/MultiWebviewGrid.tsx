@@ -5,7 +5,7 @@ import { getSiteHandler } from '../webview-handlers';
 import { preInjectScript } from './WebviewInputHandler';
 import { ElectronWebView, type ElectronWebViewElement } from './ElectronWebView';
 import { getToolPartition } from '../utils/toolPartition';
-import { getFaviconFallbackUrl } from '../utils/favicon';
+import { getFaviconFallbackUrl, getLoadableFaviconUrl } from '../utils/favicon';
 import Icon from './ui/Icon';
 import styles from './MultiWebviewGrid.module.css';
 
@@ -101,12 +101,19 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
             console.error(`[MultiWebviewGrid] ${toolName} 预注入脚本失败:`, error);
           }
         }
+
+        try {
+          await window.electronAPI?.applyToolGeolocation(toolId);
+        } catch (error) {
+          console.warn(`[MultiWebviewGrid] ${toolName} 应用 GPS 设置失败:`, error);
+        }
       };
 
       const onFaviconUpdated = (event: Event) => {
         const faviconUrl = (event as PageFaviconUpdatedEvent).favicons?.[0];
-        if (faviconUrl) {
-          setFavicons((prev) => ({ ...prev, [toolId]: faviconUrl }));
+        const loadableUrl = faviconUrl ? getLoadableFaviconUrl(faviconUrl) : '';
+        if (loadableUrl) {
+          setFavicons((prev) => ({ ...prev, [toolId]: loadableUrl }));
         }
       };
 

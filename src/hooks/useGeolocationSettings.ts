@@ -1,53 +1,51 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_TOOLS } from '../config/tools';
 import {
-  PROXY_SETTINGS_VERSION,
-  createDefaultToolProxyConfig,
-  createProxyProfile,
-  type ProxyProfile,
-  type ProxySettings,
-  type ToolProxyConfig,
-} from '../types/proxy-settings';
+  GEOLOCATION_SETTINGS_VERSION,
+  createDefaultGeolocationProfiles,
+  createDefaultToolGeolocationConfig,
+  createGeolocationProfile,
+  isValidAccuracy,
+  isValidLatitude,
+  isValidLongitude,
+  type GeolocationProfile,
+  type GeolocationSettings,
+  type ToolGeolocationConfig,
+} from '../types/geolocation-settings';
 import {
-  loadProxySettingsFromStorage,
-  saveProxySettingsToStorage,
+  loadGeolocationSettingsFromStorage,
+  saveGeolocationSettingsToStorage,
 } from '../utils/settingsStorage';
 
-const PROXY_CHANGED_EVENT = 'proxy-settings-changed';
 const AUTO_SAVE_DELAY_MS = 800;
 
-let proxyRevision = 0;
-
-function areProxySettingsEqual(a: ProxySettings, b: ProxySettings): boolean {
+function areGeolocationSettingsEqual(a: GeolocationSettings, b: GeolocationSettings): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function notifyProxyChanged() {
-  proxyRevision += 1;
-  window.dispatchEvent(new CustomEvent(PROXY_CHANGED_EVENT, { detail: proxyRevision }));
-}
-
-function buildDefaultSettings(): ProxySettings {
-  const tools: Record<string, ToolProxyConfig> = {};
+function buildDefaultSettings(): GeolocationSettings {
+  const tools: Record<string, ToolGeolocationConfig> = {};
   for (const tool of DEFAULT_TOOLS) {
     if (!tool.url) continue;
-    tools[tool.id] = createDefaultToolProxyConfig(tool.id);
+    tools[tool.id] = createDefaultToolGeolocationConfig(tool.id);
   }
-  return { version: PROXY_SETTINGS_VERSION, profiles: {}, tools };
+  return {
+    version: GEOLOCATION_SETTINGS_VERSION,
+    profiles: createDefaultGeolocationProfiles(),
+    tools,
+  };
 }
 
-function sanitizeProxySettingsForSave(settings: ProxySettings): ProxySettings {
+function sanitizeGeolocationSettingsForSave(settings: GeolocationSettings): GeolocationSettings {
   const usedProfileIds = new Set(
     Object.values(settings.tools)
       .filter((config) => config.mode === 'profile' && config.profileId)
       .map((config) => config.profileId!)
   );
 
-  const profiles: Record<string, ProxyProfile> = {};
+  const profiles: Record<string, GeolocationProfile> = {};
   for (const [id, profile] of Object.entries(settings.profiles)) {
-    const hasContent = Boolean(
-      profile.host?.trim() || profile.port?.trim() || profile.name?.trim()
-    );
+    const hasContent = Boolean(profile.name?.trim() || profile.latitude || profile.longitude);
     if (usedProfileIds.has(id) || hasContent) {
       profiles[id] = profile;
     }
@@ -56,8 +54,8 @@ function sanitizeProxySettingsForSave(settings: ProxySettings): ProxySettings {
   return { ...settings, profiles };
 }
 
-function validateSettings(settings: ProxySettings): string | null {
-  const sanitized = sanitizeProxySettingsForSave(settings);
+function validateSettings(settings: GeolocationSettings): string | null {
+  const sanitized = sanitizeGeolocationSettingsForSave(settings);
 
   for (const profile of Object.values(sanitized.profiles)) {
     const isUsed = Object.values(sanitized.tools).some(
@@ -67,10 +65,16 @@ function validateSettings(settings: ProxySettings): string | null {
       continue;
     }
     if (!profile.name?.trim()) {
-      return '代理名称不能为空';
+      return '位置名称不能为空';
     }
-    if (!profile.host?.trim() || !profile.port?.trim()) {
-      return `代理「${profile.name}」需要填写主机和端口`;
+    if (!isValidLatitude(profile.latitude)) {
+      return `位置「${profile.name}」纬度无效（-90 ~ 90）`;
+    }
+    if (!isValidLongitude(profile.longitude)) {
+      return `位置「${profile.name}」经度无效（-180 ~ 180）`;
+    }
+    if (!isValidAccuracy(profile.accuracy)) {
+      return `位置「${profile.name}」精度无效（≥ 0）`;
     }
   }
 
@@ -79,12 +83,12 @@ function validateSettings(settings: ProxySettings): string | null {
       if (!config.profileId) {
         const toolName =
           DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
-        return `${toolName} 需要选择一个代理`;
+        return `${toolName} 需要选择一个虚拟位置`;
       }
       if (!sanitized.profiles[config.profileId]) {
         const toolName =
           DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
-        return `${toolName} 引用的代理不存在，请重新选择`;
+        return `${toolName} 引用的位置不存在，请重新选择`;
       }
     }
   }
@@ -92,23 +96,8 @@ function validateSettings(settings: ProxySettings): string | null {
   return null;
 }
 
-export function useProxyRevision(): number {
-  const [revision, setRevision] = useState(proxyRevision);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const custom = event as CustomEvent<number>;
-      setRevision(custom.detail ?? proxyRevision);
-    };
-    window.addEventListener(PROXY_CHANGED_EVENT, handler);
-    return () => window.removeEventListener(PROXY_CHANGED_EVENT, handler);
-  }, []);
-
-  return revision;
-}
-
-export function useProxySettings() {
-  const [settings, setSettings] = useState<ProxySettings>(buildDefaultSettings);
+export function useGeolocationSettings() {
+  const [settings, setSettings] = useState<GeolocationSettings>(buildDefaultSettings);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +110,7 @@ export function useProxySettings() {
   settingsRef.current = settings;
 
   const persistSettings = useCallback(async (options?: { silent?: boolean }) => {
-    const currentSettings = sanitizeProxySettingsForSave(settingsRef.current);
+    const currentSettings = sanitizeGeolocationSettingsForSave(settingsRef.current);
     const serialized = JSON.stringify(currentSettings);
 
     if (serialized === lastPersistedRef.current) {
@@ -129,7 +118,6 @@ export function useProxySettings() {
     }
 
     const validationError = validateSettings(currentSettings);
-
     if (validationError) {
       if (!options?.silent) {
         setError(validationError);
@@ -145,43 +133,39 @@ export function useProxySettings() {
 
     try {
       if (!window.electronAPI) {
-        saveProxySettingsToStorage(currentSettings);
+        saveGeolocationSettingsToStorage(currentSettings);
         lastPersistedRef.current = serialized;
         skipAutoSaveRef.current = true;
         setSettings((prev) =>
-          areProxySettingsEqual(prev, currentSettings) ? prev : currentSettings
+          areGeolocationSettingsEqual(prev, currentSettings) ? prev : currentSettings
         );
         if (!options?.silent) {
           setSaveMessage('已保存（浏览器预览模式）');
         } else {
           setSaveMessage('已自动保存');
         }
-        notifyProxyChanged();
         return true;
       }
 
-      const response = await window.electronAPI.saveProxySettings(currentSettings);
+      const response = await window.electronAPI.saveGeolocationSettings(currentSettings);
       if (!response.success || !response.settings) {
-        throw new Error(response.error || '保存代理设置失败');
+        throw new Error(response.error || '保存 GPS 设置失败');
       }
 
       const savedSettings = response.settings;
       lastPersistedRef.current = JSON.stringify(savedSettings);
       skipAutoSaveRef.current = true;
       setSettings((prev) =>
-        areProxySettingsEqual(prev, savedSettings) ? prev : savedSettings
+        areGeolocationSettingsEqual(prev, savedSettings) ? prev : savedSettings
       );
       setError(null);
       setSaveMessage(
-        options?.silent
-          ? '已自动保存'
-          : '代理设置已保存，Webview 将使用新网络环境'
+        options?.silent ? '已自动保存' : 'GPS 设置已保存，Webview 将使用新定位'
       );
-      notifyProxyChanged();
       return true;
     } catch (err) {
       if (!options?.silent) {
-        setError(err instanceof Error ? err.message : '保存代理设置失败');
+        setError(err instanceof Error ? err.message : '保存 GPS 设置失败');
       }
       return false;
     } finally {
@@ -198,25 +182,25 @@ export function useProxySettings() {
 
     try {
       if (!window.electronAPI) {
-        const loaded = loadProxySettingsFromStorage(defaults) ?? defaults;
+        const loaded = loadGeolocationSettingsFromStorage(defaults) ?? defaults;
         setSettings(loaded);
-        lastPersistedRef.current = JSON.stringify(sanitizeProxySettingsForSave(loaded));
+        lastPersistedRef.current = JSON.stringify(sanitizeGeolocationSettingsForSave(loaded));
         return;
       }
 
-      const response = await window.electronAPI.getProxySettings();
+      const response = await window.electronAPI.getGeolocationSettings();
       if (!response.success || !response.settings) {
-        throw new Error(response.error || '读取代理设置失败');
+        throw new Error(response.error || '读取 GPS 设置失败');
       }
       setSettings(response.settings);
       lastPersistedRef.current = JSON.stringify(
-        sanitizeProxySettingsForSave(response.settings)
+        sanitizeGeolocationSettingsForSave(response.settings)
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : '读取代理设置失败');
-      const loaded = loadProxySettingsFromStorage(defaults) ?? defaults;
+      setError(err instanceof Error ? err.message : '读取 GPS 设置失败');
+      const loaded = loadGeolocationSettingsFromStorage(defaults) ?? defaults;
       setSettings(loaded);
-      lastPersistedRef.current = JSON.stringify(sanitizeProxySettingsForSave(loaded));
+      lastPersistedRef.current = JSON.stringify(sanitizeGeolocationSettingsForSave(loaded));
     } finally {
       setIsLoading(false);
     }
@@ -244,7 +228,7 @@ export function useProxySettings() {
     setSaveMessage(null);
   }, []);
 
-  const updateToolConfig = useCallback((toolId: string, patch: Partial<ToolProxyConfig>) => {
+  const updateToolConfig = useCallback((toolId: string, patch: Partial<ToolGeolocationConfig>) => {
     setSettings((prev) => ({
       ...prev,
       tools: {
@@ -262,7 +246,7 @@ export function useProxySettings() {
   const addProfile = useCallback(() => {
     setSettings((prev) => {
       const index = Object.keys(prev.profiles).length + 1;
-      const profile = createProxyProfile(`代理 ${index}`);
+      const profile = createGeolocationProfile(`位置 ${index}`);
       return {
         ...prev,
         profiles: {
@@ -274,7 +258,7 @@ export function useProxySettings() {
     clearSaveFeedback();
   }, [clearSaveFeedback]);
 
-  const updateProfile = useCallback((profileId: string, patch: Partial<ProxyProfile>) => {
+  const updateProfile = useCallback((profileId: string, patch: Partial<GeolocationProfile>) => {
     setSettings((prev) => {
       const existing = prev.profiles[profileId];
       if (!existing) {
@@ -294,11 +278,11 @@ export function useProxySettings() {
   const removeProfile = useCallback((profileId: string) => {
     setSettings((prev) => {
       const { [profileId]: _removed, ...profiles } = prev.profiles;
-      const tools: Record<string, ToolProxyConfig> = {};
+      const tools: Record<string, ToolGeolocationConfig> = {};
 
       for (const [toolId, config] of Object.entries(prev.tools)) {
         if (config.mode === 'profile' && config.profileId === profileId) {
-          tools[toolId] = createDefaultToolProxyConfig(toolId);
+          tools[toolId] = createDefaultToolGeolocationConfig(toolId);
         } else {
           tools[toolId] = config;
         }

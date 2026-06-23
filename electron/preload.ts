@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { GeolocationSettings } from '../src/types/geolocation-settings';
 import type { ProxySettings } from '../src/types/proxy-settings';
 import type {
   ExtractWebviewResponsesPayload,
@@ -9,6 +10,9 @@ import type {
 import type { LlmSettings, LlmSettingsInput, SummarizeResponsesPayload, SummarizeResponsesResult } from '../src/types/llm-settings';
 
 const IPC_CHANNELS = [
+  'geolocation:get-settings',
+  'geolocation:save-settings',
+  'geolocation:apply-for-tool',
   'proxy:get-settings',
   'proxy:save-settings',
   'webview:send-input',
@@ -28,6 +32,17 @@ function invoke<T>(channel: IpcChannel, data?: unknown): Promise<T> {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  getGeolocationSettings: () =>
+    invoke<{ success: boolean; settings?: GeolocationSettings; error?: string }>(
+      'geolocation:get-settings'
+    ),
+  saveGeolocationSettings: (settings: GeolocationSettings) =>
+    invoke<{ success: boolean; settings?: GeolocationSettings; error?: string }>(
+      'geolocation:save-settings',
+      settings
+    ),
+  applyToolGeolocation: (toolId: string) =>
+    invoke<{ success: boolean; error?: string }>('geolocation:apply-for-tool', toolId),
   getProxySettings: () =>
     invoke<{ success: boolean; settings?: ProxySettings; error?: string }>('proxy:get-settings'),
   saveProxySettings: (settings: ProxySettings) =>

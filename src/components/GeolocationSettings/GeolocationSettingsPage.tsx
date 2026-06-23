@@ -1,24 +1,22 @@
 import { useMemo } from 'react';
 import { DEFAULT_TOOLS, groupToolsByRegion } from '../../config/tools';
-import { useProxySettings } from '../../hooks/useProxySettings';
-import type { ProxyMode, ProxyProtocol } from '../../types/proxy-settings';
+import { useGeolocationSettings } from '../../hooks/useGeolocationSettings';
+import type { GeolocationMode } from '../../types/geolocation-settings';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import styles from './ProxySettingsPage.module.css';
+import styles from './GeolocationSettingsPage.module.css';
 
-const MODE_OPTIONS: { value: ProxyMode; label: string }[] = [
-  { value: 'direct', label: '直连' },
-  { value: 'system', label: '系统代理' },
-  { value: 'profile', label: '使用代理' },
+const MODE_OPTIONS: { value: GeolocationMode; label: string }[] = [
+  { value: 'system', label: '系统定位' },
+  { value: 'profile', label: '虚拟定位' },
 ];
 
-const PROTOCOL_OPTIONS: { value: ProxyProtocol; label: string }[] = [
-  { value: 'http', label: 'HTTP' },
-  { value: 'https', label: 'HTTPS' },
-  { value: 'socks5', label: 'SOCKS5' },
-];
+function parseCoordinate(value: string, fallback: number): number {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
 
-const ProxySettingsPage: React.FC = () => {
+const GeolocationSettingsPage: React.FC = () => {
   const {
     settings,
     isLoading,
@@ -31,7 +29,7 @@ const ProxySettingsPage: React.FC = () => {
     updateProfile,
     removeProfile,
     saveSettings,
-  } = useProxySettings();
+  } = useGeolocationSettings();
 
   const toolGroups = useMemo(
     () => groupToolsByRegion(DEFAULT_TOOLS.filter((tool) => Boolean(tool.url))),
@@ -44,36 +42,36 @@ const ProxySettingsPage: React.FC = () => {
   );
 
   if (isLoading) {
-    return <div className={styles.loading}>加载代理设置...</div>;
+    return <div className={styles.loading}>加载 GPS 设置...</div>;
   }
 
   return (
-    <div className={styles.proxySettings} role="main" aria-label="网络代理设置">
+    <div className={styles.geolocationSettings} role="main" aria-label="GPS 虚拟定位设置">
       <header className={styles.header}>
-        <h1 className={styles.title}>网络代理设置</h1>
+        <h1 className={styles.title}>GPS 虚拟定位</h1>
         <p className={styles.description}>
-          先在代理库中定义代理，再为各网站选择网络环境。修改后会自动保存并应用到 Webview。
+          在位置库中定义坐标，再为各网站分配虚拟 GPS。修改后会自动保存并应用到 Webview。
         </p>
       </header>
 
-      <section className={styles.section} aria-label="代理库">
+      <section className={styles.section} aria-label="位置库">
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>代理库</h2>
+          <h2 className={styles.sectionTitle}>位置库</h2>
           <Button variant="outline" onClick={addProfile} disabled={isSaving}>
-            添加代理
+            添加位置
           </Button>
         </div>
 
         {profileList.length === 0 ? (
-          <p className={styles.emptyHint}>暂无代理，点击「添加代理」创建第一条。</p>
+          <p className={styles.emptyHint}>暂无位置，点击「添加位置」创建第一条。</p>
         ) : (
           <div className={styles.profileList}>
             {profileList.map((profile) => (
-              <article key={profile.id} className={styles.profileCard} aria-label={`代理 ${profile.name}`}>
+              <article key={profile.id} className={styles.profileCard} aria-label={`位置 ${profile.name}`}>
                 <div className={styles.profileCardHeader}>
                   <Input
                     label="名称"
-                    placeholder="例如：本地 Clash"
+                    placeholder="例如：北京"
                     value={profile.name}
                     onChange={(event) =>
                       updateProfile(profile.id, { name: event.target.value })
@@ -89,61 +87,36 @@ const ProxySettingsPage: React.FC = () => {
                   </Button>
                 </div>
 
-                <div className={styles.manualFields}>
-                  <div className={styles.fieldGroup}>
-                    <label className={styles.label} htmlFor={`${profile.id}-protocol`}>
-                      协议
-                    </label>
-                    <select
-                      id={`${profile.id}-protocol`}
-                      className={styles.select}
-                      value={profile.protocol || 'http'}
-                      onChange={(event) =>
-                        updateProfile(profile.id, {
-                          protocol: event.target.value as ProxyProtocol,
-                        })
-                      }
-                    >
-                      {PROTOCOL_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
+                <div className={styles.coordFields}>
                   <Input
-                    label="主机"
-                    placeholder="127.0.0.1"
-                    value={profile.host || ''}
+                    label="纬度"
+                    placeholder="39.9042"
+                    value={String(profile.latitude)}
                     onChange={(event) =>
-                      updateProfile(profile.id, { host: event.target.value })
+                      updateProfile(profile.id, {
+                        latitude: parseCoordinate(event.target.value, profile.latitude),
+                      })
                     }
                   />
                   <Input
-                    label="端口"
-                    placeholder="7890"
-                    value={profile.port || ''}
+                    label="经度"
+                    placeholder="116.4074"
+                    value={String(profile.longitude)}
                     onChange={(event) =>
-                      updateProfile(profile.id, { port: event.target.value })
+                      updateProfile(profile.id, {
+                        longitude: parseCoordinate(event.target.value, profile.longitude),
+                      })
                     }
                   />
                   <Input
-                    label="用户名（可选）"
-                    value={profile.username || ''}
+                    label="精度（米）"
+                    placeholder="100"
+                    value={String(profile.accuracy)}
                     onChange={(event) =>
-                      updateProfile(profile.id, { username: event.target.value })
+                      updateProfile(profile.id, {
+                        accuracy: parseCoordinate(event.target.value, profile.accuracy),
+                      })
                     }
-                    autoComplete="off"
-                  />
-                  <Input
-                    label="密码（可选）"
-                    type="password"
-                    value={profile.password || ''}
-                    onChange={(event) =>
-                      updateProfile(profile.id, { password: event.target.value })
-                    }
-                    autoComplete="off"
                   />
                 </div>
               </article>
@@ -159,7 +132,7 @@ const ProxySettingsPage: React.FC = () => {
           <div key={group.region} className={styles.siteGroup} aria-label={group.label}>
             <div className={styles.siteGroupHeader}>
               <span className={styles.siteGroupLabel}>{group.label}</span>
-              <span className={styles.siteGroupColHint} aria-hidden="true">网络模式</span>
+              <span className={styles.siteGroupColHint} aria-hidden="true">定位模式</span>
             </div>
             <ul className={styles.siteList}>
               {group.tools.map((tool) => {
@@ -174,7 +147,7 @@ const ProxySettingsPage: React.FC = () => {
                       <div
                         className={styles.modeSegment}
                         role="group"
-                        aria-label={`${tool.name} 网络模式`}
+                        aria-label={`${tool.name} 定位模式`}
                       >
                         {MODE_OPTIONS.map((option) => (
                           <button
@@ -202,16 +175,16 @@ const ProxySettingsPage: React.FC = () => {
                       </div>
                       {config.mode === 'profile' && (
                         profileList.length === 0 ? (
-                          <span className={styles.siteProfileHint}>请先添加代理</span>
+                          <span className={styles.siteProfileHint}>请先添加位置</span>
                         ) : (
                           <select
-                            id={`${tool.id}-profile`}
+                            id={`${tool.id}-geo-profile`}
                             className={styles.profileSelect}
                             value={config.profileId || profileList[0]?.id || ''}
                             onChange={(event) =>
                               updateToolConfig(tool.id, { profileId: event.target.value })
                             }
-                            aria-label={`${tool.name} 选择代理`}
+                            aria-label={`${tool.name} 选择虚拟位置`}
                           >
                             {profileList.map((profile) => (
                               <option key={profile.id} value={profile.id}>
@@ -250,4 +223,4 @@ const ProxySettingsPage: React.FC = () => {
   );
 };
 
-export default ProxySettingsPage;
+export default GeolocationSettingsPage;

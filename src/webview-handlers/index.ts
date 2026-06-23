@@ -8,6 +8,7 @@ import { doubaoHandler } from './sites/doubao';
 import { geminiHandler } from './sites/gemini';
 import { kimiHandler } from './sites/kimi';
 import { mimoHandler } from './sites/mimo';
+import { metaHandler } from './sites/meta';
 import { minimaxHandler } from './sites/minimax';
 import { perplexityHandler } from './sites/perplexity';
 import { qianwenHandler } from './sites/qianwen';
@@ -29,6 +30,7 @@ const HANDLERS: Record<string, BaseSiteHandler> = {
   doubao: doubaoHandler,
   perplexity: perplexityHandler,
   mimo: mimoHandler,
+  meta: metaHandler,
 };
 
 export function getSiteHandler(toolId: string): BaseSiteHandler | undefined {
@@ -61,4 +63,5 @@ export {
   doubaoHandler,
   perplexityHandler,
   mimoHandler,
+  metaHandler,
 };

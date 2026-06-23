@@ -16,6 +16,12 @@ const MultiWebviewTool = lazyPage(
 const ProxySettingsPage = lazyPage(
   () => import('./components/ProxySettings/ProxySettingsPage') as Promise<{ default: ComponentType }>,
 );
+const GeolocationSettingsPage = lazyPage(
+  () =>
+    import('./components/GeolocationSettings/GeolocationSettingsPage') as Promise<{
+      default: ComponentType;
+    }>,
+);
 const LlmSettingsPage = lazyPage(
   () => import('./components/LlmSettings/LlmSettingsPage') as Promise<{ default: ComponentType }>,
 );
@@ -35,6 +41,11 @@ const TOOL_PAGES: ToolPage[] = [
     id: 'proxy-settings',
     name: '网络代理',
     iconName: 'Settings',
+  },
+  {
+    id: 'geolocation-settings',
+    name: 'GPS 定位',
+    iconName: 'MapPin',
   },
 ];
 
@@ -84,6 +95,13 @@ const App: React.FC = () => {
         <KeepAlivePage id="proxy-settings" active={activePageId === 'proxy-settings'}>
           <Suspense fallback={<LoadingPlaceholder />}>
             <ProxySettingsPage />
+          </Suspense>
+        </KeepAlivePage>
+      )}
+      {visitedPageIds.has('geolocation-settings') && (
+        <KeepAlivePage id="geolocation-settings" active={activePageId === 'geolocation-settings'}>
+          <Suspense fallback={<LoadingPlaceholder />}>
+            <GeolocationSettingsPage />
           </Suspense>
         </KeepAlivePage>
       )}
