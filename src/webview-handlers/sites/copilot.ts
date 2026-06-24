@@ -1,39 +1,40 @@
 import { BaseSiteHandler } from '../BaseSiteHandler';
 import type { SiteHandlerConfig } from '../types';
 
-export class MetaHandler extends BaseSiteHandler {
+export class CopilotHandler extends BaseSiteHandler {
   readonly config: SiteHandlerConfig = {
-    toolId: 'meta',
-    urlHint: 'meta.ai',
-    urlHints: ['meta.ai', 'www.meta.ai'],
+    toolId: 'copilot',
+    urlHint: 'copilot.microsoft.com',
+    urlHints: ['copilot.microsoft.com'],
     inputSelectors: [
-      'div[contenteditable="true"][role="textbox"]',
-      'div[contenteditable="true"]',
-      "textarea[placeholder*='Ask']",
+      'textarea#userInput',
+      'textarea[data-testid="composer-input"]',
       "textarea[placeholder*='Message']",
+      "textarea[placeholder*='Ask']",
+      'div[role="textbox"][contenteditable="true"]',
       'textarea',
     ],
-    inputType: 'contenteditable',
+    inputType: 'textarea',
     sendButtonSelectors: [
-      'button[aria-label*="Send"]',
       'button[aria-label*="Submit"]',
-      'button[data-testid*="send"]',
+      'button[aria-label*="Send"]',
       "button[type='submit']",
     ],
-    sendMethod: 'click',
+    sendMethod: 'enter',
     responseSelectors: [
-      '[data-testid*="assistant"]',
-      '[data-testid*="response"]',
-      '[class*="assistant"]',
+      '[data-content="assistant"]',
+      '.bot-turn',
+      '[data-testid="response-message"]',
+      '.ac-textBlock',
       '[class*="response"]',
-      '.markdown',
     ],
     userMessageSelectors: [
-      '[data-testid*="user"]',
+      '[data-content="user"]',
+      '.user-turn',
       '[class*="user-message"]',
     ],
     newChatAction: {
-      url: 'https://www.meta.ai/',
+      url: 'https://copilot.microsoft.com/',
       textIncludes: ['New chat', '新对话'],
     },
     recentChatAction: {
@@ -47,4 +48,4 @@ export class MetaHandler extends BaseSiteHandler {
   };
 }
 
-export const metaHandler = new MetaHandler();
+export const copilotHandler = new CopilotHandler();

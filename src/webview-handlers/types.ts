@@ -1,5 +1,28 @@
 export type InputType = 'textarea' | 'input' | 'contenteditable';
 export type SendMethod = 'click' | 'enter' | 'submit';
+export type ConversationActionType = 'newChat' | 'recentChat';
+
+/** 侧边栏会话列表：点击第 index 个可见会话项 */
+export interface ConversationListConfig {
+  containerSelectors: string[];
+  itemSelectors: string[];
+  /** 跳过包含这些文案的项（如「新对话」按钮） */
+  skipTextIncludes?: string[];
+  /** 取第几个可见会话，默认 0 = 最近一次 */
+  index?: number;
+}
+
+/** 站点内新建/切换对话的操作配置 */
+export interface ConversationActionConfig {
+  /** 直接跳转 URL（新建对话时最可靠） */
+  url?: string;
+  /** 依次尝试点击的选择器 */
+  selectors?: string[];
+  /** 按按钮/链接文案匹配（包含即命中） */
+  textIncludes?: string[];
+  /** 从侧边栏会话列表中选择 */
+  conversationList?: ConversationListConfig;
+}
 
 /** 单个 AI 站点的 webview 输入/发送配置 */
 export interface SiteHandlerConfig {
@@ -29,6 +52,10 @@ export interface SiteHandlerConfig {
   responseRootSelectors?: string[];
   /** 忽略与 UI 标签完全一致的短文本（如侧边栏「最近对话」） */
   responseIgnoreTexts?: string[];
+  /** 新建对话 */
+  newChatAction?: ConversationActionConfig;
+  /** 回到最近一次对话 */
+  recentChatAction?: ConversationActionConfig;
 }
 
 /** 与旧版 inputSelectors 兼容 */

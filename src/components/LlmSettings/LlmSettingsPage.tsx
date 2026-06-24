@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 import { useLlmSettings } from '../../hooks/useLlmSettings';
 import { LLM_PROVIDER_PRESETS, type LlmProvider } from '../../types/llm-settings';
+import SettingsPageLayout, { SettingsLoading, settingsStyles } from '../settings/SettingsPageLayout';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import styles from './LlmSettingsPage.module.css';
+import { SegmentControl } from '../ui/SegmentControl';
+import { Alert } from '../ui/Alert';
 
 const PROVIDER_OPTIONS: { value: LlmProvider; label: string }[] = [
   ...(Object.entries(LLM_PROVIDER_PRESETS) as [Exclude<LlmProvider, 'custom'>, (typeof LLM_PROVIDER_PRESETS)[Exclude<LlmProvider, 'custom'>]][]).map(
@@ -32,51 +34,48 @@ const LlmSettingsPage: React.FC = () => {
   }, [settings.provider]);
 
   if (isLoading) {
-    return <div className={styles.loading}>加载 LLM 设置...</div>;
+    return <SettingsLoading message="加载 LLM 设置..." />;
   }
 
   return (
-    <div className={styles.page} role="main" aria-label="LLM 设置">
-      <header className={styles.header}>
-        <h1 className={styles.title}>LLM 汇总设置</h1>
-        <p className={styles.description}>
-          配置 LLM API 后，收集各平台回复时将自动调用 AI 生成结构化 Markdown 汇总。修改后会自动保存。
-        </p>
-      </header>
-
-      <section className={styles.card}>
-        <label className={styles.toggleRow}>
+    <SettingsPageLayout
+      title="LLM 汇总设置"
+      description="配置 LLM API 后，收集各平台回复时将自动调用 AI 生成结构化 Markdown 汇总。修改后会自动保存。"
+      ariaLabel="LLM 设置"
+      footer={
+        <div className={settingsStyles.actions}>
+          <Button onClick={() => void saveSettings()} disabled={isSaving}>
+            {isSaving ? '保存中…' : '立即保存'}
+          </Button>
+        </div>
+      }
+    >
+      <section className={settingsStyles.card}>
+        <label className={settingsStyles.label} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', cursor: 'pointer' }}>
           <input
             type="checkbox"
             checked={settings.enabled}
             onChange={(e) => updateSettings({ enabled: e.target.checked })}
           />
-          <span>启用 LLM 智能汇总</span>
+          <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-primary)' }}>
+            启用 LLM 智能汇总
+          </span>
         </label>
 
-        <div className={styles.fieldGroup}>
-          <span className={styles.label}>API 提供商</span>
-          <div className={styles.modeOptions} role="group" aria-label="API 提供商">
-            {PROVIDER_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`${styles.modeButton} ${
-                  settings.provider === option.value ? styles.modeButtonActive : ''
-                }`}
-                onClick={() => setProvider(option.value)}
-                aria-pressed={settings.provider === option.value}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          {providerHint && <p className={styles.hint}>API 地址：{providerHint}</p>}
+        <div className={settingsStyles.fieldGroup}>
+          <span className={settingsStyles.label}>API 提供商</span>
+          <SegmentControl
+            options={PROVIDER_OPTIONS}
+            value={settings.provider}
+            onChange={setProvider}
+            ariaLabel="API 提供商"
+          />
+          {providerHint && <p className={settingsStyles.hint}>API 地址：{providerHint}</p>}
         </div>
 
         {settings.provider === 'custom' && (
-          <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="llm-base-url">
+          <div className={settingsStyles.fieldGroup}>
+            <label className={settingsStyles.label} htmlFor="llm-base-url">
               API Base URL
             </label>
             <Input
@@ -88,8 +87,8 @@ const LlmSettingsPage: React.FC = () => {
           </div>
         )}
 
-        <div className={styles.fieldGroup}>
-          <label className={styles.label} htmlFor="llm-model">
+        <div className={settingsStyles.fieldGroup}>
+          <label className={settingsStyles.label} htmlFor="llm-model">
             模型
           </label>
           <Input
@@ -100,8 +99,8 @@ const LlmSettingsPage: React.FC = () => {
           />
         </div>
 
-        <div className={styles.fieldGroup}>
-          <label className={styles.label} htmlFor="llm-api-key">
+        <div className={settingsStyles.fieldGroup}>
+          <label className={settingsStyles.label} htmlFor="llm-api-key">
             API Key
           </label>
           <Input
@@ -113,9 +112,9 @@ const LlmSettingsPage: React.FC = () => {
           />
         </div>
 
-        <div className={styles.inlineFields}>
-          <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="llm-temperature">
+        <div className={settingsStyles.inlineFields}>
+          <div className={settingsStyles.fieldGroup}>
+            <label className={settingsStyles.label} htmlFor="llm-temperature">
               Temperature
             </label>
             <Input
@@ -128,8 +127,8 @@ const LlmSettingsPage: React.FC = () => {
               onChange={(e) => updateSettings({ temperature: Number(e.target.value) })}
             />
           </div>
-          <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="llm-max-tokens">
+          <div className={settingsStyles.fieldGroup}>
+            <label className={settingsStyles.label} htmlFor="llm-max-tokens">
               Max Tokens
             </label>
             <Input
@@ -145,19 +144,9 @@ const LlmSettingsPage: React.FC = () => {
         </div>
       </section>
 
-      {error && (
-        <div className={styles.error} role="alert">
-          {error}
-        </div>
-      )}
-      {saveMessage && <div className={styles.success}>{saveMessage}</div>}
-
-      <div className={styles.actions}>
-        <Button onClick={() => void saveSettings()} disabled={isSaving}>
-          {isSaving ? '保存中…' : '立即保存'}
-        </Button>
-      </div>
-    </div>
+      {error && <Alert variant="error">{error}</Alert>}
+      {saveMessage && <Alert variant="success">{saveMessage}</Alert>}
+    </SettingsPageLayout>
   );
 };
 

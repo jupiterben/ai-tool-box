@@ -37,6 +37,18 @@ export class GeminiHandler extends BaseSiteHandler {
       '[data-message-author="user"]',
       '.conversation-turn-user',
     ],
+    newChatAction: {
+      url: 'https://gemini.google.com/app',
+      textIncludes: ['New chat', '新对话'],
+    },
+    recentChatAction: {
+      conversationList: {
+        containerSelectors: ['[class*="conversation"]', 'aside', 'nav'],
+        itemSelectors: ['a', '[role="button"]', '[role="link"]', 'mat-list-item'],
+        skipTextIncludes: ['New chat', '新对话', 'Gemini'],
+        index: 0,
+      },
+    },
   };
 }
 

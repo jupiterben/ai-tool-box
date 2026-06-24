@@ -37,6 +37,18 @@ export class KimiHandler extends BaseSiteHandler {
       '[class*="user-content"]',
       '.chat-content-list .chat-content-item:not(.chat-content-item-assistant)',
     ],
+    newChatAction: {
+      url: 'https://www.kimi.com/zh',
+      textIncludes: ['新建会话', '新对话'],
+    },
+    recentChatAction: {
+      conversationList: {
+        containerSelectors: ['aside', '[class*="sidebar"]', '[class*="history"]'],
+        itemSelectors: ['a', '[role="button"]', '[class*="session"]', 'li'],
+        skipTextIncludes: ['新建会话', '新对话', '新建'],
+        index: 0,
+      },
+    },
   };
 }
 

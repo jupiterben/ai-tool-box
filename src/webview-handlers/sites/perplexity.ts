@@ -34,6 +34,18 @@ export class PerplexityHandler extends BaseSiteHandler {
       "h1[class*='group/query']",
       'div.bg-offset.rounded-2xl span.select-text',
     ],
+    newChatAction: {
+      url: 'https://www.perplexity.ai/',
+      textIncludes: ['New Thread', '新对话'],
+    },
+    recentChatAction: {
+      conversationList: {
+        containerSelectors: ['aside', '[class*="sidebar"]', 'nav'],
+        itemSelectors: ['a', '[role="button"]', '[role="link"]'],
+        skipTextIncludes: ['New Thread', '新对话', 'Home', 'Discover'],
+        index: 0,
+      },
+    },
   };
 }
 

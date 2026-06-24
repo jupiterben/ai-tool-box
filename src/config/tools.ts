@@ -45,13 +45,18 @@ export const DEFAULT_TOOLS: AITool[] = [
     url: 'https://www.doubao.com/chat/',
     region: 'domestic',
   },
-  // 暂时屏蔽 MiMo Studio（小米）
-  // {
-  //   id: 'mimo',
-  //   name: 'MiMo Studio',
-  //   url: 'https://aistudio.xiaomimimo.com/#/c',
-  //   region: 'domestic',
-  // },
+  {
+    id: 'mimo',
+    name: 'MiMo Studio',
+    url: 'https://aistudio.xiaomimimo.com/#/c',
+    region: 'domestic',
+  },
+  {
+    id: 'hunyuan',
+    name: '腾讯混元',
+    url: 'https://yuanbao.tencent.com/chat/',
+    region: 'domestic',
+  },
   // 国外
   {
     id: 'chatgpt',
@@ -77,14 +82,28 @@ export const DEFAULT_TOOLS: AITool[] = [
     url: 'https://www.perplexity.ai/',
     region: 'international',
   },
-  // 暂时屏蔽 Meta AI
-  // {
-  //   id: 'meta',
-  //   name: 'Meta AI',
-  //   url: 'https://www.meta.ai/',
-  //   region: 'international',
-  // },
+  {
+    id: 'meta',
+    name: 'Meta AI',
+    url: 'https://www.meta.ai/',
+    region: 'international',
+  },
+  {
+    id: 'grok',
+    name: 'Grok',
+    url: 'https://grok.com/',
+    region: 'international',
+  },
+  {
+    id: 'copilot',
+    name: 'Copilot',
+    url: 'https://copilot.microsoft.com/',
+    region: 'international',
+  },
 ];
+
+/** 首次安装时默认关闭的网站，可在「网站管理」设置中启用 */
+export const DEFAULT_DISABLED_TOOL_IDS = ['meta', 'mimo'];
 
 export function groupToolsByRegion(tools: AITool[]): ToolRegionGroup[] {
   return TOOL_REGION_ORDER.map((region) => ({

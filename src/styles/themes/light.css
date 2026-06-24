@@ -52,4 +52,11 @@
   --color-sidebar-hover: #f3f4f6;
   --color-sidebar-active: #eff6ff;
   --color-sidebar-active-text: #2563eb;
+
+  /* 语义别名 - Semantic Aliases */
+  --color-primary: var(--color-primary-600);
+  --color-surface: var(--color-background);
+  --color-surface-hover: var(--color-background-hover);
+  --color-text: var(--color-text-primary);
+  --color-danger: var(--color-error);
 }

@@ -1,39 +1,37 @@
 import { BaseSiteHandler } from '../BaseSiteHandler';
 import type { SiteHandlerConfig } from '../types';
 
-export class MetaHandler extends BaseSiteHandler {
+export class GrokHandler extends BaseSiteHandler {
   readonly config: SiteHandlerConfig = {
-    toolId: 'meta',
-    urlHint: 'meta.ai',
-    urlHints: ['meta.ai', 'www.meta.ai'],
+    toolId: 'grok',
+    urlHint: 'grok.com',
+    urlHints: ['grok.com', 'x.com'],
     inputSelectors: [
-      'div[contenteditable="true"][role="textbox"]',
-      'div[contenteditable="true"]',
       "textarea[placeholder*='Ask']",
-      "textarea[placeholder*='Message']",
+      "textarea[data-testid='grok-input']",
+      "textarea[data-testid='tweetTextarea_0']",
+      '[contenteditable="true"][aria-label*="message" i]',
+      'div[role="textbox"][contenteditable="true"]',
       'textarea',
     ],
-    inputType: 'contenteditable',
+    inputType: 'textarea',
     sendButtonSelectors: [
       'button[aria-label*="Send"]',
-      'button[aria-label*="Submit"]',
-      'button[data-testid*="send"]',
+      'button[data-testid="send-button"]',
       "button[type='submit']",
     ],
-    sendMethod: 'click',
+    sendMethod: 'enter',
     responseSelectors: [
-      '[data-testid*="assistant"]',
-      '[data-testid*="response"]',
-      '[class*="assistant"]',
-      '[class*="response"]',
-      '.markdown',
+      '[data-testid="grok-response"]',
+      '.grok-response',
+      "[class*='response']",
     ],
     userMessageSelectors: [
-      '[data-testid*="user"]',
-      '[class*="user-message"]',
+      '[data-testid="user-message"]',
+      '.user-message',
     ],
     newChatAction: {
-      url: 'https://www.meta.ai/',
+      url: 'https://grok.com/',
       textIncludes: ['New chat', '新对话'],
     },
     recentChatAction: {
@@ -47,4 +45,4 @@ export class MetaHandler extends BaseSiteHandler {
   };
 }
 
-export const metaHandler = new MetaHandler();
+export const grokHandler = new GrokHandler();

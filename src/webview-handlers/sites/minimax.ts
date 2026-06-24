@@ -30,6 +30,18 @@ export class MinimaxHandler extends BaseSiteHandler {
       '[class*="message-content"]',
     ],
     userMessageSelectors: ['[class*="user"]', '[class*="User"]'],
+    newChatAction: {
+      url: 'https://agent.minimaxi.com/',
+      textIncludes: ['新对话', '新建'],
+    },
+    recentChatAction: {
+      conversationList: {
+        containerSelectors: ['aside', '[class*="sidebar"]', '[class*="history"]'],
+        itemSelectors: ['a', '[role="button"]', 'li'],
+        skipTextIncludes: ['新对话', '新建'],
+        index: 0,
+      },
+    },
   };
 }
 

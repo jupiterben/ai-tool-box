@@ -28,6 +28,18 @@ export class ChatGlmHandler extends BaseSiteHandler {
       '[class*="Assistant"]',
     ],
     userMessageSelectors: ['[class*="question"]', '[class*="user"]'],
+    newChatAction: {
+      url: 'https://chatglm.cn/main/alltoolsdetail?lang=zh',
+      textIncludes: ['新对话', '新建'],
+    },
+    recentChatAction: {
+      conversationList: {
+        containerSelectors: ['aside', '[class*="sidebar"]', '[class*="history"]'],
+        itemSelectors: ['a', '[role="button"]', 'li'],
+        skipTextIncludes: ['新对话', '新建', '历史'],
+        index: 0,
+      },
+    },
   };
 }
 

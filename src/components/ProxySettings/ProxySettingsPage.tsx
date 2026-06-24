@@ -2,8 +2,12 @@ import { useMemo } from 'react';
 import { DEFAULT_TOOLS, groupToolsByRegion } from '../../config/tools';
 import { useProxySettings } from '../../hooks/useProxySettings';
 import type { ProxyMode, ProxyProtocol } from '../../types/proxy-settings';
+import SettingsPageLayout, { SettingsLoading, settingsStyles } from '../settings/SettingsPageLayout';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { SegmentControl } from '../ui/SegmentControl';
+import { Alert } from '../ui/Alert';
 import styles from './ProxySettingsPage.module.css';
 
 const MODE_OPTIONS: { value: ProxyMode; label: string }[] = [
@@ -44,33 +48,44 @@ const ProxySettingsPage: React.FC = () => {
   );
 
   if (isLoading) {
-    return <div className={styles.loading}>加载代理设置...</div>;
+    return <SettingsLoading message="加载代理设置..." />;
   }
 
   return (
-    <div className={styles.proxySettings} role="main" aria-label="网络代理设置">
-      <header className={styles.header}>
-        <h1 className={styles.title}>网络代理设置</h1>
-        <p className={styles.description}>
-          先在代理库中定义代理，再为各网站选择网络环境。修改后会自动保存并应用到 Webview。
-        </p>
-      </header>
-
-      <section className={styles.section} aria-label="代理库">
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>代理库</h2>
+    <SettingsPageLayout
+      title="网络代理设置"
+      description="先在代理库中定义代理，再为各网站选择网络环境。修改后会自动保存并应用到 Webview。"
+      ariaLabel="网络代理设置"
+      footer={
+        <>
+          {error && <Alert variant="error">{error}</Alert>}
+          {saveMessage && <Alert variant="success">{saveMessage}</Alert>}
+          <div className={settingsStyles.actions}>
+            <Button onClick={() => void saveSettings()} disabled={isSaving}>
+              {isSaving ? '保存中...' : '立即应用'}
+            </Button>
+            <Button variant="outline" onClick={() => void loadSettings()} disabled={isSaving}>
+              重新加载
+            </Button>
+          </div>
+        </>
+      }
+    >
+      <section className={settingsStyles.section} aria-label="代理库">
+        <div className={settingsStyles.sectionHeader}>
+          <h2 className={settingsStyles.sectionTitle}>代理库</h2>
           <Button variant="outline" onClick={addProfile} disabled={isSaving}>
             添加代理
           </Button>
         </div>
 
         {profileList.length === 0 ? (
-          <p className={styles.emptyHint}>暂无代理，点击「添加代理」创建第一条。</p>
+          <p className={settingsStyles.emptyHint}>暂无代理，点击「添加代理」创建第一条。</p>
         ) : (
-          <div className={styles.profileList}>
+          <div className={settingsStyles.profileList}>
             {profileList.map((profile) => (
-              <article key={profile.id} className={styles.profileCard} aria-label={`代理 ${profile.name}`}>
-                <div className={styles.profileCardHeader}>
+              <article key={profile.id} className={settingsStyles.profileCard} aria-label={`代理 ${profile.name}`}>
+                <div className={settingsStyles.profileCardHeader}>
                   <Input
                     label="名称"
                     placeholder="例如：本地 Clash"
@@ -81,7 +96,6 @@ const ProxySettingsPage: React.FC = () => {
                   />
                   <Button
                     variant="outline"
-                    className={styles.deleteButton}
                     onClick={() => removeProfile(profile.id)}
                     disabled={isSaving}
                   >
@@ -90,13 +104,12 @@ const ProxySettingsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.manualFields}>
-                  <div className={styles.fieldGroup}>
-                    <label className={styles.label} htmlFor={`${profile.id}-protocol`}>
+                  <div className={settingsStyles.fieldGroup}>
+                    <label className={settingsStyles.label} htmlFor={`${profile.id}-protocol`}>
                       协议
                     </label>
-                    <select
+                    <Select
                       id={`${profile.id}-protocol`}
-                      className={styles.select}
                       value={profile.protocol || 'http'}
                       onChange={(event) =>
                         updateProfile(profile.id, {
@@ -109,7 +122,7 @@ const ProxySettingsPage: React.FC = () => {
                           {option.label}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
 
                   <Input
@@ -152,61 +165,48 @@ const ProxySettingsPage: React.FC = () => {
         )}
       </section>
 
-      <section className={styles.section} aria-label="站点分配">
-        <h2 className={styles.sectionTitle}>站点分配</h2>
+      <section className={settingsStyles.section} aria-label="站点分配">
+        <h2 className={settingsStyles.sectionTitle}>站点分配</h2>
 
         {toolGroups.map((group) => (
-          <div key={group.region} className={styles.siteGroup} aria-label={group.label}>
-            <div className={styles.siteGroupHeader}>
-              <span className={styles.siteGroupLabel}>{group.label}</span>
-              <span className={styles.siteGroupColHint} aria-hidden="true">网络模式</span>
+          <div key={group.region} className={settingsStyles.siteGroup} aria-label={group.label}>
+            <div className={settingsStyles.siteGroupHeader}>
+              <span className={settingsStyles.siteGroupLabel}>{group.label}</span>
+              <span className={settingsStyles.siteGroupColHint} aria-hidden="true">网络模式</span>
             </div>
-            <ul className={styles.siteList}>
+            <ul className={settingsStyles.siteList}>
               {group.tools.map((tool) => {
                 const config = settings.tools[tool.id] ?? { toolId: tool.id, mode: 'system' as const };
 
                 return (
-                  <li key={tool.id} className={styles.siteRow}>
-                    <span className={styles.siteName} title={tool.url}>
+                  <li key={tool.id} className={settingsStyles.siteRow}>
+                    <span className={settingsStyles.siteName} title={tool.url}>
                       {tool.name}
                     </span>
-                    <div className={styles.siteControls}>
-                      <div
-                        className={styles.modeSegment}
-                        role="group"
-                        aria-label={`${tool.name} 网络模式`}
-                      >
-                        {MODE_OPTIONS.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className={`${styles.modeSegmentBtn} ${
-                              config.mode === option.value ? styles.modeSegmentBtnActive : ''
-                            }`}
-                            onClick={() => {
-                              if (option.value === 'profile') {
-                                const firstProfileId = profileList[0]?.id;
-                                updateToolConfig(tool.id, {
-                                  mode: 'profile',
-                                  profileId: config.profileId ?? firstProfileId,
-                                });
-                                return;
-                              }
-                              updateToolConfig(tool.id, { mode: option.value, profileId: undefined });
-                            }}
-                            aria-pressed={config.mode === option.value}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
+                    <div className={settingsStyles.siteControls}>
+                      <SegmentControl
+                        options={MODE_OPTIONS}
+                        value={config.mode}
+                        onChange={(mode) => {
+                          if (mode === 'profile') {
+                            const firstProfileId = profileList[0]?.id;
+                            updateToolConfig(tool.id, {
+                              mode: 'profile',
+                              profileId: config.profileId ?? firstProfileId,
+                            });
+                            return;
+                          }
+                          updateToolConfig(tool.id, { mode, profileId: undefined });
+                        }}
+                        ariaLabel={`${tool.name} 网络模式`}
+                      />
                       {config.mode === 'profile' && (
                         profileList.length === 0 ? (
-                          <span className={styles.siteProfileHint}>请先添加代理</span>
+                          <span className={settingsStyles.siteProfileHint}>请先添加代理</span>
                         ) : (
-                          <select
+                          <Select
+                            compact
                             id={`${tool.id}-profile`}
-                            className={styles.profileSelect}
                             value={config.profileId || profileList[0]?.id || ''}
                             onChange={(event) =>
                               updateToolConfig(tool.id, { profileId: event.target.value })
@@ -218,7 +218,7 @@ const ProxySettingsPage: React.FC = () => {
                                 {profile.name || '未命名'}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         )
                       )}
                     </div>
@@ -229,24 +229,7 @@ const ProxySettingsPage: React.FC = () => {
           </div>
         ))}
       </section>
-
-      <footer className={styles.footer}>
-        {error && (
-          <p className={styles.error} role="alert">
-            {error}
-          </p>
-        )}
-        {saveMessage && <p className={styles.message}>{saveMessage}</p>}
-        <div className={styles.actions}>
-          <Button onClick={() => void saveSettings()} disabled={isSaving}>
-            {isSaving ? '保存中...' : '立即应用'}
-          </Button>
-          <Button variant="outline" onClick={() => void loadSettings()} disabled={isSaving}>
-            重新加载
-          </Button>
-        </div>
-      </footer>
-    </div>
+    </SettingsPageLayout>
   );
 };
 

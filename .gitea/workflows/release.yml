@@ -1,0 +1,129 @@
+# Gitea Actions：推送 v* tag 时构建并发布多平台安装包
+#
+# 前置条件（act_runner）：
+#   - 需注册三类 runner 标签：windows-latest / macos-latest / ubuntu-latest
+#   - Windows runner 需安装 Git Bash（build-ci.sh 依赖 bash）
+#   - macOS 构建必须在 macOS runner 上执行（无法交叉编译）
+#   - runner 需能访问 .npmrc 中的内网 npm / electron 镜像
+#
+# 发布流程：
+#   1. 确保 package.json version 与 tag 一致（如 tag v1.0.2 → version 1.0.2）
+#   2. git tag v1.0.2 && git push origin v1.0.2
+#   3. 工作流自动构建 win/mac/linux 并创建 Gitea Release
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CSC_IDENTITY_AUTO_DISCOVERY: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-latest
+            platform: linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Verify tag matches package.json version
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [[ "$TAG" != "$PKG" ]]; then
+            echo "::error::tag v$TAG 与 package.json version ($PKG) 不一致"
+            exit 1
+          fi
+          echo "版本校验通过: $PKG"
+
+      - name: Build release artifacts
+        shell: bash
+        run: bash scripts/build-ci.sh ${{ matrix.platform }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-${{ matrix.platform }}
+          path: release/
+          if-no-files-found: error
+
+  publish:
+    name: Publish Gitea Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: release-win
+          path: dist
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: release-mac
+          path: dist
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: release-linux
+          path: dist
+
+      - name: List release files
+        run: find dist -type f | sort
+
+      - name: Create Gitea Release
+        uses: https://gitea.com/actions/gitea-release-action@v1
+        env:
+          NODE_OPTIONS: '--experimental-fetch'
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## AI Tool Box ${{ github.ref_name }}
+
+            | 平台 | 产物 |
+            |------|------|
+            | Windows | NSIS 安装包 (.exe) + 增量更新 (.zip) + latest.yml |
+            | macOS | DMG (.dmg) |
+            | Linux | AppImage (.AppImage) |
+          files: |-
+            dist/**/*
+          sha256sum: true

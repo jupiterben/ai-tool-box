@@ -4,7 +4,8 @@ import UnifiedInput from './UnifiedInput';
 import ToolSelector from './ToolSelector';
 import MultiWebviewGrid from './MultiWebviewGrid';
 import ResponseSummaryPanel from './ResponseSummaryPanel';
-import { DEFAULT_TOOLS } from '../config/tools';
+import { handleWebviewConversation } from './WebviewConversationHandler';
+import { useEnabledTools } from '../hooks/useToolSettings';
 import { useWebviewInput } from '../hooks/useWebviewInput';
 import { useResponseCollection } from '../hooks/useResponseCollection';
 import { useProxyRevision } from '../hooks/useProxySettings';
@@ -17,10 +18,12 @@ import styles from './MultiWebviewTool.module.css';
 const MultiWebviewTool: React.FC = () => {
   const [inputValue, setInputValue] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [isConversationAction, setIsConversationAction] = useState<boolean>(false);
   const { theme: appTheme } = useTheme();
   const { size: summaryPanelSize, updateSize: updateSummaryPanelSize } = useSummaryPanelSize();
 
-  const allToolIds = useMemo(() => DEFAULT_TOOLS.map((tool) => tool.id), []);
+  const enabledTools = useEnabledTools();
+  const allToolIds = useMemo(() => enabledTools.map((tool) => tool.id), [enabledTools]);
   const { selectedToolIds, setSelectedToolIds } = useSelectedTools(allToolIds);
 
   const webviewElementsRef = useRef<Record<string, HTMLElement>>({});
@@ -135,6 +138,40 @@ const MultiWebviewTool: React.FC = () => {
     [closePanel, setPanelOpen]
   );
 
+  const handleConversationAction = useCallback(
+    async (action: 'newChat' | 'recentChat') => {
+      if (!selectedToolIds.length || isConversationAction) {
+        return;
+      }
+
+      setIsConversationAction(true);
+      try {
+        await Promise.all(
+          selectedToolIds.map(async (toolId) => {
+            const webviewElement = webviewElementsRef.current[toolId];
+            const tool = enabledTools.find((item) => item.id === toolId);
+            if (!webviewElement || !tool) {
+              return;
+            }
+
+            const result = await handleWebviewConversation(
+              toolId,
+              action,
+              webviewElement,
+              tool.url
+            );
+            if (!result.success) {
+              console.warn(`[${tool.name}] ${action === 'newChat' ? '新建对话' : '最近对话'}失败:`, result.error);
+            }
+          })
+        );
+      } finally {
+        setIsConversationAction(false);
+      }
+    },
+    [selectedToolIds, enabledTools, isConversationAction]
+  );
+
   return (
     <ConfigProvider
       theme={{
@@ -152,7 +189,7 @@ const MultiWebviewTool: React.FC = () => {
           <div className={styles.workspace} role="main" aria-label="多 Webview 工具">
             <div className={styles.main} role="region" aria-label="Webview 内容区域">
               <MultiWebviewGrid
-                tools={DEFAULT_TOOLS}
+                tools={enabledTools}
                 selectedToolIds={selectedToolIds}
                 deliveryStates={deliveryStates}
                 proxyRevision={proxyRevision}
@@ -163,10 +200,30 @@ const MultiWebviewTool: React.FC = () => {
             <div className={styles.footer} role="region" aria-label="输入和工具选择">
               <div className={styles.footerToolbar}>
                 <ToolSelector
-                  tools={DEFAULT_TOOLS}
+                  tools={enabledTools}
                   selectedToolIds={selectedToolIds}
                   onSelectionChange={handleSelectionChange}
                 />
+                <button
+                  type="button"
+                  className={styles.collectToolbarButton}
+                  onClick={() => handleConversationAction('recentChat')}
+                  disabled={isConversationAction || selectedToolIds.length === 0}
+                  title="在所有已选平台回到最近一次对话"
+                >
+                  <Icon name="History" size={16} />
+                  {isConversationAction ? '切换中…' : '最近对话'}
+                </button>
+                <button
+                  type="button"
+                  className={styles.collectToolbarButton}
+                  onClick={() => handleConversationAction('newChat')}
+                  disabled={isConversationAction || selectedToolIds.length === 0}
+                  title="在所有已选平台新建对话"
+                >
+                  <Icon name="MessageSquarePlus" size={16} />
+                  新建对话
+                </button>
                 <button
                   type="button"
                   className={styles.collectToolbarButton}

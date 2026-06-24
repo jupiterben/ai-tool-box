@@ -25,6 +25,18 @@ export class ChatGptHandler extends BaseSiteHandler {
       '.agent-turn',
     ],
     userMessageSelectors: ['[data-message-author-role="user"]', '[data-testid="user-message"]'],
+    newChatAction: {
+      selectors: ['[data-testid="create-new-chat-button"]', 'a[href="/"]'],
+      textIncludes: ['New chat', '新对话'],
+    },
+    recentChatAction: {
+      conversationList: {
+        containerSelectors: ['nav ol', 'nav [role="list"]', '[data-testid="history"]', 'aside nav'],
+        itemSelectors: ['a', '[role="button"]', 'li'],
+        skipTextIncludes: ['New chat', '新对话', 'Library', 'GPTs', 'Explore'],
+        index: 0,
+      },
+    },
   };
 }
 

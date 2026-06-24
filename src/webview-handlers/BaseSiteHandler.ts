@@ -5,7 +5,9 @@ import {
   type InjectScriptOverrides,
   sendButtonSelectorString,
 } from './browserRuntime';
+import { buildConversationActionScript } from './conversationRuntime';
 import { buildExtractResponsesScript } from './responseRuntime';
+import type { ConversationActionType } from './types';
 import type { SiteHandlerConfig, WebviewInputSelector } from './types';
 
 export const HANDLER_VERSION = 14;
@@ -42,6 +44,10 @@ export abstract class BaseSiteHandler {
 
   buildExtractResponsesScript(): string {
     return buildExtractResponsesScript(this.config);
+  }
+
+  buildConversationActionScript(action: ConversationActionType): string {
+    return buildConversationActionScript(this.config, action);
   }
 
   /** 兼容旧 API */

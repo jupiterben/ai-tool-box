@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# 一键编译 + 发布到共享盘，供自动更新系统使用
-# 构建产物：NSIS 安装包（首次安装用）+ zip 包（增量更新用）
+# 一键编译并生成发布产物
+# 构建产物：NSIS 安装包（首次安装用）+ zip 包（增量更新用）+ latest.yml
 # 用法:
 #   bash scripts/release.sh              # 自增 patch 并发布
 #   bash scripts/release.sh minor        # 自增 minor 并发布
@@ -13,7 +13,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PUBLISH_DIR="//mishare/HK4E/AnimSoftwareData/NPCPrefab/update"
 RELEASE_DIR="../ys-npc-release"
 PKG="package.json"
 
@@ -131,24 +130,8 @@ echo "📝 已生成 $LATEST_YML"
 [[ "$MANDATORY" == true ]] && echo "⚠️  已标记为重要更新"
 cat "$LATEST_YML"
 
-# ── 7. 发布到共享盘 ───────────────────────────────────────────────
-
-if [[ ! -d "$PUBLISH_DIR" ]]; then
-  echo "⚠️  共享盘不可达: $PUBLISH_DIR"
-  echo "    请手动复制以下文件:"
-  echo "      $INSTALLER"
-  echo "      $ZIPFILE"
-  echo "      $LATEST_YML"
-  exit 0
-fi
-
-echo "🚀 发布到 $PUBLISH_DIR ..."
-cp -v "$INSTALLER" "$PUBLISH_DIR/"
-cp -v "$ZIPFILE" "$PUBLISH_DIR/"
-cp -v "$LATEST_YML" "$PUBLISH_DIR/"
-
 echo ""
-echo "✅ 发布完成! v$VERSION"
-echo "   $PUBLISH_DIR/$INSTALLER_NAME  (首次安装)"
-echo "   $PUBLISH_DIR/$ZIP_NAME  (增量更新)"
-echo "   $PUBLISH_DIR/latest.yml"
+echo "✅ 构建完成! v$VERSION"
+echo "   $INSTALLER  (首次安装)"
+echo "   $ZIPFILE  (增量更新)"
+echo "   $LATEST_YML"

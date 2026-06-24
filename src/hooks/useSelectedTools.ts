@@ -37,6 +37,14 @@ export function useSelectedTools(allToolIds: string[]) {
   );
 
   useEffect(() => {
+    setSelectedToolIdsState((prev) => {
+      const validIds = new Set(allToolIds);
+      const filtered = prev.filter((id) => validIds.has(id));
+      return filtered.length > 0 ? filtered : [...allToolIds];
+    });
+  }, [allToolIds]);
+
+  useEffect(() => {
     localStorage.setItem(SELECTED_TOOLS_STORAGE_KEY, JSON.stringify(selectedToolIds));
   }, [selectedToolIds]);
 

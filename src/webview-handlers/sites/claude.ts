@@ -27,6 +27,18 @@ export class ClaudeHandler extends BaseSiteHandler {
       '[class*="assistant"]',
     ],
     userMessageSelectors: ['[data-testid="user-message"]', '.font-user-message'],
+    newChatAction: {
+      url: 'https://claude.ai/new',
+      textIncludes: ['New chat', '新对话'],
+    },
+    recentChatAction: {
+      conversationList: {
+        containerSelectors: ['aside', '[class*="sidebar"]', 'nav'],
+        itemSelectors: ['a', '[role="button"]', '[role="link"]'],
+        skipTextIncludes: ['New chat', '新对话', 'Projects', 'Artifacts'],
+        index: 0,
+      },
+    },
   };
 }
 

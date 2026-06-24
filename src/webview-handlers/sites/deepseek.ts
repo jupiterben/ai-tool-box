@@ -32,6 +32,18 @@ export class DeepSeekHandler extends BaseSiteHandler {
       '[class*="markdown-body"]',
     ],
     userMessageSelectors: ['[data-message-author-role="user"]', '.user-message'],
+    newChatAction: {
+      url: 'https://chat.deepseek.com',
+      textIncludes: ['新对话', 'New Chat'],
+    },
+    recentChatAction: {
+      conversationList: {
+        containerSelectors: ['aside', '[class*="sidebar"]', '[class*="SideBar"]'],
+        itemSelectors: ['a', '[class*="conversation"]', '[role="button"]'],
+        skipTextIncludes: ['新对话', 'New Chat', '新建'],
+        index: 0,
+      },
+    },
   };
 
   protected buildFindSendButtonNearInputBody(): string {

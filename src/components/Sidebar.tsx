@@ -35,7 +35,17 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
   return (
     <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
       <div className={styles.header}>
-        {!isCollapsed && <h2 className={styles.title}>工具集</h2>}
+        {!isCollapsed && (
+          <div className={styles.brand}>
+            <div className={styles.logo} aria-hidden="true">
+              <Icon name="Sparkles" size={18} />
+            </div>
+            <div className={styles.brandText}>
+              <h2 className={styles.title}>AI Tool Box</h2>
+              <span className={styles.subtitle}>工具集</span>
+            </div>
+          </div>
+        )}
         <button
           className={styles.toggleButton}
           onClick={() => setIsCollapsed(!isCollapsed)}

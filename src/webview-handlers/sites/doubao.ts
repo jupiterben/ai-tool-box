@@ -36,6 +36,18 @@ export class DoubaoHandler extends BaseSiteHandler {
       '[data-testid="send_message"] [data-testid="message_text_content"]',
       '[data-testid="send_message"]',
     ],
+    newChatAction: {
+      url: 'https://www.doubao.com/chat/',
+      textIncludes: ['新对话', '新建对话'],
+    },
+    recentChatAction: {
+      conversationList: {
+        containerSelectors: ['aside', '[class*="sidebar"]', '[class*="conversation-list"]'],
+        itemSelectors: ['a', '[role="button"]', 'li'],
+        skipTextIncludes: ['新对话', '新建对话', '新建'],
+        index: 0,
+      },
+    },
   };
 }
 

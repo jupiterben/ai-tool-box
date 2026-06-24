@@ -14,12 +14,11 @@
   width: 60px;
 }
 
-/* 响应式：小于 1024px 时自动折叠 */
 @media (max-width: 1024px) {
   .sidebar {
     width: 60px;
   }
-  
+
   .sidebar:not(.collapsed) {
     width: 240px;
     position: absolute;
@@ -30,7 +29,7 @@
 }
 
 .header {
-  padding: var(--spacing-5) var(--spacing-4);
+  padding: var(--spacing-4);
   border-bottom: 1px solid var(--color-sidebar-border);
   background-color: var(--color-background-secondary);
   transition: background-color var(--transition-base), border-color var(--transition-base);
@@ -38,6 +37,49 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-2);
+  min-height: 60px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
+  color: var(--color-text-inverse);
+  flex-shrink: 0;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-tight);
 }
 
 .toggleButton {
@@ -69,64 +111,39 @@
 
 .sidebar.collapsed .header {
   justify-content: center;
-  padding: var(--spacing-5) var(--spacing-2);
+  padding: var(--spacing-4) var(--spacing-2);
 }
 
-.sidebar.collapsed .title {
+.sidebar.collapsed .brand {
   display: none;
-}
-
-.title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-  margin: 0;
-  line-height: var(--line-height-tight);
 }
 
 .nav {
   flex: 1;
-  padding: var(--spacing-2) 0;
+  padding: var(--spacing-3) var(--spacing-2);
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 .navItem {
   width: 100%;
-  padding: var(--spacing-3) var(--spacing-4);
+  padding: var(--spacing-2) var(--spacing-3);
+  margin-bottom: var(--spacing-1);
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
   background: none;
   border: none;
-  border-right: 3px solid transparent;
+  border-radius: var(--radius-md);
   cursor: pointer;
   text-align: left;
   color: var(--color-sidebar-text);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-normal);
   line-height: var(--line-height-normal);
   transition: all var(--transition-base);
   outline: none;
   position: relative;
-  will-change: background-color, transform;
-}
-
-.navItem::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background-color: var(--color-primary-600);
-  transform: scaleY(0);
-  transition: transform var(--transition-base);
-  transform-origin: center;
-}
-
-.navItem.active::before {
-  transform: scaleY(1);
 }
 
 .navItem:hover {
@@ -143,8 +160,6 @@
   background-color: var(--color-sidebar-active);
   color: var(--color-sidebar-active-text);
   font-weight: var(--font-weight-medium);
-  border-right-color: var(--color-primary-600);
-  transform: translateX(2px);
 }
 
 .icon {
@@ -173,13 +188,8 @@
   padding: var(--spacing-3);
 }
 
-.sidebar.collapsed .navItem .icon {
-  margin: 0;
-}
-
-/* 滚动条样式 */
 .nav::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .nav::-webkit-scrollbar-track {
@@ -188,16 +198,11 @@
 
 .nav::-webkit-scrollbar-thumb {
   background-color: var(--color-border);
-  border-radius: var(--radius-sm);
-  transition: background-color var(--transition-base);
-}
-
-.nav::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-border-hover);
+  border-radius: var(--radius-full);
 }
 
 .footer {
-  padding: var(--spacing-4);
+  padding: var(--spacing-3);
   border-top: 1px solid var(--color-sidebar-border);
   background-color: var(--color-background-secondary);
   display: flex;

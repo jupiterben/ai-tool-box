@@ -322,6 +322,17 @@ export class QianwenHandler extends BaseSiteHandler {
       '.ant-bubble-end .ant-bubble-content',
       '[data-role="user"]',
     ],
+    newChatAction: {
+      textIncludes: ['新对话', '开启新对话'],
+    },
+    recentChatAction: {
+      conversationList: {
+        containerSelectors: ['aside', '[class*="sidebar"]', '[class*="SideBar"]', '[class*="history"]'],
+        itemSelectors: ['[role="button"]', 'a', 'div[class*="item"]', 'li'],
+        skipTextIncludes: ['新对话', '开启新对话', '历史对话', '最近对话'],
+        index: 0,
+      },
+    },
   };
 
   protected buildInjectOverrides(): InjectScriptOverrides {

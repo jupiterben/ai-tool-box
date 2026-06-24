@@ -42,8 +42,8 @@
 .footerToolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px 0;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3) 0;
   flex-wrap: wrap;
 }
 
@@ -51,13 +51,16 @@
 .panelToggleButton {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 13px;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition: background-color var(--transition-base), border-color var(--transition-base), color var(--transition-base);
   white-space: nowrap;
+  outline: none;
 }
 
 .collectToolbarButton {
@@ -68,6 +71,12 @@
 
 .collectToolbarButton:hover:not(:disabled) {
   background-color: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+}
+
+.collectToolbarButton:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
 }
 
 .collectToolbarButton:disabled {
@@ -90,7 +99,7 @@
 .panelToggleActive {
   border-color: var(--color-primary);
   color: var(--color-primary);
-  background-color: rgba(59, 130, 246, 0.08);
+  background-color: color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 .main {

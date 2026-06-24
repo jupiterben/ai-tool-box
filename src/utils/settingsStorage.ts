@@ -1,10 +1,12 @@
 import type { GeolocationSettings } from '../types/geolocation-settings';
 import type { LlmSettings } from '../types/llm-settings';
 import type { ProxySettings } from '../types/proxy-settings';
+import type { ToolSettings } from '../types/tool-settings';
 
 export const LLM_SETTINGS_STORAGE_KEY = 'ai-tool-box-llm-settings';
 export const PROXY_SETTINGS_STORAGE_KEY = 'ai-tool-box-proxy-settings';
 export const GEOLOCATION_SETTINGS_STORAGE_KEY = 'ai-tool-box-geolocation-settings';
+export const TOOL_SETTINGS_STORAGE_KEY = 'ai-tool-box-tool-settings';
 
 export function loadLlmSettingsFromStorage(
   defaults: LlmSettings
@@ -76,4 +78,25 @@ export function loadGeolocationSettingsFromStorage(
 
 export function saveGeolocationSettingsToStorage(settings: GeolocationSettings): void {
   localStorage.setItem(GEOLOCATION_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+}
+
+export function loadToolSettingsFromStorage(defaults: ToolSettings): ToolSettings | null {
+  try {
+    const raw = localStorage.getItem(TOOL_SETTINGS_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<ToolSettings>;
+    if (!Array.isArray(parsed.disabledToolIds)) return null;
+
+    return {
+      version: defaults.version,
+      disabledToolIds: parsed.disabledToolIds,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveToolSettingsToStorage(settings: ToolSettings): void {
+  localStorage.setItem(TOOL_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
 }

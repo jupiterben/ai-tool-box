@@ -3,9 +3,12 @@ import { BaseSiteHandler, HANDLER_VERSION } from './BaseSiteHandler';
 import { chatgptHandler } from './sites/chatgpt';
 import { chatglmHandler } from './sites/chatglm';
 import { claudeHandler } from './sites/claude';
+import { copilotHandler } from './sites/copilot';
 import { deepseekHandler } from './sites/deepseek';
 import { doubaoHandler } from './sites/doubao';
 import { geminiHandler } from './sites/gemini';
+import { grokHandler } from './sites/grok';
+import { hunyuanHandler } from './sites/hunyuan';
 import { kimiHandler } from './sites/kimi';
 import { mimoHandler } from './sites/mimo';
 import { metaHandler } from './sites/meta';
@@ -31,6 +34,9 @@ const HANDLERS: Record<string, BaseSiteHandler> = {
   perplexity: perplexityHandler,
   mimo: mimoHandler,
   meta: metaHandler,
+  grok: grokHandler,
+  copilot: copilotHandler,
+  hunyuan: hunyuanHandler,
 };
 
 export function getSiteHandler(toolId: string): BaseSiteHandler | undefined {
@@ -64,4 +70,7 @@ export {
   perplexityHandler,
   mimoHandler,
   metaHandler,
+  grokHandler,
+  copilotHandler,
+  hunyuanHandler,
 };

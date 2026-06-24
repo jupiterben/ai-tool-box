@@ -22,6 +22,9 @@ const GeolocationSettingsPage = lazyPage(
       default: ComponentType;
     }>,
 );
+const ToolSettingsPage = lazyPage(
+  () => import('./components/ToolSettings/ToolSettingsPage') as Promise<{ default: ComponentType }>,
+);
 const LlmSettingsPage = lazyPage(
   () => import('./components/LlmSettings/LlmSettingsPage') as Promise<{ default: ComponentType }>,
 );
@@ -29,13 +32,18 @@ const LlmSettingsPage = lazyPage(
 const TOOL_PAGES: ToolPage[] = [
   {
     id: 'multi-webview',
-    name: '多Webview工具',
+    name: '对话',
     iconName: 'Globe',
   },
   {
     id: 'llm-settings',
     name: 'LLM 设置',
     iconName: 'Sparkles',
+  },
+  {
+    id: 'tool-settings',
+    name: '网站管理',
+    iconName: 'Grid',
   },
   {
     id: 'proxy-settings',
@@ -88,6 +96,13 @@ const App: React.FC = () => {
         <KeepAlivePage id="llm-settings" active={activePageId === 'llm-settings'}>
           <Suspense fallback={<LoadingPlaceholder />}>
             <LlmSettingsPage />
+          </Suspense>
+        </KeepAlivePage>
+      )}
+      {visitedPageIds.has('tool-settings') && (
+        <KeepAlivePage id="tool-settings" active={activePageId === 'tool-settings'}>
+          <Suspense fallback={<LoadingPlaceholder />}>
+            <ToolSettingsPage />
           </Suspense>
         </KeepAlivePage>
       )}
