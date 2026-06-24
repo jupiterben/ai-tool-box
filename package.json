@@ -28,14 +28,6 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "electron-winstaller",
-      "esbuild",
-      "sharp"
-    ]
-  },
   "devDependencies": {
     "@types/node": "^26.0.0",
     "@types/react": "^19.2.17",
