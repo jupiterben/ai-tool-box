@@ -88,11 +88,19 @@ interface VerifySentResult {
   remaining?: string;
 }
 
-/** 千问词槽 DIV：insertText 产生 trusted 事件，再原生点击/Enter */
-async function sendQianwenNative(
+/** React 受控站点：insertText 产生 trusted 事件，再原生点击/Enter */
+async function sendReactNativeInput(
   wc: WebContents,
   handler: BaseSiteHandler,
-  content: string
+  content: string,
+  options: {
+    prepareFn: string;
+    getSendCoordsFn: string;
+    verifySentFn: string;
+    label: string;
+    syncFn?: string;
+    insertDelayMs?: number;
+  }
 ): Promise<WebviewSendInputResult> {
   const injectError = await ensureInjected(wc, handler);
   if (injectError) {
@@ -100,24 +108,44 @@ async function sendQianwenNative(
   }
 
   try {
-    const prep = (await wc.executeJavaScript(`window.__qianwenFocusInput__()`)) as {
+    const prep = (await wc.executeJavaScript(`${options.prepareFn}()`)) as {
       success?: boolean;
       error?: string;
       inputTag?: string;
     };
     if (!prep?.success) {
-      return { success: false, error: prep?.error || '聚焦千问输入框失败' };
+      return { success: false, error: prep?.error || `聚焦 ${options.label} 输入框失败` };
     }
 
     await clearFocusedInput(wc);
     await sleep(150);
     wc.insertText(content);
-    await sleep(400);
+    await sleep(options.insertDelayMs ?? 400);
+
+    let fillMethod = 'native-insertText';
+    if (options.syncFn) {
+      const sync = (await wc.executeJavaScript(
+        `${options.syncFn}(${JSON.stringify(content)})`
+      )) as { success?: boolean; remaining?: string; reactMethod?: string };
+      if (sync?.reactMethod) {
+        fillMethod = sync.reactMethod;
+      }
+      if (sync?.success === false) {
+        return {
+          success: false,
+          error: `${options.label} 同步输入失败（剩余: ${sync?.remaining ?? '未知'}）`,
+          fillMethod,
+          inputTag: prep.inputTag,
+          remaining: sync?.remaining,
+        };
+      }
+      await sleep(200);
+    }
 
     let sendInfo: NativeSendCoords = { ready: false };
     const deadline = Date.now() + 6000;
     while (Date.now() < deadline) {
-      sendInfo = (await wc.executeJavaScript(`window.__qianwenGetSendCoords__()`)) as NativeSendCoords;
+      sendInfo = (await wc.executeJavaScript(`${options.getSendCoordsFn}()`)) as NativeSendCoords;
       if (sendInfo?.ready) {
         break;
       }
@@ -138,13 +166,13 @@ async function sendQianwenNative(
     await sleep(800);
     const contentJson = JSON.stringify(content);
     const verify = (await wc.executeJavaScript(
-      `window.__qianwenVerifySent__(${contentJson})`
-    )) as VerifySentResult;
+      `${options.verifySentFn}(${contentJson})`
+    )) as VerifySentResult & { hasPrefix?: boolean };
 
     if (verify?.sent) {
       return {
         success: true,
-        fillMethod: 'native-insertText',
+        fillMethod,
         sendMethod,
         btnReady: !!sendInfo?.ready,
         inputTag: prep.inputTag,
@@ -154,8 +182,10 @@ async function sendQianwenNative(
 
     return {
       success: false,
-      error: `千问原生发送失败（剩余: ${verify?.remaining ?? '未知'}）`,
-      fillMethod: 'native-insertText',
+      error: verify?.hasPrefix
+        ? `${options.label} 原生发送失败（仍含引用前缀: ${verify?.remaining ?? '未知'}）`
+        : `${options.label} 原生发送失败（剩余: ${verify?.remaining ?? '未知'}）`,
+      fillMethod,
       sendMethod,
       btnReady: !!sendInfo?.ready,
       inputTag: prep.inputTag,
@@ -164,9 +194,36 @@ async function sendQianwenNative(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : '千问原生发送失败',
+      error: error instanceof Error ? error.message : `${options.label} 原生发送失败`,
     };
   }
+}
+
+async function sendQianwenNative(
+  wc: WebContents,
+  handler: BaseSiteHandler,
+  content: string
+): Promise<WebviewSendInputResult> {
+  return sendReactNativeInput(wc, handler, content, {
+    prepareFn: 'window.__qianwenFocusInput__',
+    getSendCoordsFn: 'window.__qianwenGetSendCoords__',
+    verifySentFn: 'window.__qianwenVerifySent__',
+    label: '千问',
+  });
+}
+
+async function sendGrokNative(
+  wc: WebContents,
+  handler: BaseSiteHandler,
+  content: string
+): Promise<WebviewSendInputResult> {
+  return sendReactNativeInput(wc, handler, content, {
+    prepareFn: 'window.__grokPrepareInput__',
+    syncFn: 'window.__grokSyncInput__',
+    getSendCoordsFn: 'window.__grokGetSendCoords__',
+    verifySentFn: 'window.__grokVerifySent__',
+    label: 'Grok',
+  });
 }
 
 async function sendWithInjectScript(
@@ -226,6 +283,14 @@ export async function sendWebviewInput(
         return nativeResult;
       }
       console.warn('[webviewInput] qianwen 原生失败，回退注入:', nativeResult.error);
+    }
+
+    if (payload.toolId === 'grok') {
+      const nativeResult = await sendGrokNative(wc, handler, payload.content);
+      if (nativeResult.success) {
+        return nativeResult;
+      }
+      console.warn('[webviewInput] grok 原生失败，回退注入:', nativeResult.error);
     }
 
     return await sendWithInjectScript(wc, handler, payload.content);

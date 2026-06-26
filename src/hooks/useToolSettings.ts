@@ -35,6 +35,28 @@ function sanitizeSettings(settings: Partial<ToolSettings>): ToolSettings {
   };
 }
 
+function computeNextToolSettings(
+  prev: ToolSettings,
+  toolId: string,
+  enabled: boolean
+): ToolSettings | null {
+  const disabled = new Set(prev.disabledToolIds);
+
+  if (enabled) {
+    disabled.delete(toolId);
+  } else if (!disabled.has(toolId)) {
+    const enabledCount = DEFAULT_TOOLS.length - disabled.size;
+    if (enabledCount <= 1) {
+      return null;
+    }
+    disabled.add(toolId);
+  } else {
+    return null;
+  }
+
+  return { ...prev, disabledToolIds: [...disabled] };
+}
+
 export function getEnabledTools(settings: ToolSettings): AITool[] {
   const disabled = new Set(settings.disabledToolIds);
   return DEFAULT_TOOLS.filter((tool) => !disabled.has(tool.id));
@@ -79,7 +101,6 @@ export function useToolSettings() {
   const persistSettings = useCallback((next: ToolSettings) => {
     const sanitized = sanitizeSettings(next);
     saveToolSettingsToStorage(sanitized);
-    setSettings(sanitized);
     setSaveMessage('已保存');
     notifyToolSettingsChanged();
     window.setTimeout(() => setSaveMessage(null), 2000);
@@ -87,25 +108,20 @@ export function useToolSettings() {
 
   const setToolEnabled = useCallback(
     (toolId: string, enabled: boolean) => {
-      setSettings((prev) => {
-        const disabled = new Set(prev.disabledToolIds);
+      let nextToPersist: ToolSettings | null = null;
 
-        if (enabled) {
-          disabled.delete(toolId);
-        } else if (!disabled.has(toolId)) {
-          const enabledCount = DEFAULT_TOOLS.length - disabled.size;
-          if (enabledCount <= 1) {
-            return prev;
-          }
-          disabled.add(toolId);
-        } else {
+      setSettings((prev) => {
+        const next = computeNextToolSettings(prev, toolId, enabled);
+        if (!next) {
           return prev;
         }
-
-        const next = { ...prev, disabledToolIds: [...disabled] };
-        persistSettings(next);
+        nextToPersist = next;
         return next;
       });
+
+      if (nextToPersist) {
+        persistSettings(nextToPersist);
+      }
     },
     [persistSettings]
   );

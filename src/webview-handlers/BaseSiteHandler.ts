@@ -10,7 +10,7 @@ import { buildExtractResponsesScript } from './responseRuntime';
 import type { ConversationActionType } from './types';
 import type { SiteHandlerConfig, WebviewInputSelector } from './types';
 
-export const HANDLER_VERSION = 14;
+export const HANDLER_VERSION = 16;
 
 export abstract class BaseSiteHandler {
   abstract readonly config: SiteHandlerConfig;

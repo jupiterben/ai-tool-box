@@ -256,19 +256,19 @@ export async function handleWebviewInput(
       return prepareError;
     }
 
-    // 千问词槽 DIV 须 trusted 输入，优先 IPC 原生 insertText
-    if (config.toolId === 'qianwen') {
+    // React 受控输入须 trusted 事件，优先 IPC 原生 insertText
+    if (config.toolId === 'qianwen' || config.toolId === 'grok') {
       try {
         const ipcResult = await tryNativeWebviewSendViaIpc(handler, inputContent, webviewElement);
         console.log(
-          `[WebviewInputHandler] qianwen IPC 执行结果:`,
+          `[WebviewInputHandler] ${config.toolId} IPC 执行结果:`,
           formatHandlerResult(ipcResult ?? { success: false, error: 'IPC 无响应' })
         );
         if (ipcResult?.success) {
           return ipcResult;
         }
       } catch (error) {
-        console.warn(`[WebviewInputHandler] qianwen IPC 异常:`, error);
+        console.warn(`[WebviewInputHandler] ${config.toolId} IPC 异常:`, error);
       }
     }
 
