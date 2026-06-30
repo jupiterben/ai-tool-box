@@ -1,4 +1,6 @@
-import { getToolPartition } from '../utils/toolPartition';
+import { getToolPartitionFromSettings } from '../utils/toolPartition';
+import { getSessionSettingsSnapshot } from '../hooks/useSessionSettings';
+import type { ReferenceImage, WebviewInputPayload } from '../types/reference-image';
 import {
   buildInjectCheckScriptForSite,
   getSiteHandler,
@@ -16,7 +18,15 @@ export interface WebviewInputHandlerConfig {
     getWebContents?: () => unknown;
   };
   inputContent: string;
+  referenceImage?: ReferenceImage | null;
   timeout?: number;
+}
+
+function buildInputPayload(content: string, referenceImage?: ReferenceImage | null): WebviewInputPayload {
+  return {
+    content,
+    ...(referenceImage ? { referenceImage } : {}),
+  };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -55,6 +65,7 @@ function getExecuteJavaScript(webview: HTMLElement): ((code: string) => Promise<
 async function tryNativeWebviewSendViaIpc(
   handler: BaseSiteHandler,
   inputContent: string,
+  referenceImage: ReferenceImage | null | undefined,
   webviewElement: WebviewInputHandlerConfig['webviewElement']
 ): Promise<WebviewInputHandlerResult | null> {
   if (!window.electronAPI?.sendWebviewInput) {
@@ -80,8 +91,9 @@ async function tryNativeWebviewSendViaIpc(
   console.log(`[WebviewInputHandler] ${handler.toolId} 通过主进程 IPC 发送`);
   return window.electronAPI.sendWebviewInput({
     toolId: handler.toolId,
-    partition: getToolPartition(handler.toolId),
+    partition: getToolPartitionFromSettings(handler.toolId, getSessionSettingsSnapshot()),
     content: inputContent,
+    referenceImage: referenceImage ?? null,
     webContentsId,
   });
 }
@@ -162,15 +174,15 @@ async function waitForWebviewLoad(
 }
 
 async function callInjectedInput(
-  inputContent: string,
+  payload: WebviewInputPayload,
   executeJavaScript: (code: string) => Promise<unknown>,
   timeout = 15000
 ): Promise<WebviewInputHandlerResult> {
-  const contentJson = JSON.stringify(inputContent);
+  const payloadJson = JSON.stringify(payload);
   const callCode = `
     (async function() {
       if (typeof window.__injectInput__ === 'function') {
-        return await window.__injectInput__(${contentJson});
+        return await window.__injectInput__(${payloadJson});
       }
       return { success: false, error: '输入处理函数未找到，请重新注入脚本' };
     })();
@@ -235,7 +247,8 @@ export async function handleWebviewInput(
     return { success: false, error: `未找到站点 handler: ${config.toolId}` };
   }
 
-  const { webviewElement, inputContent, timeout = 15000 } = config;
+  const { webviewElement, inputContent, referenceImage, timeout = 15000 } = config;
+  const inputPayload = buildInputPayload(inputContent, referenceImage);
   const executeJavaScript = getExecuteJavaScript(webviewElement);
 
   if (!executeJavaScript) {
@@ -259,7 +272,12 @@ export async function handleWebviewInput(
     // React 受控输入须 trusted 事件，优先 IPC 原生 insertText
     if (config.toolId === 'qianwen' || config.toolId === 'grok') {
       try {
-        const ipcResult = await tryNativeWebviewSendViaIpc(handler, inputContent, webviewElement);
+        const ipcResult = await tryNativeWebviewSendViaIpc(
+          handler,
+          inputContent,
+          referenceImage,
+          webviewElement
+        );
         console.log(
           `[WebviewInputHandler] ${config.toolId} IPC 执行结果:`,
           formatHandlerResult(ipcResult ?? { success: false, error: 'IPC 无响应' })
@@ -274,7 +292,7 @@ export async function handleWebviewInput(
 
     // 1. 渲染进程直连当前 webview
     try {
-      const rendererResult = await callInjectedInput(inputContent, executeJavaScript, timeout);
+      const rendererResult = await callInjectedInput(inputPayload, executeJavaScript, timeout);
       console.log(
         `[WebviewInputHandler] ${config.toolId} 渲染进程执行结果:`,
         formatHandlerResult(rendererResult)
@@ -289,7 +307,12 @@ export async function handleWebviewInput(
 
     // 2. IPC 回退（非千问）
     try {
-      const ipcResult = await tryNativeWebviewSendViaIpc(handler, inputContent, webviewElement);
+      const ipcResult = await tryNativeWebviewSendViaIpc(
+        handler,
+        inputContent,
+        referenceImage,
+        webviewElement
+      );
       if (ipcResult?.success) {
         console.log(`[WebviewInputHandler] ${config.toolId} IPC 发送成功`);
         return ipcResult;

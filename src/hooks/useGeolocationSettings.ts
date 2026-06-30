@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DEFAULT_TOOLS } from '../config/tools';
+import { ALL_DEFAULT_TOOLS, findToolById } from '../config/tools';
 import {
   GEOLOCATION_SETTINGS_VERSION,
   createDefaultGeolocationProfiles,
@@ -25,7 +25,7 @@ function areGeolocationSettingsEqual(a: GeolocationSettings, b: GeolocationSetti
 
 function buildDefaultSettings(): GeolocationSettings {
   const tools: Record<string, ToolGeolocationConfig> = {};
-  for (const tool of DEFAULT_TOOLS) {
+  for (const tool of ALL_DEFAULT_TOOLS) {
     if (!tool.url) continue;
     tools[tool.id] = createDefaultToolGeolocationConfig(tool.id);
   }
@@ -82,12 +82,12 @@ function validateSettings(settings: GeolocationSettings): string | null {
     if (config.mode === 'profile') {
       if (!config.profileId) {
         const toolName =
-          DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
+          findToolById(config.toolId)?.name ?? config.toolId;
         return `${toolName} 需要选择一个虚拟位置`;
       }
       if (!sanitized.profiles[config.profileId]) {
         const toolName =
-          DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
+          findToolById(config.toolId)?.name ?? config.toolId;
         return `${toolName} 引用的位置不存在，请重新选择`;
       }
     }

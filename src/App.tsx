@@ -13,12 +13,12 @@ function lazyPage(
 const MultiWebviewTool = lazyPage(
   () => import('./components/MultiWebviewTool') as Promise<{ default: ComponentType }>,
 );
-const ProxySettingsPage = lazyPage(
-  () => import('./components/ProxySettings/ProxySettingsPage') as Promise<{ default: ComponentType }>,
+const ImageWebviewTool = lazyPage(
+  () => import('./components/ImageWebviewTool') as Promise<{ default: ComponentType }>,
 );
-const GeolocationSettingsPage = lazyPage(
+const EnvironmentSettingsPage = lazyPage(
   () =>
-    import('./components/GeolocationSettings/GeolocationSettingsPage') as Promise<{
+    import('./components/EnvironmentSettings/EnvironmentSettingsPage') as Promise<{
       default: ComponentType;
     }>,
 );
@@ -36,6 +36,11 @@ const TOOL_PAGES: ToolPage[] = [
     iconName: 'Globe',
   },
   {
+    id: 'image-webview',
+    name: '生图',
+    iconName: 'Image',
+  },
+  {
     id: 'llm-settings',
     name: 'LLM 设置',
     iconName: 'Sparkles',
@@ -46,13 +51,8 @@ const TOOL_PAGES: ToolPage[] = [
     iconName: 'Grid',
   },
   {
-    id: 'proxy-settings',
-    name: '网络代理',
-    iconName: 'Settings',
-  },
-  {
-    id: 'geolocation-settings',
-    name: 'GPS 定位',
+    id: 'environment-settings',
+    name: '网络与定位',
     iconName: 'MapPin',
   },
 ];
@@ -92,6 +92,13 @@ const App: React.FC = () => {
           </Suspense>
         </KeepAlivePage>
       )}
+      {visitedPageIds.has('image-webview') && (
+        <KeepAlivePage id="image-webview" active={activePageId === 'image-webview'}>
+          <Suspense fallback={<LoadingPlaceholder />}>
+            <ImageWebviewTool />
+          </Suspense>
+        </KeepAlivePage>
+      )}
       {visitedPageIds.has('llm-settings') && (
         <KeepAlivePage id="llm-settings" active={activePageId === 'llm-settings'}>
           <Suspense fallback={<LoadingPlaceholder />}>
@@ -106,17 +113,10 @@ const App: React.FC = () => {
           </Suspense>
         </KeepAlivePage>
       )}
-      {visitedPageIds.has('proxy-settings') && (
-        <KeepAlivePage id="proxy-settings" active={activePageId === 'proxy-settings'}>
+      {visitedPageIds.has('environment-settings') && (
+        <KeepAlivePage id="environment-settings" active={activePageId === 'environment-settings'}>
           <Suspense fallback={<LoadingPlaceholder />}>
-            <ProxySettingsPage />
-          </Suspense>
-        </KeepAlivePage>
-      )}
-      {visitedPageIds.has('geolocation-settings') && (
-        <KeepAlivePage id="geolocation-settings" active={activePageId === 'geolocation-settings'}>
-          <Suspense fallback={<LoadingPlaceholder />}>
-            <GeolocationSettingsPage />
+            <EnvironmentSettingsPage />
           </Suspense>
         </KeepAlivePage>
       )}

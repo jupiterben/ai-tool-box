@@ -2,12 +2,14 @@ import { type WebContents } from 'electron';
 import { getSiteHandler, HANDLER_VERSION } from '../src/webview-handlers/index.js';
 import { buildInjectCheckScript } from '../src/webview-handlers/browserRuntime.js';
 import type { BaseSiteHandler } from '../src/webview-handlers/BaseSiteHandler.js';
+import type { WebviewInputPayload } from '../src/types/reference-image.js';
 import { findToolWebContents, getUrlHints } from './webviewLocate.js';
 
 export interface WebviewSendInputPayload {
   toolId: string;
   partition: string;
   content: string;
+  referenceImage?: WebviewInputPayload['referenceImage'];
   webContentsId?: number;
 }
 
@@ -229,21 +231,21 @@ async function sendGrokNative(
 async function sendWithInjectScript(
   wc: WebContents,
   handler: BaseSiteHandler,
-  content: string
+  payload: WebviewInputPayload
 ): Promise<WebviewSendInputResult> {
   const injectError = await ensureInjected(wc, handler);
   if (injectError) {
     return injectError;
   }
 
-  const contentJson = JSON.stringify(content);
+  const payloadJson = JSON.stringify(payload);
   try {
     const result = (await wc.executeJavaScript(`
       (async function() {
         if (typeof window.__injectInput__ !== 'function') {
           return { success: false, error: '输入处理函数未找到' };
         }
-        return await window.__injectInput__(${contentJson});
+        return await window.__injectInput__(${payloadJson});
       })();
     `)) as WebviewSendInputResult;
 
@@ -293,7 +295,10 @@ export async function sendWebviewInput(
       console.warn('[webviewInput] grok 原生失败，回退注入:', nativeResult.error);
     }
 
-    return await sendWithInjectScript(wc, handler, payload.content);
+    return await sendWithInjectScript(wc, handler, {
+      content: payload.content,
+      referenceImage: payload.referenceImage ?? null,
+    });
   } catch (error) {
     return {
       success: false,

@@ -1,4 +1,4 @@
-import type { SiteHandlerConfig } from './types';
+import type { ReferenceImageConfig, SiteHandlerConfig } from './types';
 
 function json(value: unknown): string {
   return JSON.stringify(value);
@@ -50,6 +50,83 @@ export interface InjectScriptOverrides {
   extraInjectRuntime?: string;
   /** 完全替换 window.__injectInput__（千问等 React 受控站点） */
   injectInputFunction?: string;
+}
+
+export function buildReferenceImageRuntime(config: ReferenceImageConfig): string {
+  const inputSelectors = json(
+    config.inputSelectors ?? ['input[type="file"][accept*="image"]', 'input[type="file"]']
+  );
+  const triggerSelectors = json(config.triggerSelectors ?? []);
+  const waitAfterUploadMs = config.waitAfterUploadMs ?? 800;
+
+  return `
+    var __REF_IMAGE_INPUT_SELECTORS__ = ${inputSelectors};
+    var __REF_IMAGE_TRIGGER_SELECTORS__ = ${triggerSelectors};
+    var __REF_IMAGE_WAIT_MS__ = ${waitAfterUploadMs};
+
+    async function __assignFileToInput(input, imageData) {
+      var res = await fetch(imageData.dataUrl);
+      var blob = await res.blob();
+      var file = new File(
+        [blob],
+        imageData.name || 'reference.png',
+        { type: imageData.mimeType || blob.type || 'image/png' }
+      );
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+
+    async function __tryUploadToFileInputs(imageData) {
+      for (var i = 0; i < __REF_IMAGE_INPUT_SELECTORS__.length; i++) {
+        var selector = __REF_IMAGE_INPUT_SELECTORS__[i];
+        var inputs;
+        try {
+          inputs = document.querySelectorAll(selector);
+        } catch (e) {
+          continue;
+        }
+        for (var j = 0; j < inputs.length; j++) {
+          var input = inputs[j];
+          if (!input || input.type !== 'file' || input.disabled) continue;
+          try {
+            await __assignFileToInput(input, imageData);
+            return { success: true, method: 'file-input', selector: selector };
+          } catch (e) {}
+        }
+      }
+      return null;
+    }
+
+    async function __uploadReferenceImage(imageData) {
+      if (!imageData || !imageData.dataUrl) {
+        return { success: false, error: '参考图数据无效' };
+      }
+
+      var direct = await __tryUploadToFileInputs(imageData);
+      if (direct) return direct;
+
+      for (var t = 0; t < __REF_IMAGE_TRIGGER_SELECTORS__.length; t++) {
+        var triggerSel = __REF_IMAGE_TRIGGER_SELECTORS__[t];
+        var trigger;
+        try {
+          trigger = document.querySelector(triggerSel);
+        } catch (e) {
+          continue;
+        }
+        if (!trigger) continue;
+        __clickElement(trigger);
+        await new Promise(function(r) { setTimeout(r, 500); });
+        direct = await __tryUploadToFileInputs(imageData);
+        if (direct) return direct;
+      }
+
+      return { success: false, error: '未找到参考图上传控件' };
+    }
+  `;
 }
 
 export function buildBrowserRuntime(
@@ -225,10 +302,17 @@ export function buildInjectScript(
   const fillInputBlock = overrides?.fillInputFunction ?? defaultFillInput;
   const sendAfterFillBlock = overrides?.sendAfterFillBody ?? defaultSendAfterFill;
   const extraRuntime = overrides?.extraInjectRuntime ?? '';
+  const referenceImageRuntime = config.referenceImage
+    ? buildReferenceImageRuntime(config.referenceImage)
+    : '';
+  const hasReferenceImage = Boolean(config.referenceImage);
 
   const defaultInjectInput = `
-      window.__injectInput__ = async function(content) {
+      window.__injectInput__ = async function(payload) {
         try {
+          var content = typeof payload === 'string' ? payload : (payload && payload.content) || '';
+          var referenceImage = payload && typeof payload === 'object' ? payload.referenceImage : null;
+
           if (document.readyState !== 'complete') {
             await new Promise(function(resolve) {
               if (document.readyState === 'complete') resolve();
@@ -236,6 +320,20 @@ export function buildInjectScript(
             });
           }
           await new Promise(function(r) { setTimeout(r, 500); });
+
+          ${hasReferenceImage ? `
+          if (referenceImage && referenceImage.dataUrl) {
+            var uploadResult = await __uploadReferenceImage(referenceImage);
+            if (!uploadResult.success) {
+              return uploadResult;
+            }
+            await new Promise(function(r) { setTimeout(r, __REF_IMAGE_WAIT_MS__ || 800); });
+          }
+          ` : ''}
+
+          if (!content.trim()) {
+            return referenceImage ? { success: true, uploadOnly: true } : { success: false, error: '请输入提示词' };
+          }
 
           var inputElement = null;
           for (var attempt = 0; attempt < 5; attempt++) {
@@ -305,6 +403,8 @@ export function buildInjectScript(
       }
 
       ${fillInputBlock}
+
+      ${referenceImageRuntime}
 
       ${injectInputBlock}
 

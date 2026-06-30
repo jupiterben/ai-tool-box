@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { DEFAULT_TOOLS } from '../config/tools';
+import { findToolById } from '../config/tools';
 import {
   buildSummaryDocument,
   type ResponseSummaryDocument,
   type ToolResponseItem,
 } from '../utils/responseSummaryDocument';
 import { getWebContentsIdMap, isWebviewNotFoundError } from '../utils/webviewContentsId';
-
-const SUMMARY_PANEL_OPEN_STORAGE_KEY = 'response-summary-panel-open';
+import { SUMMARY_PANEL_OPEN_STORAGE_KEY } from '../utils/settingsStorage';
 
 function readStoredPanelOpen(): boolean {
   try {
@@ -20,7 +19,7 @@ function readStoredPanelOpen(): boolean {
 }
 
 function getToolName(toolId: string): string {
-  return DEFAULT_TOOLS.find((t) => t.id === toolId)?.name ?? toolId;
+  return findToolById(toolId)?.name ?? toolId;
 }
 
 async function extractViaRenderer(

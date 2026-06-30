@@ -1,12 +1,22 @@
 import { useState, useCallback, useRef } from 'react';
 import { InputDeliveryState } from '../types/input-delivery';
+import type { ReferenceImage } from '../types/reference-image';
 import { getSiteHandler } from '../webview-handlers';
 import { handleWebviewInput, WebviewInputHandlerConfig } from '../components/WebviewInputHandler';
 
 export interface UseWebviewInputReturn {
   deliveryStates: Record<string, InputDeliveryState>;
-  sendInput: (content: string, webviewElements: Record<string, HTMLElement>) => Promise<void>;
-  retry: (toolId: string, content: string, webviewElement: HTMLElement) => Promise<void>;
+  sendInput: (
+    content: string,
+    webviewElements: Record<string, HTMLElement>,
+    referenceImage?: ReferenceImage | null
+  ) => Promise<void>;
+  retry: (
+    toolId: string,
+    content: string,
+    webviewElement: HTMLElement,
+    referenceImage?: ReferenceImage | null
+  ) => Promise<void>;
   clearStates: () => void;
 }
 
@@ -15,6 +25,7 @@ export function useWebviewInput(
 ): UseWebviewInputReturn {
   const [deliveryStates, setDeliveryStates] = useState<Record<string, InputDeliveryState>>({});
   const lastInputContentRef = useRef<string>('');
+  const lastReferenceImageRef = useRef<ReferenceImage | null>(null);
   const lastWebviewElementsRef = useRef<Record<string, HTMLElement>>({});
 
   const updateDeliveryState = useCallback((toolId: string, updates: Partial<InputDeliveryState>) => {
@@ -35,13 +46,17 @@ export function useWebviewInput(
   }, []);
 
   const sendInput = useCallback(
-    async (content: string, webviewElements: Record<string, HTMLElement>) => {
-      if (!content.trim()) {
+    async (
+      content: string,
+      webviewElements: Record<string, HTMLElement>,
+      referenceImage?: ReferenceImage | null
+    ) => {
+      if (!content.trim() && !referenceImage) {
         return;
       }
 
-      // 保存输入内容和 webview 元素引用
       lastInputContentRef.current = content;
+      lastReferenceImageRef.current = referenceImage ?? null;
       lastWebviewElementsRef.current = webviewElements;
 
       // 初始化所有选中工具的状态为 sending
@@ -87,6 +102,7 @@ export function useWebviewInput(
           toolId,
           webviewElement: webviewElement as HTMLElement & { executeJavaScript?: (code: string) => Promise<unknown> },
           inputContent: content,
+          referenceImage,
           timeout: 15000,
         };
 
@@ -119,7 +135,12 @@ export function useWebviewInput(
   );
 
   const retry = useCallback(
-    async (toolId: string, content: string, webviewElement: HTMLElement) => {
+    async (
+      toolId: string,
+      content: string,
+      webviewElement: HTMLElement,
+      referenceImage?: ReferenceImage | null
+    ) => {
       const siteHandler = getSiteHandler(toolId);
       if (!siteHandler) {
         updateDeliveryState(toolId, {
@@ -139,6 +160,7 @@ export function useWebviewInput(
         toolId,
         webviewElement: webviewElement as HTMLElement & { executeJavaScript?: (code: string) => Promise<unknown> },
         inputContent: content,
+        referenceImage: referenceImage ?? lastReferenceImageRef.current,
         timeout: 15000,
       };
 

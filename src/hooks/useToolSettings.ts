@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DEFAULT_DISABLED_TOOL_IDS, DEFAULT_TOOLS } from '../config/tools';
-import type { AITool } from '../types/ai-tool';
+import {
+  ALL_DEFAULT_TOOLS,
+  DEFAULT_DISABLED_TOOL_IDS,
+  getToolsByCategory,
+} from '../config/tools';
+import type { AITool, ToolCategory } from '../types/ai-tool';
 import {
   TOOL_SETTINGS_VERSION,
   createDefaultToolSettings,
@@ -27,7 +31,7 @@ function buildDefaultSettings(): ToolSettings {
 }
 
 function sanitizeSettings(settings: Partial<ToolSettings>): ToolSettings {
-  const validIds = new Set(DEFAULT_TOOLS.map((tool) => tool.id));
+  const validIds = new Set(ALL_DEFAULT_TOOLS.map((tool) => tool.id));
   const disabledToolIds = (settings.disabledToolIds ?? []).filter((id) => validIds.has(id));
   return {
     version: TOOL_SETTINGS_VERSION,
@@ -40,13 +44,17 @@ function computeNextToolSettings(
   toolId: string,
   enabled: boolean
 ): ToolSettings | null {
+  const tool = ALL_DEFAULT_TOOLS.find((item) => item.id === toolId);
+  if (!tool) return null;
+
   const disabled = new Set(prev.disabledToolIds);
+  const categoryTools = getToolsByCategory(tool.category);
 
   if (enabled) {
     disabled.delete(toolId);
   } else if (!disabled.has(toolId)) {
-    const enabledCount = DEFAULT_TOOLS.length - disabled.size;
-    if (enabledCount <= 1) {
+    const enabledInCategory = categoryTools.filter((item) => !disabled.has(item.id)).length;
+    if (enabledInCategory <= 1) {
       return null;
     }
     disabled.add(toolId);
@@ -57,9 +65,10 @@ function computeNextToolSettings(
   return { ...prev, disabledToolIds: [...disabled] };
 }
 
-export function getEnabledTools(settings: ToolSettings): AITool[] {
+export function getEnabledTools(settings: ToolSettings, category?: ToolCategory): AITool[] {
   const disabled = new Set(settings.disabledToolIds);
-  return DEFAULT_TOOLS.filter((tool) => !disabled.has(tool.id));
+  const tools = category ? getToolsByCategory(category) : ALL_DEFAULT_TOOLS;
+  return tools.filter((tool) => !disabled.has(tool.id));
 }
 
 export function isToolEnabled(settings: ToolSettings, toolId: string): boolean {
@@ -139,12 +148,12 @@ export function useToolSettings() {
   };
 }
 
-export function useEnabledTools(): AITool[] {
+export function useEnabledTools(category?: ToolCategory): AITool[] {
   const revision = useToolSettingsRevision();
   return useMemo(() => {
     void revision;
     const defaults = buildDefaultSettings();
     const loaded = loadToolSettingsFromStorage(defaults) ?? defaults;
-    return getEnabledTools(sanitizeSettings(loaded));
-  }, [revision]);
+    return getEnabledTools(sanitizeSettings(loaded), category);
+  }, [revision, category]);
 }

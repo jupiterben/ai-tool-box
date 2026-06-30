@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { THEME_STORAGE_KEY } from '../utils/settingsStorage';
 
 export type Theme = 'light' | 'dark';
-
-const THEME_STORAGE_KEY = 'ai-tool-box-theme';
 
 /**
  * 主题切换 Hook

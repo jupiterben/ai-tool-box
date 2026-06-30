@@ -7,6 +7,7 @@ interface SettingsPageLayoutProps {
   ariaLabel: string;
   children: ReactNode;
   footer?: ReactNode;
+  className?: string;
 }
 
 export const SettingsPageLayout: React.FC<SettingsPageLayoutProps> = ({
@@ -15,9 +16,10 @@ export const SettingsPageLayout: React.FC<SettingsPageLayoutProps> = ({
   ariaLabel,
   children,
   footer,
+  className = '',
 }) => {
   return (
-    <div className={shared.page} role="main" aria-label={ariaLabel}>
+    <div className={`${shared.page} ${className}`.trim()} role="main" aria-label={ariaLabel}>
       <header className={shared.header}>
         <h1 className={shared.title}>{title}</h1>
         <p className={shared.description}>{description}</p>

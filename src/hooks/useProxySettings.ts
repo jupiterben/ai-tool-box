@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DEFAULT_TOOLS } from '../config/tools';
+import { ALL_DEFAULT_TOOLS } from '../config/tools';
 import {
   PROXY_SETTINGS_VERSION,
   createDefaultToolProxyConfig,
@@ -29,7 +29,7 @@ function notifyProxyChanged() {
 
 function buildDefaultSettings(): ProxySettings {
   const tools: Record<string, ToolProxyConfig> = {};
-  for (const tool of DEFAULT_TOOLS) {
+  for (const tool of ALL_DEFAULT_TOOLS) {
     if (!tool.url) continue;
     tools[tool.id] = createDefaultToolProxyConfig(tool.id);
   }
@@ -78,12 +78,12 @@ function validateSettings(settings: ProxySettings): string | null {
     if (config.mode === 'profile') {
       if (!config.profileId) {
         const toolName =
-          DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
+          ALL_DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
         return `${toolName} 需要选择一个代理`;
       }
       if (!sanitized.profiles[config.profileId]) {
         const toolName =
-          DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
+          ALL_DEFAULT_TOOLS.find((tool) => tool.id === config.toolId)?.name ?? config.toolId;
         return `${toolName} 引用的代理不存在，请重新选择`;
       }
     }

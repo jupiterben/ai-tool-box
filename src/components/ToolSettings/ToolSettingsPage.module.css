@@ -1,0 +1,101 @@
+.pageWide {
+  max-width: 1080px;
+}
+
+.categoryTabs {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.siteGroupTitleBar {
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--color-background-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.siteTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.colToggle {
+  width: 72px;
+}
+
+.colEnv {
+  width: 28%;
+}
+
+.siteTable th,
+.siteTable td {
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.siteTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.siteTable thead th {
+  background: var(--color-background-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+.siteTable thead th:first-child {
+  text-align: left;
+}
+
+.siteTable tbody tr {
+  transition: background-color var(--transition-fast);
+}
+
+.siteTable tbody tr:hover {
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+}
+
+.siteCell {
+  min-width: 140px;
+}
+
+.toggleCell {
+  text-align: center;
+}
+
+.envCell {
+  min-width: 220px;
+}
+
+.envControlGroup {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.footerAlerts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+@media (max-width: 820px) {
+  .tableWrap {
+    margin: 0 calc(-1 * var(--spacing-3));
+    padding: 0 var(--spacing-3);
+  }
+
+  .siteTable {
+    min-width: 720px;
+  }
+}

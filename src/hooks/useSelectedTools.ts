@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const SELECTED_TOOLS_STORAGE_KEY = 'ai-tool-box-selected-tools';
-
-function loadSelectedToolIds(allToolIds: string[]): string[] {
+function loadSelectedToolIds(allToolIds: string[], storageKey: string): string[] {
   try {
-    const raw = localStorage.getItem(SELECTED_TOOLS_STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return allToolIds;
 
     const parsed: unknown = JSON.parse(raw);
@@ -21,9 +19,9 @@ function loadSelectedToolIds(allToolIds: string[]): string[] {
   }
 }
 
-export function useSelectedTools(allToolIds: string[]) {
+export function useSelectedTools(allToolIds: string[], storageKey: string) {
   const [selectedToolIds, setSelectedToolIdsState] = useState<string[]>(() =>
-    loadSelectedToolIds(allToolIds)
+    loadSelectedToolIds(allToolIds, storageKey)
   );
 
   const setSelectedToolIds = useCallback(
@@ -45,8 +43,8 @@ export function useSelectedTools(allToolIds: string[]) {
   }, [allToolIds]);
 
   useEffect(() => {
-    localStorage.setItem(SELECTED_TOOLS_STORAGE_KEY, JSON.stringify(selectedToolIds));
-  }, [selectedToolIds]);
+    localStorage.setItem(storageKey, JSON.stringify(selectedToolIds));
+  }, [selectedToolIds, storageKey]);
 
   return { selectedToolIds, setSelectedToolIds };
 }

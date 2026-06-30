@@ -1,12 +1,20 @@
 import type { GeolocationSettings } from '../types/geolocation-settings';
 import type { LlmSettings } from '../types/llm-settings';
 import type { ProxySettings } from '../types/proxy-settings';
+import type { SessionSettings } from '../types/session-settings';
 import type { ToolSettings } from '../types/tool-settings';
+import { withAppEnvSuffix } from './appEnvironment';
 
-export const LLM_SETTINGS_STORAGE_KEY = 'ai-tool-box-llm-settings';
-export const PROXY_SETTINGS_STORAGE_KEY = 'ai-tool-box-proxy-settings';
-export const GEOLOCATION_SETTINGS_STORAGE_KEY = 'ai-tool-box-geolocation-settings';
-export const TOOL_SETTINGS_STORAGE_KEY = 'ai-tool-box-tool-settings';
+export const LLM_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-llm-settings');
+export const PROXY_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-proxy-settings');
+export const GEOLOCATION_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-geolocation-settings');
+export const SESSION_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-session-settings');
+export const TOOL_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-tool-settings');
+export const THEME_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-theme');
+export const SELECTED_TOOLS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-selected-tools');
+export const SELECTED_IMAGE_TOOLS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-selected-image-tools');
+export const SUMMARY_PANEL_WIDTH_STORAGE_KEY = withAppEnvSuffix('response-summary-panel-width');
+export const SUMMARY_PANEL_OPEN_STORAGE_KEY = withAppEnvSuffix('response-summary-panel-open');
 
 export function loadLlmSettingsFromStorage(
   defaults: LlmSettings
@@ -78,6 +86,29 @@ export function loadGeolocationSettingsFromStorage(
 
 export function saveGeolocationSettingsToStorage(settings: GeolocationSettings): void {
   localStorage.setItem(GEOLOCATION_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+}
+
+export function loadSessionSettingsFromStorage(
+  defaults: SessionSettings
+): SessionSettings | null {
+  try {
+    const raw = localStorage.getItem(SESSION_SETTINGS_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<SessionSettings>;
+    if (!parsed.tools) return null;
+
+    return {
+      version: defaults.version,
+      tools: { ...defaults.tools, ...parsed.tools },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveSessionSettingsToStorage(settings: SessionSettings): void {
+  localStorage.setItem(SESSION_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
 }
 
 export function loadToolSettingsFromStorage(defaults: ToolSettings): ToolSettings | null {

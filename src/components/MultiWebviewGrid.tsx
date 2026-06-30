@@ -4,7 +4,9 @@ import { InputDeliveryState } from '../types/input-delivery';
 import { getSiteHandler } from '../webview-handlers';
 import { preInjectScript } from './WebviewInputHandler';
 import { ElectronWebView, type ElectronWebViewElement } from './ElectronWebView';
-import { getToolPartition } from '../utils/toolPartition';
+import { getToolPartitionFromSettings } from '../utils/toolPartition';
+import { getSessionSettingsSnapshot } from '../hooks/useSessionSettings';
+import { isToolIncognito } from '../types/session-settings';
 import { getFaviconFallbackUrl, getLoadableFaviconUrl } from '../utils/favicon';
 import Icon from './ui/Icon';
 import styles from './MultiWebviewGrid.module.css';
@@ -18,6 +20,7 @@ interface MultiWebviewGridProps {
   selectedToolIds: string[];
   deliveryStates: Record<string, InputDeliveryState>;
   proxyRevision?: number;
+  sessionRevision?: number;
   onRetry?: (toolId: string) => void;
   onWebviewRef?: (toolId: string, element: HTMLElement | null) => void;
 }
@@ -52,13 +55,35 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
   selectedToolIds,
   deliveryStates,
   proxyRevision = 0,
+  sessionRevision = 0,
   onRetry,
   onWebviewRef,
 }) => {
   const webviewRefs = useRef<Record<string, WebviewElement>>({});
+  const webviewReadyRef = useRef<Record<string, boolean>>({});
   const listenerCleanups = useRef<Record<string, () => void>>({});
+  const activeTabIdRef = useRef('');
   const [activeTabId, setActiveTabId] = useState<string>('');
   const [favicons, setFavicons] = useState<Record<string, string>>({});
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
+  const [isClearingData, setIsClearingData] = useState(false);
+
+  const syncNavState = useCallback((toolId: string) => {
+    const webview = webviewRefs.current[toolId];
+    if (!webview || !webviewReadyRef.current[toolId]) {
+      setCanGoBack(false);
+      setCanGoForward(false);
+      return;
+    }
+    try {
+      setCanGoBack(Boolean(webview.canGoBack?.()));
+      setCanGoForward(Boolean(webview.canGoForward?.()));
+    } catch {
+      setCanGoBack(false);
+      setCanGoForward(false);
+    }
+  }, []);
 
   const selectedTools = useMemo(() => {
     return tools.filter((tool) => selectedToolIds.includes(tool.id));
@@ -79,6 +104,13 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
     }
   }, [selectedToolIds, activeTabId]);
 
+  useEffect(() => {
+    activeTabIdRef.current = activeTabId;
+    if (activeTabId) {
+      syncNavState(activeTabId);
+    }
+  }, [activeTabId, syncNavState]);
+
   const handleWebviewRef = useCallback((toolId: string, toolName: string, element: HTMLElement | null) => {
     listenerCleanups.current[toolId]?.();
     delete listenerCleanups.current[toolId];
@@ -86,9 +118,19 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
     if (element) {
       const webview = element as WebviewElement;
       webviewRefs.current[toolId] = webview;
+      webviewReadyRef.current[toolId] = false;
       onWebviewRef?.(toolId, element);
 
+      const onDomReady = () => {
+        webviewReadyRef.current[toolId] = true;
+        if (toolId === activeTabIdRef.current) {
+          syncNavState(toolId);
+        }
+      };
+
       const onLoad = async () => {
+        syncNavState(toolId);
+
         const el = webviewRefs.current[toolId];
         if (el && getSiteHandler(toolId)) {
           try {
@@ -117,17 +159,34 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
         }
       };
 
+      const onNavigate = () => {
+        if (toolId === activeTabIdRef.current) {
+          syncNavState(toolId);
+        }
+      };
+
+      webview.addEventListener?.('dom-ready', onDomReady);
       webview.addEventListener?.('did-finish-load', onLoad);
+      webview.addEventListener?.('did-navigate', onNavigate);
+      webview.addEventListener?.('did-navigate-in-page', onNavigate);
       webview.addEventListener?.('page-favicon-updated', onFaviconUpdated);
       listenerCleanups.current[toolId] = () => {
+        webview.removeEventListener?.('dom-ready', onDomReady);
         webview.removeEventListener?.('did-finish-load', onLoad);
+        webview.removeEventListener?.('did-navigate', onNavigate);
+        webview.removeEventListener?.('did-navigate-in-page', onNavigate);
         webview.removeEventListener?.('page-favicon-updated', onFaviconUpdated);
       };
     } else {
+      const wasIncognito = isToolIncognito(getSessionSettingsSnapshot(), toolId);
       delete webviewRefs.current[toolId];
+      delete webviewReadyRef.current[toolId];
+      if (wasIncognito) {
+        void window.electronAPI?.clearIncognitoPartition?.(toolId);
+      }
       onWebviewRef?.(toolId, null);
     }
-  }, [onWebviewRef]);
+  }, [onWebviewRef, syncNavState]);
 
   const handleRefresh = useCallback((toolId: string, url: string) => {
     const webview = webviewRefs.current[toolId];
@@ -146,6 +205,68 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
     }, 100);
   }, []);
 
+  const handleGoBack = useCallback((toolId: string) => {
+    const webview = webviewRefs.current[toolId];
+    if (!webview || !webviewReadyRef.current[toolId]) {
+      return;
+    }
+    try {
+      webview.goBack?.();
+      syncNavState(toolId);
+    } catch {
+      // webview 尚未就绪
+    }
+  }, [syncNavState]);
+
+  const handleGoForward = useCallback((toolId: string) => {
+    const webview = webviewRefs.current[toolId];
+    if (!webview || !webviewReadyRef.current[toolId]) {
+      return;
+    }
+    try {
+      webview.goForward?.();
+      syncNavState(toolId);
+    } catch {
+      // webview 尚未就绪
+    }
+  }, [syncNavState]);
+
+  const handleClearCache = useCallback(
+    async (toolId: string, toolName: string, url: string) => {
+      const confirmed = window.confirm(
+        `确定清理「${toolName}」的所有缓存数据吗？\n\n将清除 Cookie、本地存储与网络缓存，可能需要重新登录。`
+      );
+      if (!confirmed) {
+        return;
+      }
+
+      if (!window.electronAPI?.clearToolWebviewData) {
+        window.alert('当前环境不支持清理缓存');
+        return;
+      }
+
+      setIsClearingData(true);
+      try {
+        const result = await window.electronAPI.clearToolWebviewData(toolId);
+        if (!result.success) {
+          window.alert(result.error ?? '清理缓存失败');
+          return;
+        }
+
+        const webview = webviewRefs.current[toolId];
+        if (webview) {
+          webview.src = url;
+        }
+        syncNavState(toolId);
+      } catch (error) {
+        window.alert(error instanceof Error ? error.message : '清理缓存失败');
+      } finally {
+        setIsClearingData(false);
+      }
+    },
+    [syncNavState]
+  );
+
   if (!selectedTools.length) {
     return (
       <div className={styles.emptyState}>
@@ -163,6 +284,7 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
           const isActive = tool.id === activeTabId;
           const faviconUrl =
             favicons[tool.id] || tool.icon || getFaviconFallbackUrl(tool.url);
+          const incognito = isToolIncognito(getSessionSettingsSnapshot(), tool.id);
 
           return (
             <button
@@ -172,9 +294,14 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
               id={`tab-${tool.id}`}
               aria-selected={isActive}
               aria-controls={`panel-${tool.id}`}
-              className={`${styles.tab} ${isActive ? styles.tabActive : ''}`}
+              className={`${styles.tab} ${isActive ? styles.tabActive : ''} ${incognito ? styles.tabIncognito : ''}`}
               onClick={() => setActiveTabId(tool.id)}
             >
+              {incognito && (
+                <span className={styles.tabIncognitoBadge} title="无痕模式">
+                  <Icon name="EyeOff" size={12} />
+                </span>
+              )}
               {faviconUrl && (
                 <img
                   src={faviconUrl}
@@ -203,21 +330,62 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
             )}
             <button
               type="button"
-              className={styles.refreshButton}
+              className={styles.toolbarButton}
+              onClick={() => handleGoBack(activeTool.id)}
+              disabled={!canGoBack}
+              aria-label={`后退 ${activeTool.name}`}
+              title="后退"
+            >
+              <Icon name="ArrowLeft" size={16} />
+            </button>
+            <button
+              type="button"
+              className={styles.toolbarButton}
+              onClick={() => handleGoForward(activeTool.id)}
+              disabled={!canGoForward}
+              aria-label={`前进 ${activeTool.name}`}
+              title="前进"
+            >
+              <Icon name="ArrowRight" size={16} />
+            </button>
+            <button
+              type="button"
+              className={styles.toolbarButton}
               onClick={() => handleRefresh(activeTool.id, activeTool.url)}
               aria-label={`刷新 ${activeTool.name}`}
               title="刷新当前页面"
             >
               <Icon name="RefreshCw" size={16} />
             </button>
+            <button
+              type="button"
+              className={`${styles.toolbarButton} ${styles.toolbarButtonDanger}`}
+              onClick={() => handleClearCache(activeTool.id, activeTool.name, activeTool.url)}
+              disabled={isClearingData}
+              aria-label={`清理 ${activeTool.name} 缓存`}
+              title="清理所有缓存数据"
+            >
+              <Icon name="Eraser" size={16} />
+            </button>
           </div>
         )}
       </div>
+
+      {activeTool && isToolIncognito(getSessionSettingsSnapshot(), activeTool.id) && (
+        <div className={styles.incognitoBanner} role="status">
+          <Icon name="EyeOff" size={14} />
+          <span>
+            您已进入无痕模式。Cookie、缓存与登录态不会写入磁盘，切换或关闭后将清除。
+          </span>
+        </div>
+      )}
 
       <div className={styles.tabPanels}>
         {selectedTools.map((tool) => {
           const deliveryState = deliveryStates[tool.id];
           const isActive = tool.id === activeTabId;
+          const partition = getToolPartitionFromSettings(tool.id, getSessionSettingsSnapshot());
+          const incognito = isToolIncognito(getSessionSettingsSnapshot(), tool.id);
 
           return (
             <div
@@ -230,9 +398,9 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
             >
               <div className={styles.webviewContainer} aria-label={`${tool.name} 内容区域`}>
                 <ElectronWebView
-                  key={`${tool.id}-${proxyRevision}`}
+                  key={`${tool.id}-${proxyRevision}-${sessionRevision}-${partition}`}
                   ref={(el) => handleWebviewRef(tool.id, tool.name, el)}
-                  partition={getToolPartition(tool.id)}
+                  partition={partition}
                   data-tool-id={tool.id}
                   src={tool.url}
                   style={{
@@ -240,7 +408,11 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
                     height: '100%',
                     display: 'inline-flex',
                   }}
-                  webpreferences="allowRunningInsecureContent=true, javascript=yes"
+                  webpreferences={
+                    incognito
+                      ? 'allowRunningInsecureContent=true, javascript=yes, spellcheck=no'
+                      : 'allowRunningInsecureContent=true, javascript=yes'
+                  }
                   aria-label={`${tool.name} Webview`}
                 />
               </div>

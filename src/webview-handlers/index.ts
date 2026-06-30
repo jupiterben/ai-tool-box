@@ -15,6 +15,8 @@ import { metaHandler } from './sites/meta';
 import { minimaxHandler } from './sites/minimax';
 import { perplexityHandler } from './sites/perplexity';
 import { qianwenHandler } from './sites/qianwen';
+import { volcengineHandler } from './sites/volcengine';
+import { IMAGE_HANDLERS } from './sites/image';
 import type { WebviewInputSelector } from './types';
 
 export { HANDLER_VERSION } from './BaseSiteHandler';
@@ -31,12 +33,14 @@ const HANDLERS: Record<string, BaseSiteHandler> = {
   gemini: geminiHandler,
   kimi: kimiHandler,
   doubao: doubaoHandler,
+  volcengine: volcengineHandler,
   perplexity: perplexityHandler,
   mimo: mimoHandler,
   meta: metaHandler,
   grok: grokHandler,
   copilot: copilotHandler,
   hunyuan: hunyuanHandler,
+  ...IMAGE_HANDLERS,
 };
 
 export function getSiteHandler(toolId: string): BaseSiteHandler | undefined {
@@ -73,4 +77,5 @@ export {
   grokHandler,
   copilotHandler,
   hunyuanHandler,
+  volcengineHandler,
 };

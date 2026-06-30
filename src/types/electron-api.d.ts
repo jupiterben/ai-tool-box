@@ -1,11 +1,14 @@
 import type { GeolocationSettings } from './geolocation-settings';
 import type { LlmSettings, LlmSettingsInput, SummarizeResponsesPayload, SummarizeResponsesResult } from './llm-settings';
 import type { ProxySettings } from './proxy-settings';
+import type { SessionSettings } from './session-settings';
+import type { ReferenceImage } from './reference-image';
 
 export interface WebviewSendInputPayload {
   toolId: string;
   partition: string;
   content: string;
+  referenceImage?: ReferenceImage | null;
   webContentsId?: number;
 }
 
@@ -59,10 +62,26 @@ export interface ElectronAPI {
     settings?: ProxySettings;
     error?: string;
   }>;
+  getSessionSettings: () => Promise<{
+    success: boolean;
+    settings?: SessionSettings;
+    error?: string;
+  }>;
+  saveSessionSettings: (settings: SessionSettings) => Promise<{
+    success: boolean;
+    settings?: SessionSettings;
+    error?: string;
+  }>;
+  prepareToolSessionMode: (
+    toolId: string,
+    incognito: boolean
+  ) => Promise<{ success: boolean; error?: string }>;
+  clearIncognitoPartition: (toolId: string) => Promise<{ success: boolean; error?: string }>;
   sendWebviewInput: (payload: WebviewSendInputPayload) => Promise<WebviewSendInputResult>;
   extractWebviewResponses: (
     payload: ExtractWebviewResponsesPayload
   ) => Promise<ExtractWebviewResponsesResult>;
+  clearToolWebviewData: (toolId: string) => Promise<{ success: boolean; error?: string }>;
   getLlmSettings: () => Promise<{
     success: boolean;
     settings?: LlmSettings;

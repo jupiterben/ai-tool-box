@@ -1,10 +1,12 @@
 export type ToolRegion = 'domestic' | 'international';
+export type ToolCategory = 'chat' | 'image';
 
 export interface AITool {
   id: string;
   name: string;
   url: string;
   region: ToolRegion;
+  category: ToolCategory;
   icon?: string;
   description?: string;
 }

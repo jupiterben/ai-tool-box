@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { GeolocationSettings } from '../src/types/geolocation-settings';
 import type { ProxySettings } from '../src/types/proxy-settings';
+import type { SessionSettings } from '../src/types/session-settings';
 import type {
   ExtractWebviewResponsesPayload,
   ExtractWebviewResponsesResult,
@@ -15,8 +16,13 @@ const IPC_CHANNELS = [
   'geolocation:apply-for-tool',
   'proxy:get-settings',
   'proxy:save-settings',
+  'session:get-settings',
+  'session:save-settings',
+  'session:prepare-tool-mode',
+  'session:clear-incognito',
   'webview:send-input',
   'webview:extract-responses',
+  'webview:clear-tool-data',
   'llm:get-settings',
   'llm:save-settings',
   'llm:summarize-responses',
@@ -50,10 +56,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'proxy:save-settings',
       settings
     ),
+  getSessionSettings: () =>
+    invoke<{ success: boolean; settings?: SessionSettings; error?: string }>(
+      'session:get-settings'
+    ),
+  saveSessionSettings: (settings: SessionSettings) =>
+    invoke<{ success: boolean; settings?: SessionSettings; error?: string }>(
+      'session:save-settings',
+      settings
+    ),
+  prepareToolSessionMode: (toolId: string, incognito: boolean) =>
+    invoke<{ success: boolean; error?: string }>('session:prepare-tool-mode', {
+      toolId,
+      incognito,
+    }),
+  clearIncognitoPartition: (toolId: string) =>
+    invoke<{ success: boolean; error?: string }>('session:clear-incognito', toolId),
   sendWebviewInput: (payload: WebviewSendInputPayload) =>
     invoke<WebviewSendInputResult>('webview:send-input', payload),
   extractWebviewResponses: (payload: ExtractWebviewResponsesPayload) =>
     invoke<ExtractWebviewResponsesResult>('webview:extract-responses', payload),
+  clearToolWebviewData: (toolId: string) =>
+    invoke<{ success: boolean; error?: string }>('webview:clear-tool-data', toolId),
   getLlmSettings: () =>
     invoke<{ success: boolean; settings?: LlmSettings; error?: string }>('llm:get-settings'),
   saveLlmSettings: (input: LlmSettingsInput) =>

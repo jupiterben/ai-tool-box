@@ -1,7 +1,7 @@
 import { app, session, webContents, type WebContents } from 'electron';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { DEFAULT_TOOLS } from '../src/config/tools';
+import { ALL_DEFAULT_TOOLS } from '../src/config/tools';
 import {
   GEOLOCATION_SETTINGS_VERSION,
   createDefaultGeolocationProfiles,
@@ -11,7 +11,7 @@ import {
   type ResolvedGeolocation,
   type ToolGeolocationConfig,
 } from '../src/types/geolocation-settings';
-import { getToolPartition } from '../src/utils/toolPartition';
+import { resolveToolPartition } from './sessionSettingsManager.js';
 
 const SETTINGS_FILE = 'geolocation-settings.json';
 
@@ -23,7 +23,7 @@ function getSettingsPath(): string {
 }
 
 function getWebviewToolIds(): string[] {
-  return DEFAULT_TOOLS.filter((tool) => Boolean(tool.url)).map((tool) => tool.id);
+  return ALL_DEFAULT_TOOLS.filter((tool) => Boolean(tool.url)).map((tool) => tool.id);
 }
 
 function mergeWithDefaults(settings?: Partial<GeolocationSettings>): GeolocationSettings {
@@ -150,7 +150,7 @@ export async function applyToolGeolocation(
   settings: GeolocationSettings,
   config: ToolGeolocationConfig
 ): Promise<void> {
-  const partition = getToolPartition(toolId);
+  const partition = resolveToolPartition(toolId);
   const coords = resolveToolGeolocation(settings, config);
   await applyGeolocationForPartition(partition, coords);
 }

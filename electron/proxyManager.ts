@@ -1,7 +1,7 @@
 import { app, session } from 'electron';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { DEFAULT_TOOLS } from '../src/config/tools';
+import { ALL_DEFAULT_TOOLS } from '../src/config/tools';
 import {
   PROXY_SETTINGS_VERSION,
   createDefaultToolProxyConfig,
@@ -11,7 +11,7 @@ import {
   type ResolvedManualProxy,
   type ToolProxyConfig,
 } from '../src/types/proxy-settings';
-import { getToolPartition } from '../src/utils/toolPartition';
+import { resolveToolPartition } from './sessionSettingsManager.js';
 
 const SETTINGS_FILE = 'proxy-settings.json';
 
@@ -39,11 +39,11 @@ function getSettingsPath(): string {
 }
 
 function getWebviewToolIds(): string[] {
-  return DEFAULT_TOOLS.filter((tool) => Boolean(tool.url)).map((tool) => tool.id);
+  return ALL_DEFAULT_TOOLS.filter((tool) => Boolean(tool.url)).map((tool) => tool.id);
 }
 
 function getToolName(toolId: string): string {
-  return DEFAULT_TOOLS.find((tool) => tool.id === toolId)?.name ?? toolId;
+  return ALL_DEFAULT_TOOLS.find((tool) => tool.id === toolId)?.name ?? toolId;
 }
 
 function buildProxyRules(manual: ResolvedManualProxy): string {
@@ -128,7 +128,7 @@ export async function applyToolProxy(
   settings: ProxySettings,
   config: ToolProxyConfig
 ): Promise<void> {
-  const partition = getToolPartition(toolId);
+  const partition = resolveToolPartition(toolId);
   const ses = session.fromPartition(partition);
   const resolved = resolveToolProxy(settings, config);
 

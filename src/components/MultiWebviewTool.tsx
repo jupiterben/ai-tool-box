@@ -9,28 +9,47 @@ import { useEnabledTools } from '../hooks/useToolSettings';
 import { useWebviewInput } from '../hooks/useWebviewInput';
 import { useResponseCollection } from '../hooks/useResponseCollection';
 import { useProxyRevision } from '../hooks/useProxySettings';
+import { useSessionRevision } from '../hooks/useSessionSettings';
 import { useSelectedTools } from '../hooks/useSelectedTools';
 import { useSummaryPanelSize } from '../hooks/useSummaryPanelSize';
 import { useTheme } from '../hooks/useTheme';
+import type { ToolCategory } from '../types/ai-tool';
+import type { ReferenceImage } from '../types/reference-image';
+import {
+  SELECTED_IMAGE_TOOLS_STORAGE_KEY,
+  SELECTED_TOOLS_STORAGE_KEY,
+} from '../utils/settingsStorage';
 import Icon from './ui/Icon';
 import styles from './MultiWebviewTool.module.css';
 
-const MultiWebviewTool: React.FC = () => {
+interface MultiWebviewToolProps {
+  category?: ToolCategory;
+}
+
+const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }) => {
   const [inputValue, setInputValue] = useState<string>('');
+  const [referenceImage, setReferenceImage] = useState<ReferenceImage | null>(null);
+  const [referenceImageError, setReferenceImageError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState<boolean>(false);
   const [isConversationAction, setIsConversationAction] = useState<boolean>(false);
   const { theme: appTheme } = useTheme();
   const { size: summaryPanelSize, updateSize: updateSummaryPanelSize } = useSummaryPanelSize();
 
-  const enabledTools = useEnabledTools();
+  const isChatMode = category === 'chat';
+  const selectedToolsStorageKey =
+    category === 'image' ? SELECTED_IMAGE_TOOLS_STORAGE_KEY : SELECTED_TOOLS_STORAGE_KEY;
+
+  const enabledTools = useEnabledTools(category);
   const allToolIds = useMemo(() => enabledTools.map((tool) => tool.id), [enabledTools]);
-  const { selectedToolIds, setSelectedToolIds } = useSelectedTools(allToolIds);
+  const { selectedToolIds, setSelectedToolIds } = useSelectedTools(allToolIds, selectedToolsStorageKey);
 
   const webviewElementsRef = useRef<Record<string, HTMLElement>>({});
   const [inputHistory, setInputHistory] = useState<string[]>([]);
+  const lastReferenceImageRef = useRef<ReferenceImage | null>(null);
 
   const { deliveryStates, sendInput, retry, clearStates } = useWebviewInput(selectedToolIds);
   const proxyRevision = useProxyRevision();
+  const sessionRevision = useSessionRevision();
 
   const {
     isCollecting,
@@ -52,24 +71,31 @@ const MultiWebviewTool: React.FC = () => {
 
   const handleSend = useCallback(
     async (content: string) => {
-      if (!content.trim() || isSending) {
+      const trimmed = content.trim();
+      const hasReferenceImage = Boolean(referenceImage);
+      if ((!trimmed && !hasReferenceImage) || isSending) {
         return;
       }
 
       setIsSending(true);
       clearStates();
+      lastReferenceImageRef.current = referenceImage;
 
       try {
-        await sendInput(content, webviewElementsRef.current);
-        setInputHistory((prev) => [content, ...prev].slice(0, 50));
+        await sendInput(trimmed, webviewElementsRef.current, referenceImage);
+        if (trimmed) {
+          setInputHistory((prev) => [trimmed, ...prev].slice(0, 50));
+        }
         setInputValue('');
+        setReferenceImage(null);
+        setReferenceImageError(null);
       } catch (error) {
         console.error('发送输入失败:', error);
       } finally {
         setIsSending(false);
       }
     },
-    [isSending, sendInput, clearStates]
+    [isSending, sendInput, clearStates, referenceImage]
   );
 
   const handleSelectionChange = useCallback(
@@ -82,15 +108,15 @@ const MultiWebviewTool: React.FC = () => {
 
   const handleRetry = useCallback(
     async (toolId: string) => {
-      const lastInput = inputHistory[0];
-      if (!lastInput) return;
+      const lastInput = inputHistory[0] || inputValue.trim();
+      if (!lastInput && !lastReferenceImageRef.current) return;
 
       const webviewElement = webviewElementsRef.current[toolId];
       if (!webviewElement) return;
 
-      await retry(toolId, lastInput, webviewElement);
+      await retry(toolId, lastInput, webviewElement, lastReferenceImageRef.current);
     },
-    [retry, inputHistory]
+    [retry, inputHistory, inputValue]
   );
 
   const handleWebviewRef = useCallback((toolId: string, element: HTMLElement | null) => {
@@ -178,6 +204,7 @@ const MultiWebviewTool: React.FC = () => {
         algorithm: appTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
       }}
     >
+      {isChatMode ? (
       <Splitter
         className={styles.splitter}
         lazy
@@ -193,6 +220,7 @@ const MultiWebviewTool: React.FC = () => {
                 selectedToolIds={selectedToolIds}
                 deliveryStates={deliveryStates}
                 proxyRevision={proxyRevision}
+                sessionRevision={sessionRevision}
                 onRetry={handleRetry}
                 onWebviewRef={handleWebviewRef}
               />
@@ -282,6 +310,42 @@ const MultiWebviewTool: React.FC = () => {
           />
         </Splitter.Panel>
       </Splitter>
+      ) : (
+        <div className={styles.workspace} role="main" aria-label="生图工具">
+          <div className={styles.main} role="region" aria-label="Webview 内容区域">
+            <MultiWebviewGrid
+              tools={enabledTools}
+              selectedToolIds={selectedToolIds}
+              deliveryStates={deliveryStates}
+              proxyRevision={proxyRevision}
+              sessionRevision={sessionRevision}
+              onRetry={handleRetry}
+              onWebviewRef={handleWebviewRef}
+            />
+          </div>
+          <div className={styles.footer} role="region" aria-label="输入和工具选择">
+            <div className={styles.footerToolbar}>
+              <ToolSelector
+                tools={enabledTools}
+                selectedToolIds={selectedToolIds}
+                onSelectionChange={handleSelectionChange}
+              />
+            </div>
+            <UnifiedInput
+              value={inputValue}
+              onChange={handleInputChange}
+              onSend={handleSend}
+              isSending={isSending}
+              placeholder="输入生图提示词..."
+              enableReferenceImage
+              referenceImage={referenceImage}
+              onReferenceImageChange={setReferenceImage}
+              referenceImageError={referenceImageError}
+              onReferenceImageError={setReferenceImageError}
+            />
+          </div>
+        </div>
+      )}
     </ConfigProvider>
   );
 };

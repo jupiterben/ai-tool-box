@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { configureIsolatedUserData } from './appEnvironment';
 import {
   initializeGeolocationSettings,
   loadGeolocationSettings,
@@ -16,14 +17,27 @@ import {
 } from './proxyManager';
 import { sendWebviewInput } from './webviewInput';
 import { extractWebviewResponses } from './webviewExtract';
+import {
+  clearIncognitoPartition,
+  clearToolWebviewData,
+  prepareToolSessionMode,
+} from './webviewSession';
+import {
+  initializeSessionSettings,
+  loadSessionSettings,
+  saveSessionSettings,
+} from './sessionSettingsManager';
 import { loadLlmSettings, saveLlmSettings } from './llmManager';
 import { summarizeResponses } from './llmService';
 import type { GeolocationSettings } from '../src/types/geolocation-settings';
 import type { ProxySettings } from '../src/types/proxy-settings';
+import type { SessionSettings } from '../src/types/session-settings';
 import type { LlmSettingsInput, SummarizeResponsesPayload } from '../src/types/llm-settings';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+configureIsolatedUserData();
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -130,6 +144,55 @@ function registerIpcHandlers() {
     }
   });
 
+  ipcMain.handle('session:get-settings', async () => {
+    try {
+      const settings = await loadSessionSettings();
+      return { success: true, settings };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '读取会话设置失败',
+      };
+    }
+  });
+
+  ipcMain.handle('session:save-settings', async (_event, settings: SessionSettings) => {
+    try {
+      const saved = await saveSessionSettings(settings);
+      return { success: true, settings: saved };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '保存会话设置失败',
+      };
+    }
+  });
+
+  ipcMain.handle(
+    'session:prepare-tool-mode',
+    async (_event, payload: { toolId: string; incognito: boolean }) => {
+      try {
+        return await prepareToolSessionMode(payload.toolId, payload.incognito);
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : '准备会话失败',
+        };
+      }
+    }
+  );
+
+  ipcMain.handle('session:clear-incognito', async (_event, toolId: string) => {
+    try {
+      return await clearIncognitoPartition(toolId);
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '清理无痕会话失败',
+      };
+    }
+  });
+
   ipcMain.handle('webview:send-input', async (_event, payload) => {
     try {
       return await sendWebviewInput(payload);
@@ -149,6 +212,17 @@ function registerIpcHandlers() {
         success: false,
         responses: [],
         error: error instanceof Error ? error.message : '提取回复失败',
+      };
+    }
+  });
+
+  ipcMain.handle('webview:clear-tool-data', async (_event, toolId: string) => {
+    try {
+      return await clearToolWebviewData(toolId);
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '清理缓存失败',
       };
     }
   });
@@ -193,6 +267,7 @@ registerProxyLoginHandler();
 registerGeolocationWebContentsListener();
 
 app.whenReady().then(async () => {
+  await initializeSessionSettings();
   await initializeProxySettings();
   await initializeGeolocationSettings();
   registerIpcHandlers();

@@ -3,6 +3,10 @@ import { createElement, forwardRef, type CSSProperties } from 'react';
 export type ElectronWebViewElement = HTMLElement & {
   src?: string;
   reload?: () => void;
+  goBack?: () => void;
+  goForward?: () => void;
+  canGoBack?: () => boolean;
+  canGoForward?: () => boolean;
   executeJavaScript?: (code: string) => Promise<unknown>;
   isLoading?: boolean;
   addEventListener?: (type: string, listener: EventListener) => void;

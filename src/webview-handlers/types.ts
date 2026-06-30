@@ -1,3 +1,13 @@
+/** 参考图上传配置 */
+export interface ReferenceImageConfig {
+  /** 文件 input 选择器 */
+  inputSelectors?: string[];
+  /** 点击后才会出现 file input 的按钮/区域 */
+  triggerSelectors?: string[];
+  /** 上传完成后等待毫秒 */
+  waitAfterUploadMs?: number;
+}
+
 export type InputType = 'textarea' | 'input' | 'contenteditable';
 export type SendMethod = 'click' | 'enter' | 'submit';
 export type ConversationActionType = 'newChat' | 'recentChat';
@@ -56,6 +66,8 @@ export interface SiteHandlerConfig {
   newChatAction?: ConversationActionConfig;
   /** 回到最近一次对话 */
   recentChatAction?: ConversationActionConfig;
+  /** 参考图上传（生图站点） */
+  referenceImage?: ReferenceImageConfig;
 }
 
 /** 与旧版 inputSelectors 兼容 */
