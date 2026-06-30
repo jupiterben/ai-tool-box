@@ -42,13 +42,15 @@ echo "📦 electron-builder ($PLATFORM)..."
 case "$PLATFORM" in
 win)
   npx electron-builder --win --x64 --config.directories.output="$RELEASE_DIR"
-  bash "$ROOT/scripts/generate-latest-yml.sh" "$RELEASE_DIR" "$VERSION"
+  bash "$ROOT/scripts/generate-latest-yml.sh" win "$RELEASE_DIR" "$VERSION"
   ;;
 mac)
   npx electron-builder --mac --config.directories.output="$RELEASE_DIR"
+  bash "$ROOT/scripts/generate-latest-yml.sh" mac "$RELEASE_DIR" "$VERSION"
   ;;
 linux)
   npx electron-builder --linux --x64 --config.directories.output="$RELEASE_DIR"
+  bash "$ROOT/scripts/generate-latest-yml.sh" linux "$RELEASE_DIR" "$VERSION"
   ;;
 *)
   echo "未知平台: $PLATFORM（支持 win / mac / linux）" >&2

@@ -21,6 +21,12 @@ shopt -u nullglob
 if [[ -f "$RELEASE_DIR/latest.yml" ]]; then
   cp "$RELEASE_DIR/latest.yml" "$STAGING/"
 fi
+if [[ -f "$RELEASE_DIR/latest-mac.yml" ]]; then
+  cp "$RELEASE_DIR/latest-mac.yml" "$STAGING/"
+fi
+if [[ -f "$RELEASE_DIR/latest-linux.yml" ]]; then
+  cp "$RELEASE_DIR/latest-linux.yml" "$STAGING/"
+fi
 
 ARTIFACTS=()
 for file in "$STAGING"/*; do

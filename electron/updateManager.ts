@@ -3,22 +3,34 @@ import { autoUpdater } from 'electron-updater';
 import type { UpdateStatus } from '../src/types/update-status';
 
 const CHECK_DELAY_MS = 5000;
+const SUPPORTED_PLATFORMS = new Set(['win32', 'darwin', 'linux']);
 
 let initialized = false;
+
+function isAutoUpdateSupported(): boolean {
+  return app.isPackaged && SUPPORTED_PLATFORMS.has(process.platform);
+}
 
 function sendStatus(window: BrowserWindow | null, status: UpdateStatus): void {
   window?.webContents.send('update:status', status);
 }
 
+function configureAutoUpdater(): void {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  if (process.platform === 'win32') {
+    autoUpdater.disableWebInstaller = true;
+  }
+}
+
 export function initializeAutoUpdater(window: BrowserWindow | null): void {
-  if (initialized || !app.isPackaged || process.platform !== 'win32') {
+  if (initialized || !isAutoUpdateSupported()) {
     return;
   }
 
   initialized = true;
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.disableWebInstaller = true;
+  configureAutoUpdater();
 
   autoUpdater.on('checking-for-update', () => {
     sendStatus(window, { state: 'checking' });
@@ -59,7 +71,7 @@ export function initializeAutoUpdater(window: BrowserWindow | null): void {
 }
 
 export function checkForUpdatesManually(window: BrowserWindow | null): void {
-  if (!app.isPackaged || process.platform !== 'win32') {
+  if (!isAutoUpdateSupported()) {
     return;
   }
 
