@@ -41,15 +41,15 @@ pnpm run electron:compile
 echo "📦 electron-builder ($PLATFORM)..."
 case "$PLATFORM" in
 win)
-  npx electron-builder --win --x64 --config.directories.output="$RELEASE_DIR"
+  npx electron-builder --win --x64 --publish never --config.directories.output="$RELEASE_DIR"
   bash "$ROOT/scripts/generate-latest-yml.sh" win "$RELEASE_DIR" "$VERSION"
   ;;
 mac)
-  npx electron-builder --mac --config.directories.output="$RELEASE_DIR"
+  npx electron-builder --mac --publish never --config.directories.output="$RELEASE_DIR"
   bash "$ROOT/scripts/generate-latest-yml.sh" mac "$RELEASE_DIR" "$VERSION"
   ;;
 linux)
-  npx electron-builder --linux --x64 --config.directories.output="$RELEASE_DIR"
+  npx electron-builder --linux --x64 --publish never --config.directories.output="$RELEASE_DIR"
   bash "$ROOT/scripts/generate-latest-yml.sh" linux "$RELEASE_DIR" "$VERSION"
   ;;
 *)
