@@ -10,6 +10,8 @@
  *   pnpm run release:tag -- --dry-run       # 仅预览
  *   pnpm run release:tag -- -y              # 跳过确认
  *   pnpm run release:tag -- --no-push       # 仅本地 commit + tag
+ *
+ * 注意: 仅允许在 release 分支上发布 tag
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -21,6 +23,7 @@ import { spawnSync } from 'node:child_process';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const pkgPath = join(root, 'package.json');
+const RELEASE_BRANCH = 'release';
 
 const BUMP_LEVELS = new Set(['patch', 'minor', 'major']);
 
@@ -132,6 +135,15 @@ function getBranch() {
   return branch;
 }
 
+function assertReleaseBranch(branch) {
+  if (branch !== RELEASE_BRANCH) {
+    fail(
+      `仅允许在 ${RELEASE_BRANCH} 分支发布 tag（当前: ${branch}）。` +
+        `\n   请先: git checkout ${RELEASE_BRANCH} && git merge <你的分支>`,
+    );
+  }
+}
+
 function assertBranchPushed(branch) {
   const upstream = runGit(['rev-parse', '--abbrev-ref', `${branch}@{upstream}`], {
     allowFailure: true,
@@ -198,6 +210,7 @@ function planRelease() {
   assertCleanWorkingTree();
 
   const branch = getBranch();
+  assertReleaseBranch(branch);
   assertBranchPushed(branch);
 
   const oldVersion = readVersion();
