@@ -29,6 +29,7 @@ import {
 } from './sessionSettingsManager';
 import { loadLlmSettings, saveLlmSettings } from './llmManager';
 import { summarizeResponses } from './llmService';
+import { checkForUpdatesManually, initializeAutoUpdater, quitAndInstallUpdate } from './updateManager';
 import type { GeolocationSettings } from '../src/types/geolocation-settings';
 import type { ProxySettings } from '../src/types/proxy-settings';
 import type { SessionSettings } from '../src/types/session-settings';
@@ -67,6 +68,7 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
+    initializeAutoUpdater(mainWindow);
   });
 
   const isDev = process.env.ELECTRON_DEV === '1' || !app.isPackaged;
@@ -260,6 +262,16 @@ function registerIpcHandlers() {
         error: error instanceof Error ? error.message : 'LLM 汇总失败',
       };
     }
+  });
+
+  ipcMain.handle('update:check', async () => {
+    checkForUpdatesManually(mainWindow);
+    return { success: true };
+  });
+
+  ipcMain.handle('update:install', async () => {
+    quitAndInstallUpdate();
+    return { success: true };
   });
 }
 

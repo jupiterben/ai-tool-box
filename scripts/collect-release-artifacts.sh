@@ -11,12 +11,16 @@ STAGING="$(mktemp -d)"
 trap 'rm -rf "$STAGING"' EXIT
 
 shopt -s nullglob
-for pattern in *.exe *.zip *.dmg *.AppImage latest.yml *.blockmap; do
+for pattern in *.exe *.zip *.dmg *.AppImage *.blockmap; do
   for file in "$RELEASE_DIR"/$pattern; do
     cp "$file" "$STAGING/"
   done
 done
 shopt -u nullglob
+
+if [[ -f "$RELEASE_DIR/latest.yml" ]]; then
+  cp "$RELEASE_DIR/latest.yml" "$STAGING/"
+fi
 
 ARTIFACTS=()
 for file in "$STAGING"/*; do

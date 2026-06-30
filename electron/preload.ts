@@ -9,6 +9,7 @@ import type {
   WebviewSendInputResult,
 } from '../src/types/electron-api';
 import type { LlmSettings, LlmSettingsInput, SummarizeResponsesPayload, SummarizeResponsesResult } from '../src/types/llm-settings';
+import type { UpdateStatus } from '../src/types/update-status';
 
 const IPC_CHANNELS = [
   'geolocation:get-settings',
@@ -26,6 +27,8 @@ const IPC_CHANNELS = [
   'llm:get-settings',
   'llm:save-settings',
   'llm:summarize-responses',
+  'update:check',
+  'update:install',
 ] as const;
 
 type IpcChannel = (typeof IPC_CHANNELS)[number];
@@ -87,4 +90,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ),
   summarizeResponses: (payload: SummarizeResponsesPayload) =>
     invoke<SummarizeResponsesResult>('llm:summarize-responses', payload),
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, status: UpdateStatus) => {
+      callback(status);
+    };
+    ipcRenderer.on('update:status', listener);
+    return () => {
+      ipcRenderer.removeListener('update:status', listener);
+    };
+  },
+  checkForUpdates: () => invoke<{ success: boolean }>('update:check'),
+  installUpdate: () => invoke<{ success: boolean }>('update:install'),
 });

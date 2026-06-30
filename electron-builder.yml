@@ -53,4 +53,7 @@ nsis:
   createStartMenuShortcut: true
   differentialPackage: false
 
-publish: null
+publish:
+  provider: github
+  owner: jupiterben
+  repo: ai-tool-box

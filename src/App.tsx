@@ -1,6 +1,7 @@
 import { useState, Suspense, lazy, useEffect, type ComponentType, type LazyExoticComponent } from 'react';
 import MainLayout from './components/MainLayout';
 import KeepAlivePage from './components/KeepAlivePage';
+import UpdateBanner from './components/UpdateBanner';
 import { ToolPage } from './components/Sidebar';
 import styles from './styles/App.module.css';
 
@@ -80,11 +81,12 @@ const App: React.FC = () => {
   }, [activePageId]);
 
   return (
-    <MainLayout
-      pages={TOOL_PAGES}
-      activePageId={activePageId}
-      onPageChange={setActivePageId}
-    >
+    <>
+      <MainLayout
+        pages={TOOL_PAGES}
+        activePageId={activePageId}
+        onPageChange={setActivePageId}
+      >
       {visitedPageIds.has('multi-webview') && (
         <KeepAlivePage id="multi-webview" active={activePageId === 'multi-webview'}>
           <Suspense fallback={<LoadingPlaceholder />}>
@@ -120,7 +122,9 @@ const App: React.FC = () => {
           </Suspense>
         </KeepAlivePage>
       )}
-    </MainLayout>
+      </MainLayout>
+      <UpdateBanner />
+    </>
   );
 };
 

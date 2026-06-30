@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "antd": "^6.4.5",
+    "electron-updater": "6.8.1",
     "lucide-react": "^1.21.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
