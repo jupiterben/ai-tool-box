@@ -1,0 +1,132 @@
+# GitHub Actions：推送 v* tag 时构建并发布 Linux / Windows / macOS 生产包
+#
+# 发布流程：
+#   1. 确保 package.json version 与 tag 一致（如 tag v1.0.3 → version 1.0.3）
+#   2. git tag v1.0.3 && git push origin v1.0.3
+#   3. 工作流自动构建 win / mac / linux 并创建 GitHub Release
+#
+# 手动触发：Actions → Release → Run workflow（跳过 tag 版本校验）
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CSC_IDENTITY_AUTO_DISCOVERY: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-latest
+            platform: linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Configure public npm registry
+        shell: bash
+        run: |
+          cat > .npmrc <<'EOF'
+          enable-pre-post-scripts=true
+          ignore-scripts=false
+          registry=https://registry.npmjs.org/
+          EOF
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Verify tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [[ "$TAG" != "$PKG" ]]; then
+            echo "::error::tag v$TAG 与 package.json version ($PKG) 不一致"
+            exit 1
+          fi
+          echo "版本校验通过: $PKG"
+
+      - name: Build release artifacts
+        shell: bash
+        run: bash scripts/build-ci.sh ${{ matrix.platform }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: release/
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-win
+          path: dist
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-mac
+          path: dist
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-linux
+          path: dist
+
+      - name: List release files
+        run: find dist -type f | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            ## AI Tool Box ${{ github.ref_name }}
+
+            | 平台 | 产物 |
+            |------|------|
+            | Windows | NSIS 安装包 (.exe) + 增量更新 (.zip) + latest.yml |
+            | macOS | DMG (.dmg, x64 + arm64) |
+            | Linux | AppImage (.AppImage) |
+          files: dist/**/*

@@ -1,0 +1,9 @@
+enable-pre-post-scripts=true
+ignore-scripts=false
+
+# 本地开发（内网）：复制为 .npmrc 后取消注释
+# registry=http://192.168.31.24:4873/
+# electron_mirror=http://192.168.31.24:8090/electron/
+
+# 公网 / GitHub CI 默认
+registry=https://registry.npmjs.org/
