@@ -56,5 +56,7 @@ linux)
   ;;
 esac
 
+bash "$ROOT/scripts/collect-release-artifacts.sh" "$RELEASE_DIR"
+
 echo "✅ 产物目录: $RELEASE_DIR"
 ls -la "$RELEASE_DIR"
