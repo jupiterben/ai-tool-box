@@ -1,0 +1,16 @@
+.pageWide {
+  max-width: 1080px;
+}
+
+.pageCompact {
+  max-width: 680px;
+}
+
+.tabs {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.panelHidden {
+  display: none;
+}

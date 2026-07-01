@@ -1,9 +1,3 @@
-.pageCompact {
-  gap: var(--spacing-4);
-  padding: var(--spacing-4);
-  max-width: 680px;
-}
-
 .toolbar {
   display: flex;
   align-items: center;

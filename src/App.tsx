@@ -17,17 +17,8 @@ const MultiWebviewTool = lazyPage(
 const ImageWebviewTool = lazyPage(
   () => import('./components/ImageWebviewTool') as Promise<{ default: ComponentType }>,
 );
-const EnvironmentSettingsPage = lazyPage(
-  () =>
-    import('./components/EnvironmentSettings/EnvironmentSettingsPage') as Promise<{
-      default: ComponentType;
-    }>,
-);
-const ToolSettingsPage = lazyPage(
-  () => import('./components/ToolSettings/ToolSettingsPage') as Promise<{ default: ComponentType }>,
-);
-const LlmSettingsPage = lazyPage(
-  () => import('./components/LlmSettings/LlmSettingsPage') as Promise<{ default: ComponentType }>,
+const SettingsPage = lazyPage(
+  () => import('./components/settings/SettingsPage') as Promise<{ default: ComponentType }>,
 );
 
 const TOOL_PAGES: ToolPage[] = [
@@ -42,19 +33,9 @@ const TOOL_PAGES: ToolPage[] = [
     iconName: 'Image',
   },
   {
-    id: 'llm-settings',
-    name: 'LLM 设置',
-    iconName: 'Sparkles',
-  },
-  {
-    id: 'tool-settings',
-    name: '网站管理',
-    iconName: 'Grid',
-  },
-  {
-    id: 'environment-settings',
-    name: '网络与定位',
-    iconName: 'MapPin',
+    id: 'settings',
+    name: '设置',
+    iconName: 'Settings',
   },
 ];
 
@@ -101,24 +82,10 @@ const App: React.FC = () => {
           </Suspense>
         </KeepAlivePage>
       )}
-      {visitedPageIds.has('llm-settings') && (
-        <KeepAlivePage id="llm-settings" active={activePageId === 'llm-settings'}>
+      {visitedPageIds.has('settings') && (
+        <KeepAlivePage id="settings" active={activePageId === 'settings'}>
           <Suspense fallback={<LoadingPlaceholder />}>
-            <LlmSettingsPage />
-          </Suspense>
-        </KeepAlivePage>
-      )}
-      {visitedPageIds.has('tool-settings') && (
-        <KeepAlivePage id="tool-settings" active={activePageId === 'tool-settings'}>
-          <Suspense fallback={<LoadingPlaceholder />}>
-            <ToolSettingsPage />
-          </Suspense>
-        </KeepAlivePage>
-      )}
-      {visitedPageIds.has('environment-settings') && (
-        <KeepAlivePage id="environment-settings" active={activePageId === 'environment-settings'}>
-          <Suspense fallback={<LoadingPlaceholder />}>
-            <EnvironmentSettingsPage />
+            <SettingsPage />
           </Suspense>
         </KeepAlivePage>
       )}

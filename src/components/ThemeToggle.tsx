@@ -7,12 +7,12 @@ import styles from './ThemeToggle.module.css';
  * 主题切换按钮组件
  * 支持明暗主题切换
  */
-export const ThemeToggle: React.FC = () => {
+export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { theme, toggleTheme } = useTheme();
 
   return (
     <button
-      className={styles.toggle}
+      className={`${styles.toggle} ${className}`.trim()}
       onClick={toggleTheme}
       aria-label={theme === 'light' ? '切换到暗色主题' : '切换到亮色主题'}
       title={theme === 'light' ? '切换到暗色主题' : '切换到亮色主题'}

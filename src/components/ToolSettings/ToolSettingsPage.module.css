@@ -1,12 +1,3 @@
-.pageWide {
-  max-width: 1080px;
-}
-
-.categoryTabs {
-  display: flex;
-  justify-content: flex-start;
-}
-
 .siteGroupTitleBar {
   padding: var(--spacing-2) var(--spacing-3);
   background: var(--color-background-secondary);

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   TOOL_CATEGORY_LABELS,
   getToolsByCategory,
@@ -10,17 +10,12 @@ import { useToolSettings } from '../../hooks/useToolSettings';
 import type { ToolCategory } from '../../types/ai-tool';
 import type { GeolocationMode } from '../../types/geolocation-settings';
 import type { ProxyMode } from '../../types/proxy-settings';
-import SettingsPageLayout, { SettingsLoading, settingsStyles } from '../settings/SettingsPageLayout';
+import { SettingsLoading, settingsStyles } from '../settings/SettingsPageLayout';
 import { Toggle } from '../ui/Toggle';
 import { Select } from '../ui/Select';
 import { SegmentControl } from '../ui/SegmentControl';
 import { Alert } from '../ui/Alert';
 import styles from './ToolSettingsPage.module.css';
-
-const CATEGORY_TABS: { value: ToolCategory; label: string }[] = [
-  { value: 'chat', label: TOOL_CATEGORY_LABELS.chat },
-  { value: 'image', label: TOOL_CATEGORY_LABELS.image },
-];
 
 const PROXY_MODE_OPTIONS: { value: ProxyMode; label: string }[] = [
   { value: 'direct', label: '直连' },
@@ -33,8 +28,11 @@ const GEO_MODE_OPTIONS: { value: GeolocationMode; label: string }[] = [
   { value: 'profile', label: '虚拟定位' },
 ];
 
-const ToolSettingsPage: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<ToolCategory>('chat');
+interface ToolSettingsPanelProps {
+  category: ToolCategory;
+}
+
+const ToolSettingsPanel: React.FC<ToolSettingsPanelProps> = ({ category }) => {
   const { isLoading: isToolLoading, saveMessage, setToolEnabled, isToolEnabled } =
     useToolSettings();
   const proxy = useProxySettings();
@@ -51,8 +49,8 @@ const ToolSettingsPage: React.FC = () => {
   );
 
   const categoryTools = useMemo(
-    () => getToolsByCategory(activeCategory).filter((tool) => Boolean(tool.url)),
-    [activeCategory]
+    () => getToolsByCategory(category).filter((tool) => Boolean(tool.url)),
+    [category]
   );
 
   const toolGroups = useMemo(() => groupToolsByRegion(categoryTools), [categoryTools]);
@@ -80,26 +78,12 @@ const ToolSettingsPage: React.FC = () => {
   }, [proxy.error, geo.error]);
 
   if (isLoading) {
-    return <SettingsLoading message="加载网站设置..." />;
+    return <SettingsLoading message={`加载${TOOL_CATEGORY_LABELS[category]}网站设置...`} />;
   }
 
   return (
-    <SettingsPageLayout
-      title="网站管理"
-      description="按对话与生图分类管理各网站的启用状态、网络代理与 GPS 定位。代理与位置预设请在「网络与定位」页面定义。"
-      ariaLabel="网站管理"
-      className={styles.pageWide}
-    >
-      <div className={styles.categoryTabs}>
-        <SegmentControl
-          options={CATEGORY_TABS}
-          value={activeCategory}
-          onChange={setActiveCategory}
-          ariaLabel="网站分类"
-        />
-      </div>
-
-      <section className={settingsStyles.section} aria-label={`${TOOL_CATEGORY_LABELS[activeCategory]}网站`}>
+    <>
+      <section className={settingsStyles.section} aria-label={`${TOOL_CATEGORY_LABELS[category]}网站`}>
         {toolGroups.map((group) => (
           <div key={group.region} className={settingsStyles.siteGroup} aria-label={group.label}>
             <div className={styles.siteGroupTitleBar}>
@@ -270,8 +254,8 @@ const ToolSettingsPage: React.FC = () => {
           ))}
         </div>
       )}
-    </SettingsPageLayout>
+    </>
   );
 };
 
-export default ToolSettingsPage;
+export default ToolSettingsPanel;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ALL_DEFAULT_TOOLS,
   DEFAULT_DISABLED_TOOL_IDS,
@@ -18,6 +18,20 @@ import {
 const TOOL_SETTINGS_CHANGED_EVENT = 'tool-settings-changed';
 
 let toolSettingsRevision = 0;
+let cachedToolSettings: ToolSettings | null = null;
+
+function readToolSettingsFromStorage(): ToolSettings {
+  const defaults = buildDefaultSettings();
+  const loaded = loadToolSettingsFromStorage(defaults) ?? defaults;
+  return sanitizeSettings(loaded);
+}
+
+function getCachedToolSettings(): ToolSettings {
+  if (!cachedToolSettings) {
+    cachedToolSettings = readToolSettingsFromStorage();
+  }
+  return cachedToolSettings;
+}
 
 function notifyToolSettingsChanged() {
   toolSettingsRevision += 1;
@@ -91,15 +105,17 @@ export function useToolSettingsRevision(): number {
 }
 
 export function useToolSettings() {
-  const [settings, setSettings] = useState<ToolSettings>(buildDefaultSettings);
+  const [settings, setSettings] = useState<ToolSettings>(() => getCachedToolSettings());
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const [isLoading, setIsLoading] = useState(true);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const loadSettings = useCallback(() => {
     setIsLoading(true);
-    const defaults = buildDefaultSettings();
-    const loaded = loadToolSettingsFromStorage(defaults) ?? defaults;
-    setSettings(sanitizeSettings(loaded));
+    const sanitized = readToolSettingsFromStorage();
+    cachedToolSettings = sanitized;
+    setSettings(sanitized);
     setIsLoading(false);
   }, []);
 
@@ -109,6 +125,7 @@ export function useToolSettings() {
 
   const persistSettings = useCallback((next: ToolSettings) => {
     const sanitized = sanitizeSettings(next);
+    cachedToolSettings = sanitized;
     saveToolSettingsToStorage(sanitized);
     setSaveMessage('已保存');
     notifyToolSettingsChanged();
@@ -117,20 +134,12 @@ export function useToolSettings() {
 
   const setToolEnabled = useCallback(
     (toolId: string, enabled: boolean) => {
-      let nextToPersist: ToolSettings | null = null;
-
-      setSettings((prev) => {
-        const next = computeNextToolSettings(prev, toolId, enabled);
-        if (!next) {
-          return prev;
-        }
-        nextToPersist = next;
-        return next;
-      });
-
-      if (nextToPersist) {
-        persistSettings(nextToPersist);
+      const next = computeNextToolSettings(settingsRef.current, toolId, enabled);
+      if (!next) {
+        return;
       }
+      setSettings(next);
+      persistSettings(next);
     },
     [persistSettings]
   );
@@ -152,8 +161,6 @@ export function useEnabledTools(category?: ToolCategory): AITool[] {
   const revision = useToolSettingsRevision();
   return useMemo(() => {
     void revision;
-    const defaults = buildDefaultSettings();
-    const loaded = loadToolSettingsFromStorage(defaults) ?? defaults;
-    return getEnabledTools(sanitizeSettings(loaded), category);
+    return getEnabledTools(getCachedToolSettings(), category);
   }, [revision, category]);
 }

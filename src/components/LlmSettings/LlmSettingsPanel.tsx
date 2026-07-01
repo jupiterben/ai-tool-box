@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useLlmSettings } from '../../hooks/useLlmSettings';
 import { LLM_PROVIDER_PRESETS, type LlmProvider } from '../../types/llm-settings';
-import SettingsPageLayout, { SettingsLoading, settingsStyles } from '../settings/SettingsPageLayout';
+import { SettingsLoading, settingsStyles } from '../settings/SettingsPageLayout';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { SegmentControl } from '../ui/SegmentControl';
@@ -14,7 +14,7 @@ const PROVIDER_OPTIONS: { value: LlmProvider; label: string }[] = [
   { value: 'custom', label: '自定义' },
 ];
 
-const LlmSettingsPage: React.FC = () => {
+const LlmSettingsPanel: React.FC = () => {
   const {
     settings,
     apiKeyInput,
@@ -38,18 +38,7 @@ const LlmSettingsPage: React.FC = () => {
   }
 
   return (
-    <SettingsPageLayout
-      title="LLM 汇总设置"
-      description="配置 LLM API 后，收集各平台回复时将自动调用 AI 生成结构化 Markdown 汇总。修改后会自动保存。"
-      ariaLabel="LLM 设置"
-      footer={
-        <div className={settingsStyles.actions}>
-          <Button onClick={() => void saveSettings()} disabled={isSaving}>
-            {isSaving ? '保存中…' : '立即保存'}
-          </Button>
-        </div>
-      }
-    >
+    <>
       <section className={settingsStyles.card}>
         <label className={settingsStyles.label} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', cursor: 'pointer' }}>
           <input
@@ -146,8 +135,14 @@ const LlmSettingsPage: React.FC = () => {
 
       {error && <Alert variant="error">{error}</Alert>}
       {saveMessage && <Alert variant="success">{saveMessage}</Alert>}
-    </SettingsPageLayout>
+
+      <div className={settingsStyles.actions}>
+        <Button onClick={() => void saveSettings()} disabled={isSaving}>
+          {isSaving ? '保存中…' : '立即保存'}
+        </Button>
+      </div>
+    </>
   );
 };
 
-export default LlmSettingsPage;
+export default LlmSettingsPanel;
