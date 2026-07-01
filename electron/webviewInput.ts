@@ -228,6 +228,66 @@ async function sendGrokNative(
   });
 }
 
+/** 火山 Ark：React 受控输入，原生 insertText + Enter */
+async function sendVolcengineNative(
+  wc: WebContents,
+  handler: BaseSiteHandler,
+  content: string
+): Promise<WebviewSendInputResult> {
+  const injectError = await ensureInjected(wc, handler);
+  if (injectError) {
+    return injectError;
+  }
+
+  try {
+    const prep = (await wc.executeJavaScript(`window.__volcengineFocusInput__()`)) as {
+      success?: boolean;
+      error?: string;
+      tag?: string;
+    };
+    if (!prep?.success) {
+      return { success: false, error: prep?.error || '聚焦火山输入框失败' };
+    }
+
+    await clearFocusedInput(wc);
+    await sleep(150);
+    wc.insertText(content);
+    await sleep(400);
+    await pressEnter(wc);
+    await sleep(800);
+
+    const verify = (await wc.executeJavaScript(
+      `window.__volcengineGetInputRemaining__()`
+    )) as { success?: boolean; remaining?: string };
+    const remaining = (verify?.remaining ?? '').trim();
+    const sent = remaining === '' || (remaining !== content.trim() && remaining.indexOf(content.trim()) < 0);
+
+    if (sent) {
+      return {
+        success: true,
+        fillMethod: 'native-insertText',
+        sendMethod: 'native-enter',
+        inputTag: prep.tag,
+        remaining,
+      };
+    }
+
+    return {
+      success: false,
+      error: `火山未发送（剩余: ${remaining || '未知'}）`,
+      fillMethod: 'native-insertText',
+      sendMethod: 'native-enter',
+      inputTag: prep.tag,
+      remaining,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '火山原生发送失败',
+    };
+  }
+}
+
 async function sendWithInjectScript(
   wc: WebContents,
   handler: BaseSiteHandler,
@@ -293,6 +353,14 @@ export async function sendWebviewInput(
         return nativeResult;
       }
       console.warn('[webviewInput] grok 原生失败，回退注入:', nativeResult.error);
+    }
+
+    if (payload.toolId === 'volcengine') {
+      const nativeResult = await sendVolcengineNative(wc, handler, payload.content);
+      if (nativeResult.success) {
+        return nativeResult;
+      }
+      console.warn('[webviewInput] volcengine 原生失败，回退注入:', nativeResult.error);
     }
 
     return await sendWithInjectScript(wc, handler, {

@@ -269,7 +269,7 @@ export async function handleWebviewInput(
     }
 
     // React 受控输入须 trusted 事件，优先 IPC 原生 insertText
-    if (config.toolId === 'qianwen' || config.toolId === 'grok') {
+    if (config.toolId === 'qianwen' || config.toolId === 'grok' || config.toolId === 'volcengine') {
       try {
         const ipcResult = await tryNativeWebviewSendViaIpc(
           handler,
