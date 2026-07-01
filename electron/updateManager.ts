@@ -1,6 +1,11 @@
+import { createRequire } from 'node:module';
 import { app, BrowserWindow } from 'electron';
-import { autoUpdater } from 'electron-updater';
+import type { AppUpdater } from 'electron-updater';
 import type { UpdateStatus } from '../src/types/update-status';
+
+const { autoUpdater } = createRequire(import.meta.url)('electron-updater') as {
+  autoUpdater: AppUpdater;
+};
 
 const CHECK_DELAY_MS = 5000;
 const SUPPORTED_PLATFORMS = new Set(['win32', 'darwin', 'linux']);
