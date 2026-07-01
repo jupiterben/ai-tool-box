@@ -107,11 +107,11 @@ EOF
 
 mac)
   shopt -s nullglob
-  MAC_ZIPS=("$RELEASE_DIR"/*-mac.zip)
+  MAC_ZIPS=("$RELEASE_DIR"/*.zip)
   shopt -u nullglob
 
   if [[ ${#MAC_ZIPS[@]} -eq 0 ]]; then
-    echo "❌ 未找到 mac 更新包 (*-mac.zip)" >&2
+    echo "❌ 未找到 mac 更新包 (.zip)" >&2
     exit 1
   fi
 

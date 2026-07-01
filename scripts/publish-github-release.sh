@@ -16,6 +16,14 @@ if [ ${#FILES[@]} -eq 0 ]; then
   exit 1
 fi
 
+BINARY_COUNT="$(find "$DIST_DIR" -maxdepth 1 -type f \( \
+  -name '*.exe' -o -name '*.zip' -o -name '*.dmg' -o -name '*.AppImage' \) | wc -l | tr -d ' ')"
+if [ "$BINARY_COUNT" -eq 0 ]; then
+  echo "❌ dist 目录缺少安装包（仅有 yml 无法发布）" >&2
+  ls -la "$DIST_DIR" >&2 || true
+  exit 1
+fi
+
 echo "待上传 ${#FILES[@]} 个文件:"
 printf '  - %s\n' "${FILES[@]}"
 

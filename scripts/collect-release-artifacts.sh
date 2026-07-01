@@ -10,23 +10,12 @@ RELEASE_DIR="$(cd "$RELEASE_DIR" && pwd)"
 STAGING="$(mktemp -d)"
 trap 'rm -rf "$STAGING"' EXIT
 
-shopt -s nullglob
-for pattern in *.exe *.zip *.dmg *.AppImage *.blockmap; do
-  for file in "$RELEASE_DIR"/$pattern; do
-    cp "$file" "$STAGING/"
-  done
-done
-shopt -u nullglob
-
-if [[ -f "$RELEASE_DIR/latest.yml" ]]; then
-  cp "$RELEASE_DIR/latest.yml" "$STAGING/"
-fi
-if [[ -f "$RELEASE_DIR/latest-mac.yml" ]]; then
-  cp "$RELEASE_DIR/latest-mac.yml" "$STAGING/"
-fi
-if [[ -f "$RELEASE_DIR/latest-linux.yml" ]]; then
-  cp "$RELEASE_DIR/latest-linux.yml" "$STAGING/"
-fi
+while IFS= read -r -d '' file; do
+  cp "$file" "$STAGING/"
+done < <(find "$RELEASE_DIR" -maxdepth 1 -type f \( \
+  -name '*.exe' -o -name '*.zip' -o -name '*.dmg' -o -name '*.AppImage' \
+  -o -name '*.blockmap' -o -name 'latest.yml' -o -name 'latest-mac.yml' \
+  -o -name 'latest-linux.yml' \) -print0)
 
 ARTIFACTS=()
 for file in "$STAGING"/*; do
@@ -34,6 +23,7 @@ for file in "$STAGING"/*; do
 done
 if [ ${#ARTIFACTS[@]} -eq 0 ]; then
   echo "未找到可分发产物: $RELEASE_DIR" >&2
+  ls -la "$RELEASE_DIR" >&2 || true
   exit 1
 fi
 
