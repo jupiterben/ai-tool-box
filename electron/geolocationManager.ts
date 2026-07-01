@@ -11,7 +11,7 @@ import {
   type ResolvedGeolocation,
   type ToolGeolocationConfig,
 } from '../src/types/geolocation-settings';
-import { resolveToolPartition } from './sessionSettingsManager.js';
+import { getToolPartition } from '../src/utils/toolPartition';
 
 const SETTINGS_FILE = 'geolocation-settings.json';
 
@@ -150,7 +150,7 @@ export async function applyToolGeolocation(
   settings: GeolocationSettings,
   config: ToolGeolocationConfig
 ): Promise<void> {
-  const partition = resolveToolPartition(toolId);
+  const partition = getToolPartition(toolId);
   const coords = resolveToolGeolocation(settings, config);
   await applyGeolocationForPartition(partition, coords);
 }

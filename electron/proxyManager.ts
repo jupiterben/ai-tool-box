@@ -11,7 +11,7 @@ import {
   type ResolvedManualProxy,
   type ToolProxyConfig,
 } from '../src/types/proxy-settings';
-import { resolveToolPartition } from './sessionSettingsManager.js';
+import { getToolPartition } from '../src/utils/toolPartition';
 
 const SETTINGS_FILE = 'proxy-settings.json';
 
@@ -128,7 +128,7 @@ export async function applyToolProxy(
   settings: ProxySettings,
   config: ToolProxyConfig
 ): Promise<void> {
-  const partition = resolveToolPartition(toolId);
+  const partition = getToolPartition(toolId);
   const ses = session.fromPartition(partition);
   const resolved = resolveToolProxy(settings, config);
 

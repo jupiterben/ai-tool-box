@@ -9,7 +9,6 @@ import { useEnabledTools } from '../hooks/useToolSettings';
 import { useWebviewInput } from '../hooks/useWebviewInput';
 import { useResponseCollection } from '../hooks/useResponseCollection';
 import { useProxyRevision } from '../hooks/useProxySettings';
-import { useSessionRevision } from '../hooks/useSessionSettings';
 import { useSelectedTools } from '../hooks/useSelectedTools';
 import { useSummaryPanelSize } from '../hooks/useSummaryPanelSize';
 import { useTheme } from '../hooks/useTheme';
@@ -49,7 +48,6 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
 
   const { deliveryStates, sendInput, retry, clearStates } = useWebviewInput(selectedToolIds);
   const proxyRevision = useProxyRevision();
-  const sessionRevision = useSessionRevision();
 
   const {
     isCollecting,
@@ -220,7 +218,6 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
                 selectedToolIds={selectedToolIds}
                 deliveryStates={deliveryStates}
                 proxyRevision={proxyRevision}
-                sessionRevision={sessionRevision}
                 onRetry={handleRetry}
                 onWebviewRef={handleWebviewRef}
               />
@@ -318,7 +315,6 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
               selectedToolIds={selectedToolIds}
               deliveryStates={deliveryStates}
               proxyRevision={proxyRevision}
-              sessionRevision={sessionRevision}
               onRetry={handleRetry}
               onWebviewRef={handleWebviewRef}
             />

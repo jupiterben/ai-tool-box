@@ -4,9 +4,7 @@ import { InputDeliveryState } from '../types/input-delivery';
 import { getSiteHandler } from '../webview-handlers';
 import { preInjectScript } from './WebviewInputHandler';
 import { ElectronWebView, type ElectronWebViewElement } from './ElectronWebView';
-import { getToolPartitionFromSettings } from '../utils/toolPartition';
-import { getSessionSettingsSnapshot } from '../hooks/useSessionSettings';
-import { isToolIncognito } from '../types/session-settings';
+import { getToolPartition } from '../utils/toolPartition';
 import { getFaviconFallbackUrl, getLoadableFaviconUrl } from '../utils/favicon';
 import Icon from './ui/Icon';
 import styles from './MultiWebviewGrid.module.css';
@@ -20,7 +18,6 @@ interface MultiWebviewGridProps {
   selectedToolIds: string[];
   deliveryStates: Record<string, InputDeliveryState>;
   proxyRevision?: number;
-  sessionRevision?: number;
   onRetry?: (toolId: string) => void;
   onWebviewRef?: (toolId: string, element: HTMLElement | null) => void;
 }
@@ -55,7 +52,6 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
   selectedToolIds,
   deliveryStates,
   proxyRevision = 0,
-  sessionRevision = 0,
   onRetry,
   onWebviewRef,
 }) => {
@@ -178,12 +174,8 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
         webview.removeEventListener?.('page-favicon-updated', onFaviconUpdated);
       };
     } else {
-      const wasIncognito = isToolIncognito(getSessionSettingsSnapshot(), toolId);
       delete webviewRefs.current[toolId];
       delete webviewReadyRef.current[toolId];
-      if (wasIncognito) {
-        void window.electronAPI?.clearIncognitoPartition?.(toolId);
-      }
       onWebviewRef?.(toolId, null);
     }
   }, [onWebviewRef, syncNavState]);
@@ -284,7 +276,6 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
           const isActive = tool.id === activeTabId;
           const faviconUrl =
             favicons[tool.id] || tool.icon || getFaviconFallbackUrl(tool.url);
-          const incognito = isToolIncognito(getSessionSettingsSnapshot(), tool.id);
 
           return (
             <button
@@ -294,14 +285,9 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
               id={`tab-${tool.id}`}
               aria-selected={isActive}
               aria-controls={`panel-${tool.id}`}
-              className={`${styles.tab} ${isActive ? styles.tabActive : ''} ${incognito ? styles.tabIncognito : ''}`}
+              className={`${styles.tab} ${isActive ? styles.tabActive : ''}`}
               onClick={() => setActiveTabId(tool.id)}
             >
-              {incognito && (
-                <span className={styles.tabIncognitoBadge} title="无痕模式">
-                  <Icon name="EyeOff" size={12} />
-                </span>
-              )}
               {faviconUrl && (
                 <img
                   src={faviconUrl}
@@ -371,21 +357,10 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
         )}
       </div>
 
-      {activeTool && isToolIncognito(getSessionSettingsSnapshot(), activeTool.id) && (
-        <div className={styles.incognitoBanner} role="status">
-          <Icon name="EyeOff" size={14} />
-          <span>
-            您已进入无痕模式。Cookie、缓存与登录态不会写入磁盘，切换或关闭后将清除。
-          </span>
-        </div>
-      )}
-
       <div className={styles.tabPanels}>
         {selectedTools.map((tool) => {
           const deliveryState = deliveryStates[tool.id];
           const isActive = tool.id === activeTabId;
-          const partition = getToolPartitionFromSettings(tool.id, getSessionSettingsSnapshot());
-          const incognito = isToolIncognito(getSessionSettingsSnapshot(), tool.id);
 
           return (
             <div
@@ -398,9 +373,9 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
             >
               <div className={styles.webviewContainer} aria-label={`${tool.name} 内容区域`}>
                 <ElectronWebView
-                  key={`${tool.id}-${proxyRevision}-${sessionRevision}-${partition}`}
+                  key={`${tool.id}-${proxyRevision}`}
                   ref={(el) => handleWebviewRef(tool.id, tool.name, el)}
-                  partition={partition}
+                  partition={getToolPartition(tool.id)}
                   data-tool-id={tool.id}
                   src={tool.url}
                   style={{
@@ -408,11 +383,7 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
                     height: '100%',
                     display: 'inline-flex',
                   }}
-                  webpreferences={
-                    incognito
-                      ? 'allowRunningInsecureContent=true, javascript=yes, spellcheck=no'
-                      : 'allowRunningInsecureContent=true, javascript=yes'
-                  }
+                  webpreferences="allowRunningInsecureContent=true, javascript=yes"
                   aria-label={`${tool.name} Webview`}
                 />
               </div>

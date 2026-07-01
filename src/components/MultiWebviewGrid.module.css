@@ -201,38 +201,6 @@
   flex-shrink: 0;
 }
 
-.tabIncognito {
-  color: #c4b5fd;
-}
-
-.tabIncognito.tabActive {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, #5b21b6 18%, var(--color-background)) 0%,
-    var(--color-background) 100%
-  );
-}
-
-.tabIncognitoBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #a78bfa;
-}
-
-.incognitoBanner {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  flex-shrink: 0;
-  padding: var(--spacing-2) var(--spacing-4);
-  background: linear-gradient(90deg, #3b0764 0%, #4c1d95 100%);
-  color: #ede9fe;
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-normal);
-  border-bottom: 1px solid #6d28d9;
-}
-
 @media (max-width: 800px) {
   .tabBar {
     padding: var(--spacing-1) var(--spacing-2) 0;

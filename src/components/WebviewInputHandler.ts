@@ -1,5 +1,4 @@
-import { getToolPartitionFromSettings } from '../utils/toolPartition';
-import { getSessionSettingsSnapshot } from '../hooks/useSessionSettings';
+import { getToolPartition } from '../utils/toolPartition';
 import type { ReferenceImage, WebviewInputPayload } from '../types/reference-image';
 import {
   buildInjectCheckScriptForSite,
@@ -91,7 +90,7 @@ async function tryNativeWebviewSendViaIpc(
   console.log(`[WebviewInputHandler] ${handler.toolId} 通过主进程 IPC 发送`);
   return window.electronAPI.sendWebviewInput({
     toolId: handler.toolId,
-    partition: getToolPartitionFromSettings(handler.toolId, getSessionSettingsSnapshot()),
+    partition: getToolPartition(handler.toolId),
     content: inputContent,
     referenceImage: referenceImage ?? null,
     webContentsId,

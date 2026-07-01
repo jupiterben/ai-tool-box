@@ -6,7 +6,6 @@ import {
 } from '../../config/tools';
 import { useGeolocationSettings } from '../../hooks/useGeolocationSettings';
 import { useProxySettings } from '../../hooks/useProxySettings';
-import { useSessionSettings } from '../../hooks/useSessionSettings';
 import { useToolSettings } from '../../hooks/useToolSettings';
 import type { ToolCategory } from '../../types/ai-tool';
 import type { GeolocationMode } from '../../types/geolocation-settings';
@@ -40,7 +39,6 @@ const ToolSettingsPage: React.FC = () => {
     useToolSettings();
   const proxy = useProxySettings();
   const geo = useGeolocationSettings();
-  const session = useSessionSettings();
 
   const proxyProfileList = useMemo(
     () => Object.values(proxy.settings.profiles),
@@ -64,24 +62,22 @@ const ToolSettingsPage: React.FC = () => {
     [categoryTools, isToolEnabled]
   );
 
-  const isLoading = isToolLoading || proxy.isLoading || geo.isLoading || session.isLoading;
+  const isLoading = isToolLoading || proxy.isLoading || geo.isLoading;
 
   const alerts = useMemo(() => {
     const items: { id: string; message: string }[] = [];
     if (saveMessage) items.push({ id: 'tool', message: saveMessage });
     if (proxy.saveMessage) items.push({ id: 'proxy', message: proxy.saveMessage });
     if (geo.saveMessage) items.push({ id: 'geo', message: geo.saveMessage });
-    if (session.saveMessage) items.push({ id: 'session', message: session.saveMessage });
     return items;
-  }, [saveMessage, proxy.saveMessage, geo.saveMessage, session.saveMessage]);
+  }, [saveMessage, proxy.saveMessage, geo.saveMessage]);
 
   const errors = useMemo(() => {
     const items: { id: string; message: string }[] = [];
     if (proxy.error) items.push({ id: 'proxy', message: proxy.error });
     if (geo.error) items.push({ id: 'geo', message: geo.error });
-    if (session.error) items.push({ id: 'session', message: session.error });
     return items;
-  }, [proxy.error, geo.error, session.error]);
+  }, [proxy.error, geo.error]);
 
   if (isLoading) {
     return <SettingsLoading message="加载网站设置..." />;
@@ -90,7 +86,7 @@ const ToolSettingsPage: React.FC = () => {
   return (
     <SettingsPageLayout
       title="网站管理"
-      description="按对话与生图分类管理各网站的启用状态、无痕模式、网络代理与 GPS 定位。代理与位置预设请在「网络与定位」页面定义。"
+      description="按对话与生图分类管理各网站的启用状态、网络代理与 GPS 定位。代理与位置预设请在「网络与定位」页面定义。"
       ariaLabel="网站管理"
       className={styles.pageWide}
     >
@@ -114,7 +110,6 @@ const ToolSettingsPage: React.FC = () => {
                 <colgroup>
                   <col />
                   <col className={styles.colToggle} />
-                  <col className={styles.colToggle} />
                   <col className={styles.colEnv} />
                   <col className={styles.colEnv} />
                 </colgroup>
@@ -122,7 +117,6 @@ const ToolSettingsPage: React.FC = () => {
                   <tr>
                     <th scope="col">网站</th>
                     <th scope="col">启用</th>
-                    <th scope="col">无痕</th>
                     <th scope="col">网络</th>
                     <th scope="col">定位</th>
                   </tr>
@@ -139,7 +133,6 @@ const ToolSettingsPage: React.FC = () => {
                       toolId: tool.id,
                       mode: 'system' as const,
                     };
-                    const incognito = session.isToolIncognito(tool.id);
 
                     return (
                       <tr key={tool.id}>
@@ -165,21 +158,6 @@ const ToolSettingsPage: React.FC = () => {
                                   ? '点击关闭'
                                   : '点击启用'
                             }
-                          />
-                        </td>
-
-                        <td className={styles.toggleCell}>
-                          <Toggle
-                            checked={incognito}
-                            onChange={(event) =>
-                              session.setToolIncognito(tool.id, event.target.checked)
-                            }
-                            label={`${tool.name} ${incognito ? '无痕模式' : '普通模式'}`}
-                        title={
-                          incognito
-                            ? '无痕模式：临时会话，切换/关闭后清除数据'
-                            : '开启无痕：独立临时会话，不写入磁盘（类似 Chrome 无痕窗口）'
-                        }
                           />
                         </td>
 
