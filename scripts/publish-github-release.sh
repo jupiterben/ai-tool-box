@@ -37,7 +37,7 @@ cat > "$BODY_FILE" <<EOF
 |------|------|
 | Windows | NSIS (.exe) + 差分更新 (.zip + .blockmap) + latest.yml |
 | macOS | DMG (.dmg) + 差分更新 (.zip + .blockmap) + latest-mac.yml |
-| Linux | AppImage + .blockmap + latest-linux.yml |
+| Linux | AppImage（内嵌 blockmap）+ latest-linux.yml |
 EOF
 
 for attempt in $(seq 1 "$MAX_ATTEMPTS"); do

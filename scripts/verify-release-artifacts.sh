@@ -50,7 +50,16 @@ linux)
     ls -la "$RELEASE_DIR" >&2 || true
     exit 1
   fi
-  require_blockmap "${IMAGES[0]}"
+  # AppImage 的 blockmap 内嵌在二进制末尾，由 latest-linux.yml 的 blockMapSize 引用
+  if ! grep -q 'blockMapSize' "${YMLS[0]}"; then
+    if [[ -f "${IMAGES[0]}.blockmap" ]]; then
+      echo "ℹ️  使用独立 .blockmap 文件"
+    else
+      echo "❌ latest-linux.yml 缺少 blockMapSize，无法差分更新" >&2
+      cat "${YMLS[0]}" >&2
+      exit 1
+    fi
+  fi
   ;;
 *)
   echo "未知平台: $PLATFORM" >&2
@@ -59,4 +68,4 @@ linux)
 esac
 shopt -u nullglob
 
-echo "✅ $PLATFORM 产物校验通过（含差分更新 blockmap）"
+echo "✅ $PLATFORM 产物校验通过（含差分更新元数据）"
