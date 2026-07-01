@@ -55,7 +55,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  differentialPackage: false
+  differentialPackage: true
 
 publish:
   provider: github

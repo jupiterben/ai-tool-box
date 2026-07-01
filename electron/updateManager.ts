@@ -18,6 +18,7 @@ function sendStatus(window: BrowserWindow | null, status: UpdateStatus): void {
 function configureAutoUpdater(): void {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.disableDifferentialDownload = false;
 
   if (process.platform === 'win32') {
     autoUpdater.disableWebInstaller = true;

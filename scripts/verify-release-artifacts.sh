@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
-# 校验 CI 发布目录是否包含该平台必需的二进制产物
+# 校验 CI 发布目录是否包含该平台必需的二进制产物（含差分更新 blockmap）
 # 用法: bash scripts/verify-release-artifacts.sh <win|mac|linux> [release_dir]
 
 set -euo pipefail
 
 PLATFORM="${1:?用法: verify-release-artifacts.sh <win|mac|linux> [release_dir]}"
 RELEASE_DIR="${2:-release}"
+
+require_blockmap() {
+  local file="$1"
+  if [[ ! -f "${file}.blockmap" ]]; then
+    echo "❌ 缺少差分更新 blockmap: ${file}.blockmap" >&2
+    ls -la "$RELEASE_DIR" >&2 || true
+    exit 1
+  fi
+}
 
 shopt -s nullglob
 case "$PLATFORM" in
@@ -18,6 +27,7 @@ win)
     ls -la "$RELEASE_DIR" >&2 || true
     exit 1
   fi
+  require_blockmap "${ZIPS[0]}"
   ;;
 mac)
   DMGS=("$RELEASE_DIR"/*.dmg)
@@ -28,6 +38,9 @@ mac)
     ls -la "$RELEASE_DIR" >&2 || true
     exit 1
   fi
+  for zip in "${ZIPS[@]}"; do
+    require_blockmap "$zip"
+  done
   ;;
 linux)
   IMAGES=("$RELEASE_DIR"/*.AppImage)
@@ -37,6 +50,7 @@ linux)
     ls -la "$RELEASE_DIR" >&2 || true
     exit 1
   fi
+  require_blockmap "${IMAGES[0]}"
   ;;
 *)
   echo "未知平台: $PLATFORM" >&2
@@ -45,4 +59,4 @@ linux)
 esac
 shopt -u nullglob
 
-echo "✅ $PLATFORM 产物校验通过"
+echo "✅ $PLATFORM 产物校验通过（含差分更新 blockmap）"

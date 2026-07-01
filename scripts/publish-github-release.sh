@@ -10,7 +10,8 @@ MAX_ATTEMPTS="${MAX_ATTEMPTS:-6}"
 
 mapfile -t FILES < <(find "$DIST_DIR" -maxdepth 1 -type f \( \
   -name '*.exe' -o -name '*.zip' -o -name '*.dmg' -o -name '*.AppImage' \
-  -o -name 'latest.yml' -o -name 'latest-mac.yml' -o -name 'latest-linux.yml' -o -name '*.blockmap' \) | sort)
+  -o -name 'latest.yml' -o -name 'latest-mac.yml' -o -name 'latest-linux.yml' \
+  -o -name '*.blockmap' \) | sort)
 if [ ${#FILES[@]} -eq 0 ]; then
   echo "未找到发布文件: $DIST_DIR" >&2
   exit 1
@@ -34,9 +35,9 @@ cat > "$BODY_FILE" <<EOF
 
 | 平台 | 产物 |
 |------|------|
-| Windows | NSIS 安装包 (.exe) + 增量更新 (.zip) + latest.yml |
-| macOS | DMG 安装包 (.dmg) + 增量更新 (.zip) + latest-mac.yml |
-| Linux | AppImage (.AppImage) + latest-linux.yml |
+| Windows | NSIS (.exe) + 差分更新 (.zip + .blockmap) + latest.yml |
+| macOS | DMG (.dmg) + 差分更新 (.zip + .blockmap) + latest-mac.yml |
+| Linux | AppImage + .blockmap + latest-linux.yml |
 EOF
 
 for attempt in $(seq 1 "$MAX_ATTEMPTS"); do

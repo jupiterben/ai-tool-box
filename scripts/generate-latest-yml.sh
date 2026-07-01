@@ -57,11 +57,24 @@ write_file_entry() {
   size="$(file_size "$file")"
   local sha512
   sha512="$(sha512_base64 "$file")"
-  cat <<EOF
+  local blockmap="${file}.blockmap"
+
+  if [[ -f "$blockmap" ]]; then
+    local block_map_size
+    block_map_size="$(file_size "$blockmap")"
+    cat <<EOF
+  - url: $name
+    sha512: $sha512
+    size: $size
+    blockMapSize: $block_map_size
+EOF
+  else
+    cat <<EOF
   - url: $name
     sha512: $sha512
     size: $size
 EOF
+  fi
 }
 
 case "$PLATFORM" in
@@ -91,12 +104,19 @@ win)
   ZIP_SIZE="$(file_size "$ZIPFILE")"
   LATEST_YML="$RELEASE_DIR/latest.yml"
 
+  BLOCKMAP_LINES=""
+  if [[ -f "${ZIPFILE}.blockmap" ]]; then
+    BLOCKMAP_SIZE="$(file_size "${ZIPFILE}.blockmap")"
+    BLOCKMAP_LINES="    blockMapSize: $BLOCKMAP_SIZE"
+  fi
+
   cat > "$LATEST_YML" <<EOF
 version: $VERSION
 files:
   - url: $ZIP_NAME
     sha512: $ZIP_SHA512
     size: $ZIP_SIZE
+${BLOCKMAP_LINES}
 path: $ZIP_NAME
 sha512: $ZIP_SHA512
 releaseDate: '$RELEASE_DATE'
@@ -151,12 +171,19 @@ linux)
   APPIMAGE_SIZE="$(file_size "$APPIMAGE")"
   LATEST_YML="$RELEASE_DIR/latest-linux.yml"
 
+  BLOCKMAP_LINES=""
+  if [[ -f "${APPIMAGE}.blockmap" ]]; then
+    BLOCKMAP_SIZE="$(file_size "${APPIMAGE}.blockmap")"
+    BLOCKMAP_LINES="    blockMapSize: $BLOCKMAP_SIZE"
+  fi
+
   cat > "$LATEST_YML" <<EOF
 version: $VERSION
 files:
   - url: $APPIMAGE_NAME
     sha512: $APPIMAGE_SHA512
     size: $APPIMAGE_SIZE
+${BLOCKMAP_LINES}
 path: $APPIMAGE_NAME
 sha512: $APPIMAGE_SHA512
 releaseDate: '$RELEASE_DATE'

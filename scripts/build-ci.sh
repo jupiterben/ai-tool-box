@@ -42,15 +42,27 @@ echo "📦 electron-builder ($PLATFORM)..."
 case "$PLATFORM" in
 win)
   npx electron-builder --win --x64 --publish never --config.directories.output="$RELEASE_DIR"
-  bash "$ROOT/scripts/generate-latest-yml.sh" win "$RELEASE_DIR" "$VERSION"
+  if [[ -f "$RELEASE_DIR/latest.yml" ]]; then
+    echo "📝 使用 electron-builder 生成的 latest.yml（差分更新）"
+  else
+    bash "$ROOT/scripts/generate-latest-yml.sh" win "$RELEASE_DIR" "$VERSION"
+  fi
   ;;
 mac)
   npx electron-builder --mac --publish never --config.directories.output="$RELEASE_DIR"
-  bash "$ROOT/scripts/generate-latest-yml.sh" mac "$RELEASE_DIR" "$VERSION"
+  if [[ -f "$RELEASE_DIR/latest-mac.yml" ]]; then
+    echo "📝 使用 electron-builder 生成的 latest-mac.yml（差分更新）"
+  else
+    bash "$ROOT/scripts/generate-latest-yml.sh" mac "$RELEASE_DIR" "$VERSION"
+  fi
   ;;
 linux)
   npx electron-builder --linux --x64 --publish never --config.directories.output="$RELEASE_DIR"
-  bash "$ROOT/scripts/generate-latest-yml.sh" linux "$RELEASE_DIR" "$VERSION"
+  if [[ -f "$RELEASE_DIR/latest-linux.yml" ]]; then
+    echo "📝 使用 electron-builder 生成的 latest-linux.yml（差分更新）"
+  else
+    bash "$ROOT/scripts/generate-latest-yml.sh" linux "$RELEASE_DIR" "$VERSION"
+  fi
   ;;
 *)
   echo "未知平台: $PLATFORM（支持 win / mac / linux）" >&2
