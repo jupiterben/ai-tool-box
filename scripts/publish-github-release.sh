@@ -35,7 +35,7 @@ cat > "$BODY_FILE" <<EOF
 
 | 平台 | 产物 |
 |------|------|
-| Windows | NSIS (.exe) + 差分更新 (.zip + .blockmap) + latest.yml |
+| Windows | NSIS (.exe + .exe.blockmap 差分更新) + 便携 (.zip) + latest.yml |
 | macOS | DMG (.dmg) + 差分更新 (.zip + .blockmap) + latest-mac.yml |
 | Linux | AppImage（内嵌 blockmap）+ latest-linux.yml |
 EOF

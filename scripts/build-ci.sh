@@ -42,11 +42,8 @@ echo "📦 electron-builder ($PLATFORM)..."
 case "$PLATFORM" in
 win)
   npx electron-builder --win --x64 --publish never --config.directories.output="$RELEASE_DIR"
-  if [[ -f "$RELEASE_DIR/latest.yml" ]]; then
-    echo "📝 使用 electron-builder 生成的 latest.yml（差分更新）"
-  else
-    bash "$ROOT/scripts/generate-latest-yml.sh" win "$RELEASE_DIR" "$VERSION"
-  fi
+  # Windows 差分更新基于 NSIS .exe.blockmap，统一用脚本生成 latest.yml
+  bash "$ROOT/scripts/generate-latest-yml.sh" win "$RELEASE_DIR" "$VERSION"
   ;;
 mac)
   npx electron-builder --mac --publish never --config.directories.output="$RELEASE_DIR"

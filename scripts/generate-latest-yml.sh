@@ -99,29 +99,28 @@ win)
   fi
 
   INSTALLER_NAME="$(basename "$INSTALLER")"
-  ZIP_NAME="$(basename "$ZIPFILE")"
-  ZIP_SHA512="$(sha512_base64 "$ZIPFILE")"
-  ZIP_SIZE="$(file_size "$ZIPFILE")"
+  INSTALLER_SHA512="$(sha512_base64 "$INSTALLER")"
+  INSTALLER_SIZE="$(file_size "$INSTALLER")"
   LATEST_YML="$RELEASE_DIR/latest.yml"
 
+  # Windows 差分更新走 NSIS .exe（electron-builder 仅为其生成 .blockmap，zip 无 blockmap）
   BLOCKMAP_LINES=""
-  if [[ -f "${ZIPFILE}.blockmap" ]]; then
-    BLOCKMAP_SIZE="$(file_size "${ZIPFILE}.blockmap")"
+  if [[ -f "${INSTALLER}.blockmap" ]]; then
+    BLOCKMAP_SIZE="$(file_size "${INSTALLER}.blockmap")"
     BLOCKMAP_LINES="    blockMapSize: $BLOCKMAP_SIZE"
   fi
 
   cat > "$LATEST_YML" <<EOF
 version: $VERSION
 files:
-  - url: $ZIP_NAME
-    sha512: $ZIP_SHA512
-    size: $ZIP_SIZE
+  - url: $INSTALLER_NAME
+    sha512: $INSTALLER_SHA512
+    size: $INSTALLER_SIZE
 ${BLOCKMAP_LINES}
-path: $ZIP_NAME
-sha512: $ZIP_SHA512
+path: $INSTALLER_NAME
+sha512: $INSTALLER_SHA512
 releaseDate: '$RELEASE_DATE'
 mandatory: $MANDATORY
-installer: $INSTALLER_NAME
 EOF
   ;;
 

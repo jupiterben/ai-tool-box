@@ -27,7 +27,7 @@ win)
     ls -la "$RELEASE_DIR" >&2 || true
     exit 1
   fi
-  require_blockmap "${ZIPS[0]}"
+  require_blockmap "${EXES[0]}"
   ;;
 mac)
   DMGS=("$RELEASE_DIR"/*.dmg)

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 一键编译并生成发布产物
-# 构建产物：NSIS 安装包（首次安装用）+ zip 包（差分更新用）+ blockmap + latest.yml
+# 构建产物：NSIS 安装包（安装 + 差分更新）+ zip 包（便携分发）+ .exe.blockmap + latest.yml
 # 用法:
 #   bash scripts/release.sh              # 自增 patch 并发布
 #   bash scripts/release.sh minor        # 自增 minor 并发布
@@ -97,6 +97,6 @@ cat "$LATEST_YML"
 echo ""
 echo "✅ 构建完成! v$VERSION"
 echo "   $INSTALLER  (首次安装)"
-echo "   $ZIPFILE  (差分更新)"
-echo "   ${ZIPFILE}.blockmap  (差分索引)"
+echo "   $ZIPFILE  (便携分发)"
+echo "   ${INSTALLER}.blockmap  (差分索引)"
 echo "   $LATEST_YML"
