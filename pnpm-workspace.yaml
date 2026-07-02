@@ -6,6 +6,8 @@ allowBuilds:
   electron-winstaller: true
   esbuild: true
   sharp: true
+minimumReleaseAgeExclude:
+  - vite@8.1.3
 onlyBuiltDependencies:
   - electron
   - electron-winstaller
