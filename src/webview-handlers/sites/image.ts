@@ -160,6 +160,28 @@ export const doubaoImageHandler = createImageHandler({
   },
 });
 
+export const geminiImageHandler = createImageHandler({
+  toolId: 'gemini-image',
+  urlHint: 'gemini.google.com',
+  urlHints: ['gemini.google.com/images'],
+  inputType: 'contenteditable',
+  inputSelectors: [
+    'div.ql-editor[contenteditable="true"]',
+    '.ql-editor[contenteditable="true"]',
+    'rich-textarea [contenteditable="true"]',
+    'div[contenteditable="true"][aria-label*="prompt" i]',
+    'div[role="textbox"][contenteditable="true"]',
+    'div[contenteditable="true"]',
+    ...DEFAULT_IMAGE_PROMPT_SELECTORS,
+  ],
+  sendButtonSelectors: [
+    'button[aria-label*="Create" i]',
+    'button[aria-label*="Generate" i]',
+    'button[aria-label*="Send" i]',
+    ...DEFAULT_IMAGE_SEND_SELECTORS,
+  ],
+});
+
 export const midjourneyHandler = createImageHandler({
   toolId: 'midjourney',
   urlHint: 'midjourney.com',
@@ -230,6 +252,7 @@ export const IMAGE_HANDLERS: Record<string, BaseSiteHandler> = {
   yige: yigeHandler,
   miaohua: miaohuaHandler,
   'doubao-image': doubaoImageHandler,
+  'gemini-image': geminiImageHandler,
   midjourney: midjourneyHandler,
   leonardo: leonardoHandler,
   ideogram: ideogramHandler,

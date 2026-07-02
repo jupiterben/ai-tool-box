@@ -182,6 +182,13 @@ export const DEFAULT_IMAGE_TOOLS: AITool[] = [
   },
   // 国外
   {
+    id: 'gemini-image',
+    name: 'Gemini 生图',
+    url: 'https://gemini.google.com/images',
+    region: 'international',
+    category: 'image',
+  },
+  {
     id: 'midjourney',
     name: 'Midjourney',
     url: 'https://www.midjourney.com/',
