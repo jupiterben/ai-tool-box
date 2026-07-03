@@ -2,16 +2,65 @@ import type { Session, WebContents } from 'electron';
 import type { ExtractedImage } from '../src/types/image-gen-api.js';
 
 const BING_ORIGIN = 'https://www.bing.com';
-const DEFAULT_MDL = 0;
+const DEFAULT_MODEL = 'gpt4o';
+const DEFAULT_ASPECT_RATIO = '1:1';
 const DEFAULT_AR = 1;
 const POLL_INTERVAL_MS = 1500;
 const REQUEST_TIMEOUT_MS = 30_000;
 
+export const BING_MODELS = ['gpt4o', 'dalle', 'maiimage2'] as const;
+export const BING_ASPECT_RATIOS = ['1:1', '7:4', '4:7', '3:2', '2:3'] as const;
+
+export type BingModel = (typeof BING_MODELS)[number];
+export type BingAspectRatio = (typeof BING_ASPECT_RATIOS)[number];
+
+/** 各模型支持的纵横比（与 Bing 页面一致） */
+export const BING_MODEL_ASPECT_RATIOS: Record<BingModel, readonly BingAspectRatio[]> = {
+  gpt4o: ['1:1', '3:2', '2:3'],
+  dalle: ['1:1', '7:4', '4:7'],
+  maiimage2: ['1:1', '3:2', '2:3'],
+};
+
+const ASPECT_RATIO_TO_AR: Record<BingAspectRatio, number> = {
+  '1:1': 1,
+  '7:4': 2,
+  '4:7': 3,
+  '3:2': 4,
+  '2:3': 5,
+};
+
 export interface BingGenerateOptions {
   prompt: string;
   timeoutMs?: number;
-  mdl?: number;
+  model?: BingModel;
+  aspectRatio?: BingAspectRatio;
+  mdl?: number | string;
   ar?: number;
+}
+
+export function resolveBingApiParams(options: Pick<BingGenerateOptions, 'model' | 'aspectRatio' | 'mdl' | 'ar'>): {
+  mdl: string | number;
+  ar: number;
+  model: BingModel;
+  aspectRatio: BingAspectRatio;
+} {
+  const model = options.model ?? DEFAULT_MODEL;
+  const aspectRatio = options.aspectRatio ?? DEFAULT_ASPECT_RATIO;
+
+  if (!BING_MODELS.includes(model)) {
+    throw new Error(`不支持的 Bing 模型: ${model}`);
+  }
+  if (!BING_ASPECT_RATIOS.includes(aspectRatio)) {
+    throw new Error(`不支持的 Bing 纵横比: ${aspectRatio}`);
+  }
+  if (!BING_MODEL_ASPECT_RATIOS[model].includes(aspectRatio)) {
+    throw new Error(`模型 ${model} 不支持纵横比 ${aspectRatio}，可选: ${BING_MODEL_ASPECT_RATIOS[model].join(', ')}`);
+  }
+
+  const ar = options.ar ?? ASPECT_RATIO_TO_AR[aspectRatio];
+  const mdl = options.mdl ?? model;
+
+  return { mdl, ar, model, aspectRatio };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -113,7 +162,7 @@ async function downloadImages(session: Session, urls: string[]): Promise<Extract
 function buildWebviewFetchScript(
   prompt: string,
   timeoutMs: number,
-  mdl: number,
+  mdl: string | number,
   ar: number
 ): string {
   // 在主进程（Node，UTF-8 安全）里先 encodeURIComponent，只把纯 ASCII 传入 webview 脚本，
@@ -262,8 +311,17 @@ export async function generateBingImagesViaWebviewFetch(
   }
 
   const timeoutMs = options.timeoutMs ?? 120_000;
-  const mdl = options.mdl ?? DEFAULT_MDL;
-  const ar = options.ar ?? DEFAULT_AR;
+
+  let mdl: string | number;
+  let ar: number;
+  try {
+    ({ mdl, ar } = resolveBingApiParams(options));
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Bing 参数无效',
+    };
+  }
 
   try {
     const script = buildWebviewFetchScript(prompt, timeoutMs, mdl, ar);

@@ -1,5 +1,5 @@
 import type { IncomingMessage } from 'node:http';
-import type { GenImageRequest } from '../src/types/image-gen-api.js';
+import type { GenImageRequest, BingImageOptions } from '../src/types/image-gen-api.js';
 import type { ReferenceImage } from '../src/types/reference-image.js';
 import { REFERENCE_IMAGE_MAX_BYTES } from '../src/types/reference-image.js';
 
@@ -148,6 +148,30 @@ export function normalizeReferenceImageInput(input: unknown): ReferenceImage | n
   };
 }
 
+function parseBingOptions(input: unknown): BingImageOptions | undefined {
+  if (!input || typeof input !== 'object') {
+    return undefined;
+  }
+
+  const value = input as Record<string, unknown>;
+  const bing: BingImageOptions = {};
+
+  if (typeof value.model === 'string') {
+    bing.model = value.model as BingImageOptions['model'];
+  }
+  if (typeof value.aspectRatio === 'string') {
+    bing.aspectRatio = value.aspectRatio as BingImageOptions['aspectRatio'];
+  }
+  if (typeof value.mdl === 'number' || typeof value.mdl === 'string') {
+    bing.mdl = value.mdl;
+  }
+  if (typeof value.ar === 'number' && Number.isFinite(value.ar)) {
+    bing.ar = value.ar;
+  }
+
+  return Object.keys(bing).length ? bing : undefined;
+}
+
 function buildRequestFromParts(parts: {
   prompt?: string;
   toolId?: string;
@@ -156,6 +180,7 @@ function buildRequestFromParts(parts: {
   referenceImageBase64?: string;
   referenceImageMimeType?: string;
   referenceImageName?: string;
+  bing?: BingImageOptions;
 }): GenImageRequest {
   const prompt = parts.prompt?.trim() || '';
   let referenceImage = parts.referenceImage ?? null;
@@ -177,6 +202,7 @@ function buildRequestFromParts(parts: {
     toolId: parts.toolId,
     timeoutMs: parts.timeoutMs,
     referenceImage,
+    bing: parts.bing,
   };
 }
 
@@ -197,6 +223,7 @@ function parseJsonRequest(body: string): GenImageRequest {
     toolId: typeof parsed.toolId === 'string' ? parsed.toolId : undefined,
     timeoutMs,
     referenceImage,
+    bing: parseBingOptions(parsed.bing),
     referenceImageBase64:
       typeof parsed.referenceImageBase64 === 'string' ? parsed.referenceImageBase64 : undefined,
     referenceImageMimeType:
@@ -226,12 +253,26 @@ function parseMultipartRequest(body: Buffer, boundary: string): GenImageRequest 
 
   const timeoutRaw = parsed.fields.timeoutMs;
   const timeoutMs = timeoutRaw ? Number(timeoutRaw) : undefined;
+  let bing: BingImageOptions | undefined;
+  if (parsed.fields.bing) {
+    try {
+      bing = parseBingOptions(JSON.parse(parsed.fields.bing));
+    } catch {
+      throw new Error('bing 字段必须是合法 JSON');
+    }
+  } else if (parsed.fields.bingModel || parsed.fields.bingAspectRatio) {
+    bing = parseBingOptions({
+      model: parsed.fields.bingModel,
+      aspectRatio: parsed.fields.bingAspectRatio,
+    });
+  }
 
   return buildRequestFromParts({
     prompt: parsed.fields.prompt,
     toolId: parsed.fields.toolId,
     timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : undefined,
     referenceImage,
+    bing,
   });
 }
 

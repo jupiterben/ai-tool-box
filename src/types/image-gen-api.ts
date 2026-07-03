@@ -16,6 +16,18 @@ export interface ExtractedImage {
   originSrc?: string;
 }
 
+/** Bing 生图选项（toolId=bing-create 时生效） */
+export interface BingImageOptions {
+  /** 模型：gpt4o（默认）| dalle | maiimage2 */
+  model?: 'gpt4o' | 'dalle' | 'maiimage2';
+  /** 纵横比：1:1（默认）| 7:4 | 4:7 | 3:2 | 2:3 */
+  aspectRatio?: '1:1' | '7:4' | '4:7' | '3:2' | '2:3';
+  /** 底层 mdl 参数（数值或模型名，一般无需手动指定） */
+  mdl?: number | string;
+  /** 底层 ar 参数（数值，一般无需手动指定） */
+  ar?: number;
+}
+
 export interface GenImageRequest {
   toolId?: string;
   prompt?: string;
@@ -25,6 +37,8 @@ export interface GenImageRequest {
   referenceImageMimeType?: string;
   referenceImageName?: string;
   timeoutMs?: number;
+  /** Bing 专用选项 */
+  bing?: BingImageOptions;
 }
 
 export interface GenImageResult {
@@ -33,6 +47,10 @@ export interface GenImageResult {
   prompt?: string;
   images?: ExtractedImage[];
   error?: string;
+  /** 实际生图路径：web-api=StreamGenerate，webview-dom=页面模拟 */
+  via?: 'web-api' | 'webview-dom';
+  /** via=webview-dom 时，记录 Web API 失败原因 */
+  apiError?: string;
 }
 
 export interface EnsureImageWebviewRequest {

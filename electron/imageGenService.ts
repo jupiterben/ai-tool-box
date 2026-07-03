@@ -16,7 +16,6 @@ import {
 import { requestEnsureImageWebview } from './imageGenBridge.js';
 import { normalizeReferenceImageInput } from './imageGenRequestParser.js';
 import { generateBingImagesViaWebviewFetch } from './bingImageCreator.js';
-import { generateGeminiImagesViaWebviewFetch } from './geminiImageCreator.js';
 import { findToolWebContents, getUrlHints } from './webviewLocate.js';
 
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -72,52 +71,15 @@ async function generateViaWebviewDom(
     toolId,
     prompt,
     images: sanitizeImagesForApi(waitResult.images),
-  };
-}
-
-async function generateGeminiViaInternalApi(
-  prompt: string,
-  webContentsId: number | undefined,
-  timeoutMs: number
-): Promise<GenImageResult> {
-  const handler = getSiteHandler('gemini-image');
-  if (!handler) {
-    return { success: false, error: '未找到 gemini-image handler' };
-  }
-
-  const wc = findToolWebContents(
-    getToolPartition('gemini-image'),
-    webContentsId,
-    getUrlHints(handler.config)
-  );
-
-  if (!wc) {
-    return { success: false, error: '未找到 Gemini webview，无法读取登录态' };
-  }
-
-  const apiResult = await generateGeminiImagesViaWebviewFetch(wc, { prompt, timeoutMs });
-
-  if (!apiResult.success || !apiResult.images?.length) {
-    return {
-      success: false,
-      toolId: 'gemini-image',
-      prompt,
-      error: apiResult.error || 'Gemini API 生图失败',
-    };
-  }
-
-  return {
-    success: true,
-    toolId: 'gemini-image',
-    prompt,
-    images: sanitizeImagesForApi(apiResult.images),
+    via: 'webview-dom',
   };
 }
 
 async function generateBingViaInternalApi(
   prompt: string,
   webContentsId: number | undefined,
-  timeoutMs: number
+  timeoutMs: number,
+  bing?: GenImageRequest['bing']
 ): Promise<GenImageResult> {
   const handler = getSiteHandler('bing-create');
   if (!handler) {
@@ -134,7 +96,14 @@ async function generateBingViaInternalApi(
     return { success: false, error: '未找到 Bing webview，无法读取登录态' };
   }
 
-  const apiResult = await generateBingImagesViaWebviewFetch(wc, { prompt, timeoutMs });
+  const apiResult = await generateBingImagesViaWebviewFetch(wc, {
+    prompt,
+    timeoutMs,
+    model: bing?.model,
+    aspectRatio: bing?.aspectRatio,
+    mdl: bing?.mdl,
+    ar: bing?.ar,
+  });
 
   if (!apiResult.success || !apiResult.images?.length) {
     return {
@@ -193,21 +162,16 @@ export async function generateImageViaWebview(
     };
   }
 
-  // Gemini / Bing：优先走内部 HTTP API（复用 webview cookie），失败再回退 DOM 模拟
-  if (toolId === 'gemini-image' && !referenceImage) {
-    const apiResult = await generateGeminiViaInternalApi(prompt, webContentsId, timeoutMs);
-    if (apiResult.success) {
-      return apiResult;
-    }
-    console.warn('[imageGenService] Gemini API 失败，回退 webview DOM:', apiResult.error);
-  }
-
+  // Bing：优先走内部 HTTP API（复用 webview cookie），失败再回退 DOM 模拟
   if (toolId === 'bing-create' && !referenceImage) {
-    const apiResult = await generateBingViaInternalApi(prompt, webContentsId, timeoutMs);
+    const apiResult = await generateBingViaInternalApi(prompt, webContentsId, timeoutMs, request.bing);
     if (apiResult.success) {
-      return apiResult;
+      console.log('[imageGenService] Bing via=web-api');
+      return { ...apiResult, via: 'web-api' };
     }
     console.warn('[imageGenService] Bing API 失败，回退 webview DOM:', apiResult.error);
+    const domResult = await generateViaWebviewDom(toolId, prompt, webContentsId, referenceImage, timeoutMs);
+    return { ...domResult, apiError: apiResult.error };
   }
 
   return generateViaWebviewDom(toolId, prompt, webContentsId, referenceImage, timeoutMs);

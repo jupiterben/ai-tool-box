@@ -111,6 +111,35 @@ curl -X POST http://192.168.1.100:3920/api/gen_image \
 | `referenceImageBase64` | string | 否 | 参考图纯 base64（JSON 简写） |
 | `referenceImageMimeType` | string | 否 | 简写时的 MIME，默认 `image/png` |
 | `referenceImageName` | string | 否 | 简写时的文件名，默认 `reference.png` |
+| `bing` | object | 否 | Bing 专用选项（`toolId=bing-create` 时生效） |
+
+**bing 对象（`toolId=bing-create`）：**
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `model` | string | `gpt4o` | 模型：`gpt4o`（多功能表达，1 张）\| `dalle`（DALL-E 3，4 张）\| `maiimage2`（生动叙事，2 张） |
+| `aspectRatio` | string | `1:1` | 纵横比：`1:1` \| `7:4` \| `4:7` \| `3:2` \| `2:3`（各模型支持的比例不同） |
+
+各模型支持的纵横比：
+
+| model | aspectRatio |
+|---|---|
+| `gpt4o` | `1:1`, `3:2`, `2:3` |
+| `dalle` | `1:1`, `7:4`, `4:7` |
+| `maiimage2` | `1:1`, `3:2`, `2:3` |
+
+```json
+{
+  "toolId": "bing-create",
+  "prompt": "一只橘猫坐在窗台上",
+  "bing": {
+    "model": "dalle",
+    "aspectRatio": "7:4"
+  }
+}
+```
+
+multipart 也可使用平铺字段：`bingModel=dalle`、`bingAspectRatio=7:4`，或 `bing={"model":"dalle","aspectRatio":"7:4"}`。
 
 **referenceImage 对象：**
 
@@ -188,7 +217,22 @@ curl -X POST http://127.0.0.1:3920/api/gen_image \
 }
 ```
 
-### 4. multipart 上传参考图
+### 4. Bing 生图（指定模型与纵横比）
+
+```bash
+curl -X POST http://127.0.0.1:3920/api/gen_image \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toolId": "bing-create",
+    "prompt": "一只橘猫坐在窗台上，阳光明媚",
+    "bing": {
+      "model": "dalle",
+      "aspectRatio": "7:4"
+    }
+  }'
+```
+
+### 5. multipart 上传参考图
 
 ```bash
 curl -X POST http://127.0.0.1:3920/api/gen_image \
@@ -199,7 +243,7 @@ curl -X POST http://127.0.0.1:3920/api/gen_image \
 
 文件字段名也支持：`file`、`image`。
 
-### 5. PowerShell
+### 6. PowerShell
 
 ```powershell
 $body = @{
