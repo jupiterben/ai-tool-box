@@ -21,6 +21,7 @@ import {
 import {
   registerImageGenEnsureHandler,
   unregisterImageGenEnsureHandler,
+  activateImageToolTab,
 } from '../services/imageGenBridge';
 import { getWebContentsIdMap } from '../utils/webviewContentsId';
 import Icon from './ui/Icon';
@@ -148,9 +149,17 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
 
       for (let attempt = 0; attempt < 60; attempt += 1) {
         await new Promise((resolve) => setTimeout(resolve, 500));
+
+        if (!selectedToolIdsRef.current.includes(toolId)) {
+          continue;
+        }
+
+        activateImageToolTab(toolId);
+
         const ids = getWebContentsIdMap([toolId], webviewElementsRef.current);
         const webContentsId = ids[toolId];
         if (webContentsId) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
           return { success: true, webContentsId };
         }
       }

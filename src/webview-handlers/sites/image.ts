@@ -153,14 +153,24 @@ export const doubaoImageHandler = createImageHandler({
     'textarea[data-testid="chat_input_input"]',
     'textarea[placeholder*="描述"]',
     'textarea[placeholder*="输入"]',
+    '.tiptap.ProseMirror[contenteditable="true"]',
+    '[contenteditable="true"]',
     'textarea',
   ],
   sendButtonSelectors: [
     '[data-testid="chat_input_send_button"]',
     'button[aria-label*="生成"]',
+    '.send-btn-wrapper button',
+    '.send-btn-wrapper',
     ...DEFAULT_IMAGE_SEND_SELECTORS,
   ],
   sendMethod: 'enter',
+  imageResultSelectors: [
+    'img[src*="rc_gen_image"]',
+    'img[src*="rc_gen_image" i]',
+  ],
+  imageResultRootSelectors: ['main', '[role="main"]', 'body'],
+  imageResultMinSize: 256,
   referenceImage: {
     ...DEFAULT_REFERENCE_IMAGE,
     triggerSelectors: [

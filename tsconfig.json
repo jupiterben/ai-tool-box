@@ -20,6 +20,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
+    /* TypeScript 6.0 deprecation */
+    "ignoreDeprecations": "6.0",
+
     /* Paths */
     "baseUrl": ".",
     "paths": {

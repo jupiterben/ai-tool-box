@@ -83,8 +83,8 @@ curl -X POST http://192.168.1.100:3920/api/gen_image \
     "http://127.0.0.1:3920",
     "http://192.168.1.100:3920"
   ],
-  "features": ["prompt", "referenceImage", "multipart-upload"]
-}
+        "features": ["prompt", "referenceImage", "multipart-upload", "debug"]
+      }
 ```
 
 ---
@@ -284,3 +284,104 @@ POST /api/gen_image
 3. **登录态**：依赖 webview 内站点登录，API 无法代填账号密码。
 4. **并发**：同一 webview 不建议并发请求，建议串行调用。
 5. **参考图格式**：支持 PNG / JPEG / WebP / GIF，单张 ≤ 10 MB。
+
+---
+
+## 调试接口
+
+用于查看 webview 状态、抓取页面内容和测试页面脚本，便于排查生图失败。
+
+### 公共参数
+
+所有调试接口都通过 URL query 参数传入：
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `toolId` | string | 是 | 生图工具 ID，如 `bing-create`、`gemini-image` |
+| `webContentsId` | number | 否 | 指定 webview ID，不传则自动按 `toolId` 查找 |
+
+### GET /api/debug/webview
+
+返回 webview 基本信息。
+
+**响应示例：**
+
+```json
+{
+  "success": true,
+  "toolId": "bing-create",
+  "url": "https://www.bing.com/images/create",
+  "title": "Bing Image Creator",
+  "readyState": "complete",
+  "webContentsId": 123,
+  "type": "webview"
+}
+```
+
+---
+
+### GET /api/debug/snapshot
+
+返回当前页面 HTML 快照。
+
+**响应示例：**
+
+```json
+{
+  "success": true,
+  "toolId": "bing-create",
+  "url": "https://www.bing.com/images/create",
+  "html": "<!DOCTYPE html>...",
+  "length": 152300
+}
+```
+
+---
+
+### GET /api/debug/screenshot
+
+对 webview 当前页面截图，返回 PNG base64。
+
+**响应示例：**
+
+```json
+{
+  "success": true,
+  "toolId": "bing-create",
+  "url": "https://www.bing.com/images/create",
+  "image": {
+    "base64": "iVBORw0KG...",
+    "mimeType": "image/png",
+    "dataUrl": "data:image/png;base64,iVBORw0KG...",
+    "width": 1280,
+    "height": 720
+  }
+}
+```
+
+---
+
+### POST /api/debug/eval
+
+在指定 webview 页面执行 JavaScript 并返回结果。请求体为纯 JS 字符串。
+
+**请求示例：**
+
+```bash
+curl -X POST "http://127.0.0.1:3920/api/debug/eval?toolId=bing-create" \
+  -H "Content-Type: text/plain" \
+  -d 'document.querySelector("textarea").placeholder'
+```
+
+**响应示例：**
+
+```json
+{
+  "success": true,
+  "toolId": "bing-create",
+  "url": "https://www.bing.com/images/create",
+  "result": "Describe what you'd like to see"
+}
+```
+
+> 调试接口同样受 `AI_TOOLBOX_API_TOKEN` 鉴权控制。

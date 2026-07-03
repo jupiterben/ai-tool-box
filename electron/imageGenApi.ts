@@ -9,6 +9,12 @@ import {
   getApiPort,
   isLanBindHost,
 } from './imageGenApiConfig.js';
+import {
+  debugWebviewEval,
+  debugWebviewInfo,
+  debugWebviewScreenshot,
+  debugWebviewSnapshot,
+} from './imageGenDebug.js';
 
 let server: ReturnType<typeof createServer> | null = null;
 
@@ -82,6 +88,89 @@ async function handleGenImage(
   }
 }
 
+function parseQueryUrl(req: IncomingMessage): { pathname: string; query: URLSearchParams } {
+  const raw = req.url || '/';
+  const host = req.headers.host || 'localhost';
+  const url = new URL(raw, `http://${host}`);
+  return { pathname: url.pathname, query: url.searchParams };
+}
+
+function readBodyText(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let total = 0;
+    const MAX = 2 * 1024 * 1024;
+
+    req.on('data', (chunk: Buffer) => {
+      total += chunk.length;
+      if (total > MAX) {
+        reject(new Error('请求体过大'));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+async function handleDebug(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!isAuthorized(req)) {
+    sendJson(res, 401, { success: false, error: '未授权' });
+    return;
+  }
+
+  const { pathname, query } = parseQueryUrl(req);
+  const toolId = query.get('toolId') || undefined;
+  const webContentsId = Number(query.get('webContentsId'));
+
+  if (!toolId) {
+    sendJson(res, 400, { success: false, error: '缺少 toolId 参数' });
+    return;
+  }
+
+  try {
+    if (pathname === '/api/debug/webview' && req.method === 'GET') {
+      const result = await debugWebviewInfo(toolId, Number.isFinite(webContentsId) ? webContentsId : undefined);
+      sendJson(res, result.success ? 200 : 500, result);
+      return;
+    }
+
+    if (pathname === '/api/debug/snapshot' && req.method === 'GET') {
+      const result = await debugWebviewSnapshot(toolId, Number.isFinite(webContentsId) ? webContentsId : undefined);
+      sendJson(res, result.success ? 200 : 500, result);
+      return;
+    }
+
+    if (pathname === '/api/debug/screenshot' && req.method === 'GET') {
+      const result = await debugWebviewScreenshot(toolId, Number.isFinite(webContentsId) ? webContentsId : undefined);
+      sendJson(res, result.success ? 200 : 500, result);
+      return;
+    }
+
+    if (pathname === '/api/debug/eval' && req.method === 'POST') {
+      const body = await readBodyText(req);
+      const result = await debugWebviewEval(
+        toolId,
+        body,
+        Number.isFinite(webContentsId) ? webContentsId : undefined
+      );
+      sendJson(res, result.success ? 200 : 500, result);
+      return;
+    }
+
+    sendJson(res, 404, { success: false, error: 'Not Found' });
+  } catch (error) {
+    sendJson(res, 500, {
+      success: false,
+      toolId,
+      error: error instanceof Error ? error.message : '调试接口失败',
+    });
+  }
+}
+
 export function startImageGenApi(getMainWindow: () => BrowserWindow | null): void {
   if (server) {
     return;
@@ -102,9 +191,9 @@ export function startImageGenApi(getMainWindow: () => BrowserWindow | null): voi
       return;
     }
 
-    const url = req.url || '/';
+    const { pathname } = parseQueryUrl(req);
 
-    if (req.method === 'GET' && url === '/api/health') {
+    if (req.method === 'GET' && pathname === '/api/health') {
       sendJson(res, 200, {
         success: true,
         service: 'ai-tool-box-image-gen',
@@ -112,13 +201,18 @@ export function startImageGenApi(getMainWindow: () => BrowserWindow | null): voi
         host: bindHost,
         lanEnabled: isLanBindHost(bindHost),
         accessUrls: formatApiAccessUrls(bindHost, port),
-        features: ['prompt', 'referenceImage', 'multipart-upload'],
+        features: ['prompt', 'referenceImage', 'multipart-upload', 'debug'],
       });
       return;
     }
 
-    if (req.method === 'POST' && url === '/api/gen_image') {
+    if (req.method === 'POST' && pathname === '/api/gen_image') {
       await handleGenImage(getMainWindow, req, res);
+      return;
+    }
+
+    if (pathname.startsWith('/api/debug/')) {
+      await handleDebug(req, res);
       return;
     }
 

@@ -285,19 +285,32 @@ export function buildInjectScript(
           inputElement.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: content }));
           inputElement.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
         } else if (effectiveType === 'contenteditable') {
-          try {
-            inputElement.focus();
-            var selection = window.getSelection();
-            if (selection) {
-              var range = document.createRange();
-              range.selectNodeContents(inputElement);
-              selection.removeAllRanges();
-              selection.addRange(range);
-            }
-            document.execCommand('insertText', false, content);
-          } catch (e) {
-            inputElement.textContent = content;
+          inputElement.focus();
+          var selection = window.getSelection();
+          if (selection) {
+            var range = document.createRange();
+            range.selectNodeContents(inputElement);
+            selection.removeAllRanges();
+            selection.addRange(range);
           }
+          var beforeInserted = false;
+          // ProseMirror/tiptap 监听 beforeinput 事件来更新内部 state，
+          // 先 dispatch beforeinput 让框架自行处理插入（会 preventDefault）
+          try {
+            var biEvent = new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: content });
+            var biNotPrevented = inputElement.dispatchEvent(biEvent);
+            if (inputElement.textContent === content) { beforeInserted = true; }
+            // 如果 beforeinput 没被拦截，用 execCommand 实际插入（触发 trusted beforeinput）
+            if (!beforeInserted && biNotPrevented) {
+              document.execCommand('insertText', false, content);
+              if (inputElement.textContent === content) { beforeInserted = true; }
+            }
+          } catch (e) {}
+          // fallback：直接设 textContent 并触发 input 事件
+          if (!beforeInserted) {
+            try { inputElement.textContent = content; } catch (e) {}
+          }
+          inputElement.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: content }));
           inputElement.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: content }));
         }
       }`;

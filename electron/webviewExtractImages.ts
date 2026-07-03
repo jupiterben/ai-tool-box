@@ -1,3 +1,4 @@
+import type { WebContents } from 'electron';
 import { getSiteHandler } from '../src/webview-handlers/index.js';
 import type { ExtractedImage } from '../src/types/image-gen-api.js';
 import { getToolPartition } from '../src/utils/toolPartition.js';
@@ -69,6 +70,61 @@ async function detectImageOrigins(
   }
 }
 
+async function fetchImageViaSession(
+  wc: WebContents,
+  originSrc: string
+): Promise<{ base64: string; mimeType: string } | null> {
+  try {
+    const response = await wc.session.fetch(originSrc);
+    if (!response.ok) {
+      return null;
+    }
+
+    const mimeType = (response.headers.get('content-type') || 'image/png').split(';')[0].trim();
+    if (!mimeType.startsWith('image/')) {
+      return null;
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (!buffer.length) {
+      return null;
+    }
+
+    return {
+      base64: buffer.toString('base64'),
+      mimeType,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function convertOriginsViaSession(
+  wc: WebContents,
+  items: DetectedImageOrigin[]
+): Promise<ExtractedImage[]> {
+  const images: ExtractedImage[] = [];
+
+  for (const item of items) {
+    const fetched = await fetchImageViaSession(wc, item.originSrc);
+    if (!fetched) {
+      continue;
+    }
+
+    images.push({
+      base64: fetched.base64,
+      mimeType: fetched.mimeType,
+      width: item.width,
+      height: item.height,
+      alt: item.alt,
+      dataUrl: `data:${fetched.mimeType};base64,${fetched.base64}`,
+      originSrc: item.originSrc,
+    });
+  }
+
+  return images;
+}
+
 async function convertImageOrigins(
   payload: ExtractWebviewImagesPayload,
   originSrcs: string[]
@@ -82,6 +138,8 @@ async function convertImageOrigins(
     return { success: false, images: [], error };
   }
 
+  const originSet = new Set(originSrcs);
+
   try {
     const script = handler.buildConvertImagesScript(originSrcs);
     const result = (await wc.executeJavaScript(script)) as {
@@ -91,12 +149,28 @@ async function convertImageOrigins(
     };
 
     const images = (result?.images ?? []).filter((img) => img.base64);
+    if (images.length > 0) {
+      return { success: true, images };
+    }
+
+    const detected = await detectImageOrigins(payload);
+    const targets = detected.origins.filter((item) => originSet.has(item.originSrc));
+    const sessionImages = await convertOriginsViaSession(wc, targets);
+
     return {
-      success: images.length > 0,
-      images,
-      error: images.length ? undefined : result?.error || '图片 base64 转换失败',
+      success: sessionImages.length > 0,
+      images: sessionImages,
+      error: sessionImages.length ? undefined : result?.error || '图片 base64 转换失败',
     };
   } catch (err) {
+    const detected = await detectImageOrigins(payload);
+    const targets = detected.origins.filter((item) => originSet.has(item.originSrc));
+    const sessionImages = await convertOriginsViaSession(wc, targets);
+
+    if (sessionImages.length > 0) {
+      return { success: true, images: sessionImages };
+    }
+
     return {
       success: false,
       images: [],

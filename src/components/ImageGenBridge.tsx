@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import {
   ensurePageVisited,
   navigateToPage,
+  activateImageToolTab,
   runImageGenEnsureHandler,
+  waitForImageGenEnsureHandler,
 } from '../services/imageGenBridge';
 
 function sleep(ms: number): Promise<void> {
@@ -19,7 +21,19 @@ const ImageGenBridge: React.FC = () => {
       try {
         ensurePageVisited('image-webview');
         navigateToPage('image-webview');
-        await sleep(800);
+
+        const handlerReady = await waitForImageGenEnsureHandler(30_000);
+        if (!handlerReady) {
+          window.electronAPI?.reportEnsureImageWebview?.({
+            requestId,
+            success: false,
+            error: '生图页面未就绪',
+          });
+          return;
+        }
+
+        activateImageToolTab(toolId);
+        await sleep(500);
 
         let result = await runImageGenEnsureHandler(toolId);
         if (!result.success) {

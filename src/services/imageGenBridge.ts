@@ -25,7 +25,24 @@ export async function runImageGenEnsureHandler(
   return ensureHandler(toolId);
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** 等待生图页挂载并注册 ensure handler */
+export async function waitForImageGenEnsureHandler(timeoutMs = 30_000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (ensureHandler) {
+      return true;
+    }
+    await sleep(200);
+  }
+  return false;
+}
+
 export const APP_NAVIGATE_EVENT = 'app:navigate';
+export const ACTIVATE_IMAGE_TOOL_EVENT = 'app:activate-image-tool';
 
 export function navigateToPage(pageId: string): void {
   window.dispatchEvent(new CustomEvent(APP_NAVIGATE_EVENT, { detail: { pageId } }));
@@ -33,4 +50,11 @@ export function navigateToPage(pageId: string): void {
 
 export function ensurePageVisited(pageId: string): void {
   window.dispatchEvent(new CustomEvent('app:ensure-visited', { detail: { pageId } }));
+}
+
+/** API 生图前将指定工具的 webview tab 切到前台 */
+export function activateImageToolTab(toolId: string): void {
+  window.dispatchEvent(
+    new CustomEvent(ACTIVATE_IMAGE_TOOL_EVENT, { detail: { toolId } })
+  );
 }

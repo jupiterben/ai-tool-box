@@ -6,6 +6,7 @@ import { preInjectScript } from './WebviewInputHandler';
 import { ElectronWebView, type ElectronWebViewElement } from './ElectronWebView';
 import { getToolPartition } from '../utils/toolPartition';
 import { getFaviconFallbackUrl, getLoadableFaviconUrl } from '../utils/favicon';
+import { ACTIVATE_IMAGE_TOOL_EVENT } from '../services/imageGenBridge';
 import Icon from './ui/Icon';
 import styles from './MultiWebviewGrid.module.css';
 
@@ -106,6 +107,19 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
       syncNavState(activeTabId);
     }
   }, [activeTabId, syncNavState]);
+
+  useEffect(() => {
+    const onActivateTool = (event: Event) => {
+      const toolId = (event as CustomEvent<{ toolId: string }>).detail?.toolId;
+      if (!toolId) {
+        return;
+      }
+      setActiveTabId(toolId);
+    };
+
+    window.addEventListener(ACTIVATE_IMAGE_TOOL_EVENT, onActivateTool);
+    return () => window.removeEventListener(ACTIVATE_IMAGE_TOOL_EVENT, onActivateTool);
+  }, []);
 
   const handleWebviewRef = useCallback((toolId: string, toolName: string, element: HTMLElement | null) => {
     listenerCleanups.current[toolId]?.();
