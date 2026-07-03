@@ -204,25 +204,46 @@ export async function waitForNewWebviewImages(
   payload: ExtractWebviewImagesPayload,
   baselineOriginSrcs: string[],
   timeoutMs: number,
-  pollIntervalMs = 2000
+  pollIntervalMs = 2000,
+  targetCount = 1
 ): Promise<ExtractWebviewImagesResult> {
   const baseline = new Set(baselineOriginSrcs);
+  const collectedOrigins: string[] = [];
+  const collectedSet = new Set<string>();
   const deadline = Date.now() + timeoutMs;
+  const goal = Math.max(1, targetCount);
 
   while (Date.now() < deadline) {
     const detected = await detectImageOrigins(payload);
-    const freshOrigins = detected.origins
-      .map((item) => item.originSrc)
-      .filter((originSrc) => originSrc && !baseline.has(originSrc));
+    for (const item of detected.origins) {
+      const originSrc = item.originSrc;
+      if (!originSrc || baseline.has(originSrc) || collectedSet.has(originSrc)) {
+        continue;
+      }
+      collectedSet.add(originSrc);
+      collectedOrigins.push(originSrc);
+    }
 
-    if (freshOrigins.length > 0) {
-      const converted = await convertImageOrigins(payload, freshOrigins);
+    if (collectedOrigins.length >= goal) {
+      const converted = await convertImageOrigins(payload, collectedOrigins.slice(0, goal));
+      if (converted.success) {
+        return converted;
+      }
+    } else if (collectedOrigins.length > 0 && goal === 1) {
+      const converted = await convertImageOrigins(payload, collectedOrigins);
       if (converted.success) {
         return converted;
       }
     }
 
     await sleep(pollIntervalMs);
+  }
+
+  if (collectedOrigins.length > 0) {
+    const converted = await convertImageOrigins(payload, collectedOrigins);
+    if (converted.success) {
+      return converted;
+    }
   }
 
   return { success: false, images: [], error: '生图超时，未检测到新图片' };

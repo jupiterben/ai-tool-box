@@ -176,6 +176,7 @@ function buildRequestFromParts(parts: {
   prompt?: string;
   toolId?: string;
   timeoutMs?: number;
+  count?: number;
   referenceImage?: ReferenceImage | null;
   referenceImageBase64?: string;
   referenceImageMimeType?: string;
@@ -201,6 +202,7 @@ function buildRequestFromParts(parts: {
     prompt,
     toolId: parts.toolId,
     timeoutMs: parts.timeoutMs,
+    count: parts.count,
     referenceImage,
     bing: parts.bing,
   };
@@ -218,10 +220,16 @@ function parseJsonRequest(body: string): GenImageRequest {
       ? parsed.timeoutMs
       : undefined;
 
+  const count =
+    typeof parsed.count === 'number' && Number.isFinite(parsed.count)
+      ? parsed.count
+      : undefined;
+
   return buildRequestFromParts({
     prompt: typeof parsed.prompt === 'string' ? parsed.prompt : '',
     toolId: typeof parsed.toolId === 'string' ? parsed.toolId : undefined,
     timeoutMs,
+    count,
     referenceImage,
     bing: parseBingOptions(parsed.bing),
     referenceImageBase64:
@@ -253,6 +261,8 @@ function parseMultipartRequest(body: Buffer, boundary: string): GenImageRequest 
 
   const timeoutRaw = parsed.fields.timeoutMs;
   const timeoutMs = timeoutRaw ? Number(timeoutRaw) : undefined;
+  const countRaw = parsed.fields.count;
+  const count = countRaw ? Number(countRaw) : undefined;
   let bing: BingImageOptions | undefined;
   if (parsed.fields.bing) {
     try {
@@ -271,6 +281,7 @@ function parseMultipartRequest(body: Buffer, boundary: string): GenImageRequest 
     prompt: parsed.fields.prompt,
     toolId: parsed.fields.toolId,
     timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : undefined,
+    count: Number.isFinite(count) ? count : undefined,
     referenceImage,
     bing,
   });

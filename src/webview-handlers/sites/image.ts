@@ -185,6 +185,9 @@ export const geminiImageHandler = createImageHandler({
   toolId: 'gemini-image',
   urlHint: 'gemini.google.com',
   urlHints: ['gemini.google.com/images'],
+  newChatAction: {
+    url: 'https://gemini.google.com/images',
+  },
   imageResultSelectors: [
     'img[src*="googleusercontent"]',
     'img[src*="ggpht"]',

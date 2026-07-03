@@ -37,6 +37,8 @@ export interface GenImageRequest {
   referenceImageMimeType?: string;
   referenceImageName?: string;
   timeoutMs?: number;
+  /** 期望生成张数（默认 1，最大 8）；同一 webview 对话内连续生成，不新开对话 */
+  count?: number;
   /** Bing 专用选项 */
   bing?: BingImageOptions;
 }

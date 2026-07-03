@@ -107,6 +107,7 @@ curl -X POST http://192.168.1.100:3920/api/gen_image \
 | `prompt` | string | 条件必填 | 生图提示词；与参考图至少填一个 |
 | `toolId` | string | 否 | 生图工具 ID，默认 `gemini-image` |
 | `timeoutMs` | number | 否 | 等待超时（毫秒），默认 `120000` |
+| `count` | number | 否 | 期望生成张数，默认 `1`，最大 `8`；在同一 webview 对话内连续生成 |
 | `referenceImage` | object | 否 | 参考图（JSON 完整格式） |
 | `referenceImageBase64` | string | 否 | 参考图纯 base64（JSON 简写） |
 | `referenceImageMimeType` | string | 否 | 简写时的 MIME，默认 `image/png` |
@@ -191,7 +192,22 @@ curl -X POST http://127.0.0.1:3920/api/gen_image \
   }'
 ```
 
-### 2. JSON + 参考图（dataUrl）
+### 2. 指定生成数量（同一对话）
+
+```bash
+curl -X POST http://127.0.0.1:3920/api/gen_image \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toolId": "gemini-image",
+    "prompt": "赛博朋克风格的城市夜景",
+    "count": 4,
+    "timeoutMs": 240000
+  }'
+```
+
+> `count` 会在**同一 API 请求、同一对话**内循环发送（Gemini 每次只出 1 张）。**每次新的 API 请求**会先重置 webview 到工具默认生图页，再开始生成。
+
+### 3. JSON + 参考图（dataUrl）
 
 ```bash
 curl -X POST http://127.0.0.1:3920/api/gen_image \

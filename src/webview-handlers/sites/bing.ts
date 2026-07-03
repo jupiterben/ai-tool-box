@@ -26,6 +26,9 @@ export class BingCreateHandler extends BaseSiteHandler {
     toolId: 'bing-create',
     urlHint: 'bing.com',
     urlHints: ['bing.com/images/create', 'bing.com', 'www.bing.com'],
+    newChatAction: {
+      url: 'https://www.bing.com/images/create',
+    },
     inputRootSelectors: [
       '#create_input_form',
       '#gir_form',
