@@ -2,6 +2,10 @@ import type { GeolocationSettings } from './geolocation-settings';
 import type { LlmSettings, LlmSettingsInput, SummarizeResponsesPayload, SummarizeResponsesResult } from './llm-settings';
 import type { ProxySettings } from './proxy-settings';
 import type { UpdateStatus } from './update-status';
+import type {
+  EnsureImageWebviewRequest,
+  EnsureImageWebviewResult,
+} from './image-gen-api';
 import type { ReferenceImage } from './reference-image';
 
 export interface WebviewSendInputPayload {
@@ -78,6 +82,10 @@ export interface ElectronAPI {
     error?: string;
   }>;
   summarizeResponses: (payload: SummarizeResponsesPayload) => Promise<SummarizeResponsesResult>;
+  onEnsureImageWebview?: (
+    callback: (payload: EnsureImageWebviewRequest) => void
+  ) => () => void;
+  reportEnsureImageWebview?: (result: EnsureImageWebviewResult) => void;
   onUpdateStatus?: (callback: (status: UpdateStatus) => void) => () => void;
   checkForUpdates?: () => Promise<{ success: boolean }>;
   installUpdate?: () => Promise<{ success: boolean }>;

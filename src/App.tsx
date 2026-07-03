@@ -2,6 +2,8 @@ import { useState, Suspense, lazy, useEffect, type ComponentType, type LazyExoti
 import MainLayout from './components/MainLayout';
 import KeepAlivePage from './components/KeepAlivePage';
 import UpdateBanner from './components/UpdateBanner';
+import ImageGenBridge from './components/ImageGenBridge';
+import { APP_NAVIGATE_EVENT } from './services/imageGenBridge';
 import { ToolPage } from './components/Sidebar';
 import styles from './styles/App.module.css';
 
@@ -48,7 +50,7 @@ const LoadingPlaceholder: React.FC = () => (
 const App: React.FC = () => {
   const [activePageId, setActivePageId] = useState<string>(TOOL_PAGES[0]?.id || '');
   const [visitedPageIds, setVisitedPageIds] = useState<Set<string>>(
-    () => new Set(activePageId ? [activePageId] : []),
+    () => new Set([activePageId, 'image-webview'].filter(Boolean)),
   );
 
   useEffect(() => {
@@ -60,6 +62,32 @@ const App: React.FC = () => {
       return next;
     });
   }, [activePageId]);
+
+  useEffect(() => {
+    const onNavigate = (event: Event) => {
+      const pageId = (event as CustomEvent<{ pageId: string }>).detail?.pageId;
+      if (pageId) {
+        setActivePageId(pageId);
+      }
+    };
+    const onEnsureVisited = (event: Event) => {
+      const pageId = (event as CustomEvent<{ pageId: string }>).detail?.pageId;
+      if (!pageId) return;
+      setVisitedPageIds((prev) => {
+        if (prev.has(pageId)) return prev;
+        const next = new Set(prev);
+        next.add(pageId);
+        return next;
+      });
+    };
+
+    window.addEventListener(APP_NAVIGATE_EVENT, onNavigate);
+    window.addEventListener('app:ensure-visited', onEnsureVisited);
+    return () => {
+      window.removeEventListener(APP_NAVIGATE_EVENT, onNavigate);
+      window.removeEventListener('app:ensure-visited', onEnsureVisited);
+    };
+  }, []);
 
   return (
     <>
@@ -90,6 +118,7 @@ const App: React.FC = () => {
         </KeepAlivePage>
       )}
       </MainLayout>
+      <ImageGenBridge />
       <UpdateBanner />
     </>
   );

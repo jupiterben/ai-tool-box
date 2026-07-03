@@ -41,6 +41,8 @@ export interface SiteHandlerConfig {
   urlHint: string;
   /** 多个 URL 片段，用于 redirect 后的站点（如 chatgpt.com / openai.com） */
   urlHints?: string[];
+  /** 限定输入框查找范围（按顺序尝试，命中即用） */
+  inputRootSelectors?: string[];
   inputSelectors: string[];
   inputType: InputType;
   /** 全局发送按钮选择器（逗号分隔传给 querySelector） */
@@ -68,6 +70,12 @@ export interface SiteHandlerConfig {
   recentChatAction?: ConversationActionConfig;
   /** 参考图上传（生图站点） */
   referenceImage?: ReferenceImageConfig;
+  /** 生成结果图片的 DOM 选择器 */
+  imageResultSelectors?: string[];
+  /** 限定图片查找范围 */
+  imageResultRootSelectors?: string[];
+  /** 忽略小于该尺寸（px）的图片 */
+  imageResultMinSize?: number;
 }
 
 /** 与旧版 inputSelectors 兼容 */

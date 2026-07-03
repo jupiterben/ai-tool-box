@@ -28,6 +28,15 @@ const DEFAULT_IMAGE_SEND_SELECTORS = [
   'button[class*="submit" i]',
 ];
 
+const DEFAULT_IMAGE_RESULT_SELECTORS = [
+  'img[src*="googleusercontent"]',
+  'img[src^="blob:"]',
+  'img[src^="data:image"]',
+  '[class*="generated"] img',
+  '[class*="result"] img',
+  'main img[src]',
+];
+
 const DEFAULT_REFERENCE_IMAGE: ReferenceImageConfig = {
   inputSelectors: ['input[type="file"][accept*="image"]', 'input[type="file"]'],
   triggerSelectors: [
@@ -54,6 +63,8 @@ function createImageHandler(
       sendButtonSelectors: DEFAULT_IMAGE_SEND_SELECTORS,
       sendButtonWaitMs: 3000,
       referenceImage: DEFAULT_REFERENCE_IMAGE,
+      imageResultSelectors: DEFAULT_IMAGE_RESULT_SELECTORS,
+      imageResultMinSize: 128,
       ...config,
       toolId: config.toolId,
       urlHint: config.urlHint,
@@ -164,6 +175,15 @@ export const geminiImageHandler = createImageHandler({
   toolId: 'gemini-image',
   urlHint: 'gemini.google.com',
   urlHints: ['gemini.google.com/images'],
+  imageResultSelectors: [
+    'img[src*="googleusercontent"]',
+    'img[src*="ggpht"]',
+    'img[src^="blob:"]',
+    'img[src^="data:image"]',
+    '[data-testid*="image"] img',
+    'main img[src]',
+  ],
+  imageResultRootSelectors: ['main', '[role="main"]', 'body'],
   inputType: 'contenteditable',
   inputSelectors: [
     'div.ql-editor[contenteditable="true"]',
@@ -180,6 +200,19 @@ export const geminiImageHandler = createImageHandler({
     'button[aria-label*="Send" i]',
     ...DEFAULT_IMAGE_SEND_SELECTORS,
   ],
+  referenceImage: {
+    ...DEFAULT_REFERENCE_IMAGE,
+    triggerSelectors: [
+      'button[aria-label*="Upload" i]',
+      'button[aria-label*="Add" i]',
+      'button[aria-label*="Attach" i]',
+      'button[aria-label*="Image" i]',
+      '[aria-label*="upload" i]',
+      '[data-testid*="upload" i]',
+      ...DEFAULT_REFERENCE_IMAGE.triggerSelectors!,
+    ],
+    waitAfterUploadMs: 1200,
+  },
 });
 
 export const midjourneyHandler = createImageHandler({
@@ -215,23 +248,6 @@ export const fireflyHandler = createImageHandler({
   inputSelectors: ['textarea[placeholder*="prompt" i]', 'textarea', '[contenteditable="true"]'],
 });
 
-export const bingCreateHandler = createImageHandler({
-  toolId: 'bing-create',
-  urlHint: 'bing.com',
-  urlHints: ['bing.com', 'www.bing.com'],
-  inputSelectors: [
-    'textarea[name="q"]',
-    'textarea[placeholder*="描述"]',
-    'textarea',
-    'input[name="q"]',
-  ],
-  sendButtonSelectors: [
-    'button[aria-label*="创建"]',
-    'button[aria-label*="Create" i]',
-    ...DEFAULT_IMAGE_SEND_SELECTORS,
-  ],
-});
-
 export const stabilityHandler = createImageHandler({
   toolId: 'stability',
   urlHint: 'stability.ai',
@@ -257,7 +273,6 @@ export const IMAGE_HANDLERS: Record<string, BaseSiteHandler> = {
   leonardo: leonardoHandler,
   ideogram: ideogramHandler,
   firefly: fireflyHandler,
-  'bing-create': bingCreateHandler,
   stability: stabilityHandler,
   recraft: recraftHandler,
 };

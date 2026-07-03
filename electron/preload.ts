@@ -9,6 +9,10 @@ import type {
 } from '../src/types/electron-api';
 import type { LlmSettings, LlmSettingsInput, SummarizeResponsesPayload, SummarizeResponsesResult } from '../src/types/llm-settings';
 import type { UpdateStatus } from '../src/types/update-status';
+import type {
+  EnsureImageWebviewRequest,
+  EnsureImageWebviewResult,
+} from '../src/types/image-gen-api';
 
 const IPC_CHANNELS = [
   'geolocation:get-settings',
@@ -69,6 +73,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ),
   summarizeResponses: (payload: SummarizeResponsesPayload) =>
     invoke<SummarizeResponsesResult>('llm:summarize-responses', payload),
+  onEnsureImageWebview: (callback: (payload: EnsureImageWebviewRequest) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: EnsureImageWebviewRequest) => {
+      callback(payload);
+    };
+    ipcRenderer.on('image-gen:ensure-webview', listener);
+    return () => {
+      ipcRenderer.removeListener('image-gen:ensure-webview', listener);
+    };
+  },
+  reportEnsureImageWebview: (result: EnsureImageWebviewResult) => {
+    ipcRenderer.send('image-gen:ensure-webview-result', result);
+  },
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, status: UpdateStatus) => {
       callback(status);

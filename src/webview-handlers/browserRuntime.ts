@@ -135,6 +135,7 @@ export function buildBrowserRuntime(
 ): string {
   const disabledClasses = json(config.sendDisabledClasses ?? ['ant-sender-actions-btn-disabled']);
   const inputSelectors = json(config.inputSelectors);
+  const inputRootSelectors = json(config.inputRootSelectors ?? []);
   const sendSelectorStr = json(sendButtonSelectorString(config));
   const preferNear = config.preferNearInputSendButton === true;
   const findSendButtonBody = preferNear
@@ -143,14 +144,35 @@ export function buildBrowserRuntime(
 
   return `
     var __SITE_INPUT_SELECTORS__ = ${inputSelectors};
+    var __SITE_INPUT_ROOT_SELECTORS__ = ${inputRootSelectors};
     var __SITE_SEND_SELECTOR__ = ${sendSelectorStr};
     var __SITE_SEND_DISABLED_CLASSES__ = ${disabledClasses};
 
+    function __findInputSearchRoot() {
+      if (!__SITE_INPUT_ROOT_SELECTORS__.length) return document;
+      for (var i = 0; i < __SITE_INPUT_ROOT_SELECTORS__.length; i++) {
+        try {
+          var root = document.querySelector(__SITE_INPUT_ROOT_SELECTORS__[i]);
+          if (root) return root;
+        } catch (e) {}
+      }
+      return document;
+    }
+
+    function __isVisibleInput(el) {
+      if (!el || el.disabled || el.readOnly) return false;
+      if (el.getAttribute('aria-hidden') === 'true') return false;
+      if (el.closest('[aria-hidden="true"]')) return false;
+      var rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    }
+
     function __findInputElement() {
+      var searchRoot = __findInputSearchRoot();
       for (var i = 0; i < __SITE_INPUT_SELECTORS__.length; i++) {
         try {
-          var el = document.querySelector(__SITE_INPUT_SELECTORS__[i]);
-          if (el && el.offsetParent !== null && !el.disabled && !el.readOnly) return el;
+          var el = searchRoot.querySelector(__SITE_INPUT_SELECTORS__[i]);
+          if (el && __isVisibleInput(el)) return el;
         } catch (e) {}
       }
       return null;

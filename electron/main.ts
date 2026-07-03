@@ -21,6 +21,8 @@ import { clearToolWebviewData } from './webviewSession';
 import { loadLlmSettings, saveLlmSettings } from './llmManager';
 import { summarizeResponses } from './llmService';
 import { checkForUpdatesManually, initializeAutoUpdater, quitAndInstallUpdate } from './updateManager';
+import { registerImageGenBridgeHandlers, clearImageGenBridge } from './imageGenBridge';
+import { startImageGenApi, stopImageGenApi } from './imageGenApi';
 import type { GeolocationSettings } from '../src/types/geolocation-settings';
 import type { ProxySettings } from '../src/types/proxy-settings';
 import type { LlmSettingsInput, SummarizeResponsesPayload } from '../src/types/llm-settings';
@@ -218,18 +220,25 @@ function registerIpcHandlers() {
 
 registerProxyLoginHandler();
 registerGeolocationWebContentsListener();
+registerImageGenBridgeHandlers();
 
 app.whenReady().then(async () => {
   await initializeProxySettings();
   await initializeGeolocationSettings();
   registerIpcHandlers();
   createWindow();
+  startImageGenApi(() => mainWindow);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
+});
+
+app.on('before-quit', () => {
+  clearImageGenBridge();
+  stopImageGenApi();
 });
 
 app.on('window-all-closed', () => {

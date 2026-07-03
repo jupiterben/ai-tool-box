@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { ConfigProvider, Splitter, theme } from 'antd';
 import UnifiedInput from './UnifiedInput';
 import ToolSelector from './ToolSelector';
@@ -18,6 +18,11 @@ import {
   SELECTED_IMAGE_TOOLS_STORAGE_KEY,
   SELECTED_TOOLS_STORAGE_KEY,
 } from '../utils/settingsStorage';
+import {
+  registerImageGenEnsureHandler,
+  unregisterImageGenEnsureHandler,
+} from '../services/imageGenBridge';
+import { getWebContentsIdMap } from '../utils/webviewContentsId';
 import Icon from './ui/Icon';
 import styles from './MultiWebviewTool.module.css';
 
@@ -42,7 +47,12 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
   const allToolIds = useMemo(() => enabledTools.map((tool) => tool.id), [enabledTools]);
   const { selectedToolIds, setSelectedToolIds } = useSelectedTools(allToolIds, selectedToolsStorageKey);
 
+  useEffect(() => {
+    selectedToolIdsRef.current = selectedToolIds;
+  }, [selectedToolIds]);
+
   const webviewElementsRef = useRef<Record<string, HTMLElement>>({});
+  const selectedToolIdsRef = useRef<string[]>(selectedToolIds);
   const [inputHistory, setInputHistory] = useState<string[]>([]);
   const lastReferenceImageRef = useRef<ReferenceImage | null>(null);
 
@@ -124,6 +134,34 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
       delete webviewElementsRef.current[toolId];
     }
   }, []);
+
+  useEffect(() => {
+    if (category !== 'image') {
+      return;
+    }
+
+    registerImageGenEnsureHandler(async (toolId) => {
+      const current = selectedToolIdsRef.current;
+      if (!current.includes(toolId)) {
+        setSelectedToolIds([...current, toolId]);
+      }
+
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const ids = getWebContentsIdMap([toolId], webviewElementsRef.current);
+        const webContentsId = ids[toolId];
+        if (webContentsId) {
+          return { success: true, webContentsId };
+        }
+      }
+
+      return { success: false, error: `未找到 ${toolId} 的 webview` };
+    });
+
+    return () => {
+      unregisterImageGenEnsureHandler();
+    };
+  }, [category, setSelectedToolIds]);
 
   const handleCollectResponses = useCallback(async () => {
     const question = inputHistory[0] || inputValue.trim();

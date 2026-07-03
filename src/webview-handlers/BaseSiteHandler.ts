@@ -6,11 +6,12 @@ import {
   sendButtonSelectorString,
 } from './browserRuntime';
 import { buildConversationActionScript } from './conversationRuntime';
+import { buildExtractImagesScript, buildConvertImagesScript, buildDetectImageOriginsScript } from './imageResultRuntime';
 import { buildExtractResponsesScript } from './responseRuntime';
 import type { ConversationActionType } from './types';
 import type { SiteHandlerConfig, WebviewInputSelector } from './types';
 
-export const HANDLER_VERSION = 18;
+export const HANDLER_VERSION = 19;
 
 export abstract class BaseSiteHandler {
   abstract readonly config: SiteHandlerConfig;
@@ -44,6 +45,18 @@ export abstract class BaseSiteHandler {
 
   buildExtractResponsesScript(): string {
     return buildExtractResponsesScript(this.config);
+  }
+
+  buildExtractImagesScript(): string {
+    return buildExtractImagesScript(this.config);
+  }
+
+  buildDetectImageOriginsScript(): string {
+    return buildDetectImageOriginsScript(this.config);
+  }
+
+  buildConvertImagesScript(originSrcs: string[]): string {
+    return buildConvertImagesScript(this.config, originSrcs);
   }
 
   buildConversationActionScript(action: ConversationActionType): string {
