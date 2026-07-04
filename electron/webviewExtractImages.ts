@@ -227,12 +227,18 @@ export async function waitForNewWebviewImages(
     if (collectedOrigins.length >= goal) {
       const converted = await convertImageOrigins(payload, collectedOrigins.slice(0, goal));
       if (converted.success) {
-        return converted;
+        return {
+          ...converted,
+          images: converted.images.slice(0, goal),
+        };
       }
     } else if (collectedOrigins.length > 0 && goal === 1) {
-      const converted = await convertImageOrigins(payload, collectedOrigins);
+      const converted = await convertImageOrigins(payload, collectedOrigins.slice(0, goal));
       if (converted.success) {
-        return converted;
+        return {
+          ...converted,
+          images: converted.images.slice(0, goal),
+        };
       }
     }
 
@@ -240,9 +246,12 @@ export async function waitForNewWebviewImages(
   }
 
   if (collectedOrigins.length > 0) {
-    const converted = await convertImageOrigins(payload, collectedOrigins);
+    const converted = await convertImageOrigins(payload, collectedOrigins.slice(0, goal));
     if (converted.success) {
-      return converted;
+      return {
+        ...converted,
+        images: converted.images.slice(0, goal),
+      };
     }
   }
 

@@ -445,3 +445,55 @@ curl -X POST "http://127.0.0.1:3920/api/debug/eval?toolId=bing-create" \
 ```
 
 > 调试接口同样受 `AI_TOOLBOX_API_TOKEN` 鉴权控制。
+---
+
+## POST /api/gen_image/stream
+
+SSE streaming version of `/api/gen_image`. Request body is the same as `/api/gen_image`.
+
+Response headers:
+
+```http
+Content-Type: text/event-stream; charset=utf-8
+Cache-Control: no-cache, no-transform
+```
+
+Events:
+
+| event | Description |
+|---|---|
+| `accepted` | Request parsed and stream opened |
+| `start` | Generation task started |
+| `webview_ready` | Target webview is available |
+| `reset_start` / `reset_done` | Webview reset progress |
+| `round_start` | A generation round started |
+| `send_ready` | Input is ready for the next round |
+| `send_retry` | Retrying prompt send |
+| `send_done` | Prompt sent to the web page |
+| `wait_image` | Waiting for a new generated image |
+| `image` | One image is available; `data.image` contains base64/dataUrl |
+| `done` | Final result; `data.result` matches `/api/gen_image` response |
+| `error` | Generation failed |
+
+Example:
+
+```bash
+curl -N -X POST http://127.0.0.1:3920/api/gen_image/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toolId": "gemini-image",
+    "prompt": "Create an image of a simple blue square icon on a plain white background.",
+    "count": 2,
+    "timeoutMs": 300000
+  }'
+```
+
+Example event:
+
+```text
+event: image
+data: {"type":"image","toolId":"gemini-image","round":1,"totalRounds":2,"image":{"base64":"...","mimeType":"image/png","dataUrl":"data:image/png;base64,..."}}
+
+event: done
+data: {"type":"done","result":{"success":true,"toolId":"gemini-image","images":[...]}}
+```

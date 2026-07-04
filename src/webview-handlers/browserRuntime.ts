@@ -180,11 +180,17 @@ export function buildBrowserRuntime(
 
     function __isSendReady(btn) {
       if (!btn) return false;
+      if (btn.getAttribute('aria-hidden') === 'true') return false;
+      if (btn.closest('[aria-hidden="true"]')) return false;
       if (btn.getAttribute('aria-disabled') === 'true') return false;
       if (btn.disabled) return false;
       for (var c = 0; c < __SITE_SEND_DISABLED_CLASSES__.length; c++) {
         if (btn.classList && btn.classList.contains(__SITE_SEND_DISABLED_CLASSES__[c])) return false;
       }
+      var rect = btn.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return false;
+      var style = window.getComputedStyle ? window.getComputedStyle(btn) : null;
+      if (style && (style.visibility === 'hidden' || style.display === 'none' || style.pointerEvents === 'none')) return false;
       return true;
     }
 
@@ -318,12 +324,17 @@ export function buildInjectScript(
   const defaultSendAfterFill = `
           var sendMethod = ${sendMethod};
           if (sendMethod === 'click') {
-            var sendButton = __findSendButton(inputElement);
-            sendButton = await __waitForSendButtonReady(sendButton, inputElement, ${sendButtonWaitMs});
+            var hadSendButton = !!__findSendButton(inputElement);
+            var sendButton = await __waitForSendButtonAppear(inputElement, ${sendButtonWaitMs});
+            if (!sendButton && !hadSendButton) {
+              sendButton = await __waitForSendButtonReady(__findSendButton(inputElement), inputElement, ${sendButtonWaitMs});
+            }
             if (sendButton) {
               __clickElement(sendButton);
-            } else {
+            } else if (!hadSendButton) {
               __triggerEnter(inputElement);
+            } else {
+              return { success: false, error: '发送按钮未就绪' };
             }
           } else if (sendMethod === 'enter') {
             __triggerEnter(inputElement);
@@ -435,6 +446,16 @@ export function buildInjectScript(
           current = __findSendButton(inputEl) || current;
         }
         return __isSendReady(current) ? current : null;
+      }
+
+      async function __waitForSendButtonAppear(inputEl, maxMs) {
+        var start = Date.now();
+        while (Date.now() - start < maxMs) {
+          var btn = __findSendButton(inputEl);
+          if (btn && __isSendReady(btn)) return btn;
+          await new Promise(function(r) { setTimeout(r, 100); });
+        }
+        return null;
       }
 
       ${fillInputBlock}

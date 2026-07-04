@@ -8,7 +8,7 @@ import {
   type GenImageResult,
 } from '../src/types/image-gen-api.js';
 import { getToolPartition } from '../src/utils/toolPartition.js';
-import { sendWebviewInput } from './webviewInput.js';
+import { sendWebviewInput, waitForWebviewSendReady } from './webviewInput.js';
 import {
   getBaselineOriginSrcs,
   getImageOriginSrc,
@@ -23,6 +23,52 @@ import { resetImageWebviewForApi } from './webviewReset.js';
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_IMAGE_COUNT = 8;
+const SEND_RETRY_COUNT = 3;
+const SEND_READY_TIMEOUT_MS = 90_000;
+
+export type ImageGenProgressEvent =
+  | { type: 'start'; toolId: string; prompt: string; count: number; timeoutMs: number }
+  | {
+      type:
+        | 'webview_ready'
+        | 'reset_start'
+        | 'reset_done'
+        | 'round_start'
+        | 'send_ready'
+        | 'send_retry'
+        | 'send_done'
+        | 'wait_image'
+        | 'image'
+        | 'bing_api_start'
+        | 'bing_api_done'
+        | 'bing_api_fallback';
+      toolId: string;
+      prompt?: string;
+      round?: number;
+      totalRounds?: number;
+      attempt?: number;
+      image?: ExtractedImage;
+      webContentsId?: number;
+      apiError?: string;
+      via?: GenImageResult['via'];
+      message?: string;
+    };
+
+export interface GenerateImageOptions {
+  onProgress?: (event: ImageGenProgressEvent) => void;
+}
+
+function emitProgress(options: GenerateImageOptions | undefined, event: ImageGenProgressEvent): void {
+  try {
+    options?.onProgress?.(event);
+  } catch (error) {
+    console.warn('[imageGenService] progress callback failed:', error);
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function normalizeImageCount(count?: number): number {
   if (count == null || !Number.isFinite(count)) {
@@ -42,77 +88,209 @@ function isImageToolId(toolId: string): boolean {
   return toolId === 'bing-create' || toolId in IMAGE_HANDLERS;
 }
 
+interface RoundContext {
+  toolId: string;
+  webContentsId: number | undefined;
+  referenceImage: GenImageRequest['referenceImage'];
+  perRoundTimeoutMs: number;
+  roundIndex: number;
+  totalRounds: number;
+}
+
+interface RoundResult {
+  success: boolean;
+  image?: ExtractedImage;
+  error?: string;
+}
+
+/** 单轮：等待可发送 -> 发送一条 prompt -> 等待一张新图 */
+async function generateImageRound(
+  context: RoundContext,
+  prompt: string,
+  seenOrigins: Set<string>,
+  options?: GenerateImageOptions
+): Promise<RoundResult> {
+  const { toolId, webContentsId, referenceImage, perRoundTimeoutMs, roundIndex, totalRounds } = context;
+  const sendPayload = {
+    toolId,
+    partition: getToolPartition(toolId),
+    content: prompt,
+    referenceImage: roundIndex === 0 ? referenceImage : null,
+    webContentsId,
+  };
+  emitProgress(options, {
+    type: 'round_start',
+    toolId,
+    prompt,
+    round: roundIndex + 1,
+    totalRounds,
+    message: `Round ${roundIndex + 1}/${totalRounds} started`,
+  });
+
+  console.log(`[imageGenService] 第 ${roundIndex + 1}/${totalRounds} 轮发送 prompt`);
+
+  // 1. 等待输入框/发送按钮就绪（第一轮通常已就绪，后续等上一轮生图完成）
+  if (roundIndex > 0) {
+    const readyResult = await waitForWebviewSendReady(sendPayload, SEND_READY_TIMEOUT_MS);
+    if (!readyResult.success) {
+      console.warn(
+        `[imageGenService] 第 ${roundIndex + 1}/${totalRounds} 轮等待发送就绪失败:`,
+        readyResult.error
+      );
+      return { success: false, error: readyResult.error || '等待发送就绪失败' };
+    }
+  }
+
+  // 2. 发送 prompt，带重试
+  let lastSendError = '发送 prompt 失败';
+  if (roundIndex > 0) {
+    emitProgress(options, {
+      type: 'send_ready',
+      toolId,
+      round: roundIndex + 1,
+      totalRounds,
+      message: 'Send input is ready',
+    });
+  }
+
+  let sent = false;
+  for (let attempt = 0; attempt < SEND_RETRY_COUNT && !sent; attempt += 1) {
+    if (attempt > 0) {
+      console.warn(
+        `[imageGenService] 第 ${roundIndex + 1}/${totalRounds} 轮发送重试 ${attempt + 1}/${SEND_RETRY_COUNT}`
+      );
+      emitProgress(options, {
+        type: 'send_retry',
+        toolId,
+        round: roundIndex + 1,
+        totalRounds,
+        attempt: attempt + 1,
+        message: `Retrying send (${attempt + 1}/${SEND_RETRY_COUNT})`,
+      });
+      const readyResult = await waitForWebviewSendReady(sendPayload, 30_000);
+      if (!readyResult.success) {
+        lastSendError = readyResult.error || lastSendError;
+        continue;
+      }
+    }
+
+    const sendResult = await sendWebviewInput(sendPayload);
+    if (sendResult.success) {
+      sent = true;
+    } else {
+      lastSendError = sendResult.error || lastSendError;
+    }
+  }
+
+  if (!sent) {
+    console.warn(
+      `[imageGenService] 第 ${roundIndex + 1}/${totalRounds} 轮发送失败:`,
+      lastSendError
+    );
+    return { success: false, error: lastSendError };
+  }
+
+  // 3. 等待本轮产生一张新图
+  const baselineOriginSrcs = Array.from(seenOrigins);
+  emitProgress(options, {
+    type: 'send_done',
+    toolId,
+    round: roundIndex + 1,
+    totalRounds,
+    message: 'Prompt sent',
+  });
+
+  emitProgress(options, {
+    type: 'wait_image',
+    toolId,
+    round: roundIndex + 1,
+    totalRounds,
+    message: 'Waiting for generated image',
+  });
+
+  const waitResult = await waitForNewWebviewImages(
+    { toolId, webContentsId },
+    baselineOriginSrcs,
+    perRoundTimeoutMs,
+    2000,
+    1
+  );
+
+  if (!waitResult.success || !waitResult.images.length) {
+    console.warn(
+      `[imageGenService] 第 ${roundIndex + 1}/${totalRounds} 轮等图失败:`,
+      waitResult.error || '无图片'
+    );
+    return { success: false, error: waitResult.error || '未获取到生成图片' };
+  }
+
+  await sleep(800);
+
+  const newImage = waitResult.images[0];
+  const origin = getImageOriginSrc(newImage);
+  if (origin && !seenOrigins.has(origin)) {
+    seenOrigins.add(origin);
+  }
+  emitProgress(options, {
+    type: 'image',
+    toolId,
+    round: roundIndex + 1,
+    totalRounds,
+    image: sanitizeImagesForApi([newImage])[0],
+    message: 'Image generated',
+  });
+
+  return { success: true, image: newImage };
+}
+
 async function generateViaWebviewDom(
   toolId: string,
   prompt: string,
   webContentsId: number | undefined,
   referenceImage: GenImageRequest['referenceImage'],
   timeoutMs: number,
-  count = 1
+  count = 1,
+  options?: GenerateImageOptions
 ): Promise<GenImageResult> {
   const targetCount = normalizeImageCount(count);
   const extractPayload = { toolId, webContentsId };
   const seenOrigins = new Set(await getBaselineOriginSrcs(extractPayload));
   const allImages: ExtractedImage[] = [];
-  // Gemini 等站点一次只出 1 张，按 count 循环发送
+
+  // Gemini 等站点一次只出 1 张，按 count 固定轮次发送
   const perRoundTimeout = Math.max(Math.floor(timeoutMs / targetCount), 30_000);
+  const roundContext: RoundContext = {
+    toolId,
+    webContentsId,
+    referenceImage,
+    perRoundTimeoutMs: perRoundTimeout,
+    roundIndex: 0,
+    totalRounds: targetCount,
+  };
 
-  for (let round = 0; round < targetCount && allImages.length < targetCount; round += 1) {
+  for (let round = 0; round < targetCount; round += 1) {
+    roundContext.roundIndex = round;
     const roundPrompt = buildRoundPrompt(prompt, targetCount, round);
-    const baselineOriginSrcs = Array.from(seenOrigins);
 
-    const sendResult = await sendWebviewInput({
-      toolId,
-      partition: getToolPartition(toolId),
-      content: roundPrompt,
-      referenceImage: round === 0 ? referenceImage : null,
-      webContentsId,
-    });
+    const roundResult = await generateImageRound(roundContext, roundPrompt, seenOrigins, options);
 
-    if (!sendResult.success) {
+    if (!roundResult.success || !roundResult.image) {
       if (allImages.length > 0) {
+        // 已有部分成果，中断并返回已收集的图
         break;
       }
       return {
         success: false,
         toolId,
         prompt,
-        error: sendResult.error || '发送 prompt 失败',
+        error: roundResult.error || '生图失败',
       };
     }
 
-    const waitResult = await waitForNewWebviewImages(
-      extractPayload,
-      baselineOriginSrcs,
-      perRoundTimeout,
-      2000,
-      1
-    );
+    allImages.push(roundResult.image);
 
-    if (!waitResult.success) {
-      if (allImages.length === 0) {
-        return {
-          success: false,
-          toolId,
-          prompt,
-          error: waitResult.error || '未获取到生成图片',
-        };
-      }
+    if (allImages.length >= targetCount) {
       break;
-    }
-
-    for (const image of waitResult.images) {
-      const origin = getImageOriginSrc(image);
-      if (origin && seenOrigins.has(origin)) {
-        continue;
-      }
-      if (origin) {
-        seenOrigins.add(origin);
-      }
-      allImages.push(image);
-      if (allImages.length >= targetCount) {
-        break;
-      }
     }
   }
 
@@ -140,7 +318,8 @@ async function generateBingViaInternalApi(
   prompt: string,
   webContentsId: number | undefined,
   timeoutMs: number,
-  bing?: GenImageRequest['bing']
+  bing?: GenImageRequest['bing'],
+  options?: GenerateImageOptions
 ): Promise<GenImageResult> {
   const handler = getSiteHandler('bing-create');
   if (!handler) {
@@ -156,6 +335,15 @@ async function generateBingViaInternalApi(
   if (!wc) {
     return { success: false, error: '未找到 Bing webview，无法读取登录态' };
   }
+
+  emitProgress(options, {
+    type: 'bing_api_start',
+    toolId: 'bing-create',
+    prompt,
+    webContentsId,
+    via: 'web-api',
+    message: 'Calling Bing internal image API',
+  });
 
   const apiResult = await generateBingImagesViaWebviewFetch(wc, {
     prompt,
@@ -175,6 +363,14 @@ async function generateBingViaInternalApi(
     };
   }
 
+  emitProgress(options, {
+    type: 'bing_api_done',
+    toolId: 'bing-create',
+    prompt,
+    via: 'web-api',
+    message: 'Bing internal image API completed',
+  });
+
   return {
     success: true,
     toolId: 'bing-create',
@@ -190,7 +386,8 @@ function sliceImages(images: ExtractedImage[], count?: number): ExtractedImage[]
 
 export async function generateImageViaWebview(
   mainWindow: BrowserWindow | null,
-  request: GenImageRequest
+  request: GenImageRequest,
+  options: GenerateImageOptions = {}
 ): Promise<GenImageResult> {
   let referenceImage: GenImageRequest['referenceImage'] = null;
   if (request.referenceImage) {
@@ -217,11 +414,19 @@ export async function generateImageViaWebview(
 
   const timeoutMs = request.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const count = normalizeImageCount(request.count);
+  emitProgress(options, { type: 'start', toolId, prompt, count, timeoutMs });
 
   let webContentsId: number | undefined;
   try {
     const ensured = await requestEnsureImageWebview(mainWindow, toolId);
     webContentsId = ensured.webContentsId;
+    emitProgress(options, {
+      type: 'webview_ready',
+      toolId,
+      prompt,
+      webContentsId,
+      message: 'Webview is ready',
+    });
   } catch (error) {
     return {
       success: false,
@@ -229,6 +434,13 @@ export async function generateImageViaWebview(
     };
   }
 
+  emitProgress(options, {
+    type: 'reset_start',
+    toolId,
+    prompt,
+    webContentsId,
+    message: 'Resetting image webview',
+  });
   const resetResult = await resetImageWebviewForApi(toolId, webContentsId);
   if (!resetResult.success) {
     return {
@@ -240,27 +452,56 @@ export async function generateImageViaWebview(
   }
 
   // Bing：优先走内部 HTTP API（复用 webview cookie），失败再回退 DOM 模拟
+  emitProgress(options, {
+    type: 'reset_done',
+    toolId,
+    prompt,
+    webContentsId,
+    message: 'Image webview reset',
+  });
+
   if (toolId === 'bing-create' && !referenceImage) {
-    const apiResult = await generateBingViaInternalApi(prompt, webContentsId, timeoutMs, request.bing);
+    const apiResult = await generateBingViaInternalApi(prompt, webContentsId, timeoutMs, request.bing, options);
     if (apiResult.success) {
       console.log('[imageGenService] Bing via=web-api');
-      return {
+      const result: GenImageResult = {
         ...apiResult,
         via: 'web-api',
         images: sliceImages(apiResult.images ?? [], count),
       };
+      for (const [index, image] of (result.images ?? []).entries()) {
+        emitProgress(options, {
+          type: 'image',
+          toolId,
+          round: index + 1,
+          totalRounds: result.images?.length,
+          image,
+          via: 'web-api',
+          message: 'Image generated',
+        });
+      }
+      return result;
     }
     console.warn('[imageGenService] Bing API 失败，回退 webview DOM:', apiResult.error);
+    emitProgress(options, {
+      type: 'bing_api_fallback',
+      toolId,
+      prompt,
+      apiError: apiResult.error,
+      via: 'webview-dom',
+      message: 'Bing internal API failed, falling back to webview DOM',
+    });
     const domResult = await generateViaWebviewDom(
       toolId,
       prompt,
       webContentsId,
       referenceImage,
       timeoutMs,
-      count
+      count,
+      options
     );
     return { ...domResult, apiError: apiResult.error };
   }
 
-  return generateViaWebviewDom(toolId, prompt, webContentsId, referenceImage, timeoutMs, count);
+  return generateViaWebviewDom(toolId, prompt, webContentsId, referenceImage, timeoutMs, count, options);
 }

@@ -188,6 +188,7 @@ export const geminiImageHandler = createImageHandler({
   newChatAction: {
     url: 'https://gemini.google.com/images',
   },
+  inputRootSelectors: ['main', '[role="main"]', 'body'],
   imageResultSelectors: [
     'img[src*="googleusercontent"]',
     'img[src*="ggpht"]',
@@ -202,17 +203,33 @@ export const geminiImageHandler = createImageHandler({
     'div.ql-editor[contenteditable="true"]',
     '.ql-editor[contenteditable="true"]',
     'rich-textarea [contenteditable="true"]',
+    'rich-textarea textarea',
     'div[contenteditable="true"][aria-label*="prompt" i]',
+    'div[contenteditable="true"][aria-label*="Describe" i]',
     'div[role="textbox"][contenteditable="true"]',
+    'textarea[aria-label*="Describe" i]',
+    'textarea[aria-label*="Enter" i]',
     'div[contenteditable="true"]',
     ...DEFAULT_IMAGE_PROMPT_SELECTORS,
   ],
   sendButtonSelectors: [
+    'button[aria-label*="Send" i]',
+    '[role="button"][aria-label*="Send" i]',
     'button[aria-label*="Create" i]',
     'button[aria-label*="Generate" i]',
-    'button[aria-label*="Send" i]',
+    'button[aria-label*="Submit" i]',
     ...DEFAULT_IMAGE_SEND_SELECTORS,
   ],
+  nearInputSendSelectors: [
+    'button[aria-label*="Send" i]',
+    '[role="button"][aria-label*="Send" i]',
+    'button[aria-label*="Submit" i]',
+    'button[type="submit"]',
+    '[data-testid*="send" i]',
+    '[data-testid*="submit" i]',
+  ],
+  preferNearInputSendButton: true,
+  sendButtonWaitMs: 10_000,
   referenceImage: {
     ...DEFAULT_REFERENCE_IMAGE,
     triggerSelectors: [

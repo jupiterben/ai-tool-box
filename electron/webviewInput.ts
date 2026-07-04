@@ -27,6 +27,76 @@ export function findWebContentsByPartition(partition: string, urlHint?: string):
   return findToolWebContents(partition, undefined, urlHint ? [urlHint] : []);
 }
 
+export interface WebviewSendReadyPayload {
+  toolId: string;
+  partition: string;
+  webContentsId?: number;
+}
+
+/** 等待输入框可用且发送按钮就绪（上一轮生图完成后才能发下一条） */
+export async function waitForWebviewSendReady(
+  payload: WebviewSendReadyPayload,
+  timeoutMs = 90_000
+): Promise<{ success: boolean; error?: string }> {
+  const handler = getSiteHandler(payload.toolId);
+  if (!handler) {
+    return { success: false, error: `未找到站点 handler: ${payload.toolId}` };
+  }
+
+  const wc = findToolWebContents(
+    payload.partition,
+    payload.webContentsId,
+    getUrlHints(handler.config)
+  );
+  if (!wc) {
+    return { success: false, error: `未找到 webview: ${payload.toolId}` };
+  }
+
+  const injectError = await ensureInjected(wc, handler);
+  if (injectError) {
+    return { success: false, error: injectError.error || '脚本注入失败' };
+  }
+
+  const checkScript = `(function() {
+    ${handler.buildBrowserRuntimeScript()}
+    var input = __findInputElement();
+    if (!input) return { ready: false, reason: 'no-input' };
+    if (input.disabled || input.readOnly) return { ready: false, reason: 'input-disabled' };
+    if (input.getAttribute('aria-disabled') === 'true') return { ready: false, reason: 'input-aria-disabled' };
+    var btn = __findSendButton(input);
+    if (btn) {
+      // 找到了发送按钮：必须可用才算就绪（上一轮可能还在生成中）
+      if (__isSendReady(btn)) return { ready: true };
+      return { ready: false, reason: 'send-disabled' };
+    }
+    // 没找到发送按钮：可能是输入为空所以按钮隐藏，视为可输入状态
+    return { ready: true };
+  })()`;
+
+  const deadline = Date.now() + timeoutMs;
+  let lastReason = 'unknown';
+
+  while (Date.now() < deadline) {
+    if (wc.isDestroyed()) {
+      return { success: false, error: 'webview 已销毁' };
+    }
+
+    try {
+      const status = (await wc.executeJavaScript(checkScript)) as { ready?: boolean; reason?: string };
+      if (status?.ready) {
+        return { success: true };
+      }
+      lastReason = status?.reason || lastReason;
+    } catch {
+      // 页面可能仍在更新
+    }
+
+    await sleep(500);
+  }
+
+  return { success: false, error: `等待发送就绪超时 (${lastReason})` };
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -63,9 +133,9 @@ async function clickAt(wc: WebContents, x: number, y: number): Promise<void> {
 }
 
 async function pressEnter(wc: WebContents): Promise<void> {
-  wc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter', key: 'Enter' });
+  wc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
   await sleep(50);
-  wc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter', key: 'Enter' });
+  wc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
 }
 
 async function clearFocusedInput(wc: WebContents): Promise<void> {
@@ -88,6 +158,150 @@ interface NativeSendCoords {
 interface VerifySentResult {
   sent?: boolean;
   remaining?: string;
+}
+
+/** Gemini rich-textarea (Quill editor)：用 execCommand insertText 让 Quill 更新 model，
+ *  等待发送按钮出现（输入文字后才渲染）并用原生鼠标点击，避免第二轮 DOM click 被页面吞掉。 */
+async function sendGeminiNative(
+  wc: WebContents,
+  handler: BaseSiteHandler,
+  content: string
+): Promise<WebviewSendInputResult> {
+  const injectError = await ensureInjected(wc, handler);
+  if (injectError) {
+    return injectError;
+  }
+
+  const contentJson = JSON.stringify(content);
+  const fillScript = `(async function(){
+    ${handler.buildBrowserRuntimeScript()}
+    try {
+      var input = __findInputElement();
+      if (!input) return { success: false, error: '未找到 Gemini 输入框' };
+      var isTextControl = input.tagName === 'TEXTAREA' || input.tagName === 'INPUT';
+      function getInputText() {
+        return (isTextControl ? input.value : (input.innerText || input.textContent || '')).replace(/\\s+/g, ' ').trim();
+      }
+
+      input.focus();
+      if (isTextControl) {
+        var proto = input.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+        var nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value') && Object.getOwnPropertyDescriptor(proto, 'value').set;
+        if (nativeSetter) nativeSetter.call(input, '');
+        else input.value = '';
+        input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' }));
+      } else {
+        var sel = window.getSelection();
+        if (sel) {
+          var r = document.createRange();
+          r.selectNodeContents(input);
+          sel.removeAllRanges();
+          sel.addRange(r);
+        }
+        document.execCommand('delete', false, null);
+      }
+      await new Promise(function(r){ setTimeout(r, 100); });
+
+      input.focus();
+      if (isTextControl) {
+        var proto2 = input.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+        var nativeSetter2 = Object.getOwnPropertyDescriptor(proto2, 'value') && Object.getOwnPropertyDescriptor(proto2, 'value').set;
+        if (nativeSetter2) nativeSetter2.call(input, ${contentJson});
+        else input.value = ${contentJson};
+        input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: ${contentJson} }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        var inserted = document.execCommand('insertText', false, ${contentJson});
+        if (!inserted || getInputText() !== ${contentJson}) {
+        input.textContent = ${contentJson};
+        input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: ${contentJson} }));
+        }
+      }
+      await new Promise(function(r){ setTimeout(r, 400); });
+
+      // 等待发送按钮出现并可用
+      var sendButton = null;
+      for (var attempt = 0; attempt < 100; attempt++) {
+        sendButton = __findSendButton(input);
+        if (sendButton && __isSendReady(sendButton)) break;
+        await new Promise(function(r){ setTimeout(r, 100); });
+      }
+
+      if (!sendButton || !__isSendReady(sendButton)) {
+        return { success: false, error: 'Gemini 发送按钮未就绪', inputText: getInputText() };
+      }
+
+      var rect = sendButton.getBoundingClientRect();
+      return {
+        success: true,
+        fillMethod: 'execCommand-insertText',
+        btnReady: true,
+        x: Math.round(rect.left + rect.width / 2),
+        y: Math.round(rect.top + rect.height / 2)
+      };
+    } catch (e) {
+      return { success: false, error: e.message || 'Gemini 发送异常' };
+    }
+  })()`;
+
+  try {
+    const fillResult = (await wc.executeJavaScript(fillScript)) as WebviewSendInputResult & {
+      x?: number;
+      y?: number;
+    };
+    if (!fillResult.success) {
+      return fillResult;
+    }
+
+    const canNativeClick = fillResult.x != null && fillResult.y != null;
+    if (canNativeClick) {
+      await clickAt(wc, fillResult.x!, fillResult.y!);
+    } else {
+      await pressEnter(wc);
+    }
+    await sleep(900);
+
+    const verifyScript = `(function(){
+      ${handler.buildBrowserRuntimeScript()}
+      var input = __findInputElement();
+      var remaining = input
+        ? ((input.tagName === 'TEXTAREA' || input.tagName === 'INPUT')
+          ? input.value
+          : (input.innerText || input.textContent || '')).replace(/\\s+/g, ' ').trim()
+        : '';
+      var sent = remaining === '' || remaining.indexOf(${contentJson}) < 0;
+      return { sent: sent, remaining: remaining };
+    })()`;
+    const verify = (await wc.executeJavaScript(verifyScript)) as VerifySentResult;
+    if (verify?.sent) {
+      return {
+        success: true,
+        fillMethod: fillResult.fillMethod,
+        sendMethod: canNativeClick ? 'native-click' : 'native-enter',
+        btnReady: true,
+        remaining: verify.remaining,
+      };
+    }
+
+    // Fallback：部分 Gemini 页面在按钮坐标变化时会错过点击，再补一次 Enter。
+    await pressEnter(wc);
+    await sleep(900);
+    const retryVerify = (await wc.executeJavaScript(verifyScript)) as VerifySentResult;
+    const retrySent = !!retryVerify?.sent;
+    return {
+      success: retrySent,
+      fillMethod: fillResult.fillMethod,
+      sendMethod: canNativeClick ? 'native-click+enter' : 'native-enter',
+      btnReady: true,
+      remaining: retryVerify?.remaining,
+      error: retrySent ? undefined : `Gemini 未发送（剩余: ${retryVerify?.remaining ?? '未知'}）`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Gemini 原生发送失败',
+    };
+  }
 }
 
 /** React 受控站点：insertText 产生 trusted 事件，再原生点击/Enter */
@@ -339,6 +553,14 @@ export async function sendWebviewInput(
   }
 
   try {
+    if (payload.toolId === 'gemini-image' || payload.toolId === 'gemini') {
+      const nativeResult = await sendGeminiNative(wc, handler, payload.content);
+      if (nativeResult.success) {
+        return nativeResult;
+      }
+      console.warn('[webviewInput] gemini 原生失败，回退注入:', nativeResult.error);
+    }
+
     if (payload.toolId === 'qianwen') {
       const nativeResult = await sendQianwenNative(wc, handler, payload.content);
       if (nativeResult.success) {

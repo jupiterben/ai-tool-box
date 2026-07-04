@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { BrowserWindow } from 'electron';
 import type { GenImageResult } from '../src/types/image-gen-api.js';
-import { generateImageViaWebview } from './imageGenService.js';
+import { generateImageViaWebview, type ImageGenProgressEvent } from './imageGenService.js';
 import { parseGenImageRequest } from './imageGenRequestParser.js';
 import {
   formatApiAccessUrls,
@@ -21,10 +21,31 @@ let server: ReturnType<typeof createServer> | null = null;
 function sendJson(res: ServerResponse, statusCode: number, body: unknown): void {
   const payload = JSON.stringify(body);
   res.writeHead(statusCode, {
+    'Access-Control-Allow-Origin': '*',
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(payload),
   });
   res.end(payload);
+}
+
+function writeSseEvent(res: ServerResponse, event: string, data: unknown): void {
+  const payload = JSON.stringify(data);
+  res.write(`event: ${event}\n`);
+  for (const line of payload.split(/\r?\n/)) {
+    res.write(`data: ${line}\n`);
+  }
+  res.write('\n');
+}
+
+function openSseResponse(res: ServerResponse): void {
+  res.writeHead(200, {
+    'Access-Control-Allow-Origin': '*',
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  res.flushHeaders?.();
 }
 
 function getApiToken(): string | null {
@@ -38,13 +59,11 @@ function ensureLanSecurity(host: string): void {
   }
 
   if (getApiToken()) {
-    console.log('[imageGenApi] 局域网模式已启用，鉴权 token 已配置');
+    console.log('[imageGenApi] LAN mode enabled with API token configured');
     return;
   }
 
-  console.warn(
-    '[imageGenApi] 局域网模式已启用但未设置 AI_TOOLBOX_API_TOKEN，建议配置 token 后再暴露到局域网'
-  );
+  console.warn('[imageGenApi] LAN mode enabled without AI_TOOLBOX_API_TOKEN; configure a token before exposing this API');
 }
 
 function isAuthorized(req: IncomingMessage): boolean {
@@ -72,7 +91,7 @@ async function handleGenImage(
   res: ServerResponse
 ): Promise<void> {
   if (!isAuthorized(req)) {
-    sendJson(res, 401, { success: false, error: '未授权' });
+    sendJson(res, 401, { success: false, error: 'Unauthorized' });
     return;
   }
 
@@ -83,8 +102,78 @@ async function handleGenImage(
   } catch (error) {
     sendJson(res, 400, {
       success: false,
-      error: error instanceof Error ? error.message : '请求解析失败',
+      error: error instanceof Error ? error.message : 'Request parse failed',
     });
+  }
+}
+
+async function handleGenImageStream(
+  getMainWindow: () => BrowserWindow | null,
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  if (!isAuthorized(req)) {
+    sendJson(res, 401, { success: false, error: 'Unauthorized' });
+    return;
+  }
+
+  let request: Awaited<ReturnType<typeof parseGenImageRequest>>;
+  try {
+    request = await parseGenImageRequest(req);
+  } catch (error) {
+    sendJson(res, 400, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Request parse failed',
+    });
+    return;
+  }
+
+  openSseResponse(res);
+
+  let closed = false;
+  res.on('close', () => {
+    closed = true;
+  });
+
+  const send = (event: string, data: unknown) => {
+    if (!closed && !res.destroyed) {
+      writeSseEvent(res, event, data);
+    }
+  };
+
+  const keepAlive = setInterval(() => {
+    if (!closed && !res.destroyed) {
+      res.write(': keepalive\n\n');
+    }
+  }, 15_000);
+
+  send('accepted', { type: 'accepted', request });
+
+  try {
+    const result: GenImageResult = await generateImageViaWebview(getMainWindow(), request, {
+      onProgress: (event: ImageGenProgressEvent) => send(event.type, event),
+    });
+
+    if (!result.success) {
+      send('error', {
+        type: 'error',
+        toolId: result.toolId,
+        prompt: result.prompt,
+        error: result.error || 'Image generation failed',
+      });
+    }
+
+    send('done', { type: 'done', result });
+  } catch (error) {
+    send('error', {
+      type: 'error',
+      error: error instanceof Error ? error.message : 'Image generation failed',
+    });
+  } finally {
+    clearInterval(keepAlive);
+    if (!closed && !res.destroyed) {
+      res.end();
+    }
   }
 }
 
@@ -99,12 +188,12 @@ function readBodyText(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let total = 0;
-    const MAX = 2 * 1024 * 1024;
+    const maxBytes = 2 * 1024 * 1024;
 
     req.on('data', (chunk: Buffer) => {
       total += chunk.length;
-      if (total > MAX) {
-        reject(new Error('请求体过大'));
+      if (total > maxBytes) {
+        reject(new Error('Request body too large'));
         req.destroy();
         return;
       }
@@ -118,7 +207,7 @@ function readBodyText(req: IncomingMessage): Promise<string> {
 
 async function handleDebug(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (!isAuthorized(req)) {
-    sendJson(res, 401, { success: false, error: '未授权' });
+    sendJson(res, 401, { success: false, error: 'Unauthorized' });
     return;
   }
 
@@ -127,7 +216,7 @@ async function handleDebug(req: IncomingMessage, res: ServerResponse): Promise<v
   const webContentsId = Number(query.get('webContentsId'));
 
   if (!toolId) {
-    sendJson(res, 400, { success: false, error: '缺少 toolId 参数' });
+    sendJson(res, 400, { success: false, error: 'Missing toolId' });
     return;
   }
 
@@ -166,7 +255,7 @@ async function handleDebug(req: IncomingMessage, res: ServerResponse): Promise<v
     sendJson(res, 500, {
       success: false,
       toolId,
-      error: error instanceof Error ? error.message : '调试接口失败',
+      error: error instanceof Error ? error.message : 'Debug API failed',
     });
   }
 }
@@ -201,8 +290,13 @@ export function startImageGenApi(getMainWindow: () => BrowserWindow | null): voi
         host: bindHost,
         lanEnabled: isLanBindHost(bindHost),
         accessUrls: formatApiAccessUrls(bindHost, port),
-        features: ['prompt', 'referenceImage', 'multipart-upload', 'debug'],
+        features: ['prompt', 'referenceImage', 'multipart-upload', 'stream', 'debug'],
       });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/gen_image/stream') {
+      await handleGenImageStream(getMainWindow, req, res);
       return;
     }
 
@@ -221,14 +315,14 @@ export function startImageGenApi(getMainWindow: () => BrowserWindow | null): voi
 
   server.listen(port, bindHost, () => {
     const urls = formatApiAccessUrls(bindHost, port);
-    console.log(`[imageGenApi] API 已启动 (${bindHost}:${port})`);
+    console.log(`[imageGenApi] API started (${bindHost}:${port})`);
     for (const url of urls) {
-      console.log(`[imageGenApi]   → ${url}`);
+      console.log(`[imageGenApi]   -> ${url}`);
     }
   });
 
   server.on('error', (error) => {
-    console.error('[imageGenApi] 启动失败:', error);
+    console.error('[imageGenApi] Failed to start:', error);
   });
 }
 
