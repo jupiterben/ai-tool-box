@@ -10,7 +10,7 @@ const UpdateBanner: React.FC = memo(() => {
     return null;
   }
 
-  let message = '';
+  let message: string;
   let action: React.ReactNode = null;
 
   switch (status.state) {

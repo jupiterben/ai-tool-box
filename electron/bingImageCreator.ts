@@ -4,7 +4,6 @@ import type { ExtractedImage } from '../src/types/image-gen-api.js';
 const BING_ORIGIN = 'https://www.bing.com';
 const DEFAULT_MODEL = 'gpt4o';
 const DEFAULT_ASPECT_RATIO = '1:1';
-const DEFAULT_AR = 1;
 const POLL_INTERVAL_MS = 1500;
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -61,10 +60,6 @@ export function resolveBingApiParams(options: Pick<BingGenerateOptions, 'model' 
   const mdl = options.mdl ?? model;
 
   return { mdl, ar, model, aspectRatio };
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function toAbsoluteUrl(url: string): string {

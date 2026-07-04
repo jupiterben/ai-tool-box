@@ -112,7 +112,7 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
       setSelectedToolIds(selectedIds);
       clearStates();
     },
-    [clearStates]
+    [setSelectedToolIds, clearStates]
   );
 
   const handleRetry = useCallback(
