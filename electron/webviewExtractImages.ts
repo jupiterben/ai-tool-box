@@ -22,6 +22,14 @@ interface DetectedImageOrigin {
   alt?: string;
 }
 
+interface DetectedImageFailure {
+  failed: boolean;
+  message?: string;
+  matched?: string;
+  selector?: string;
+  error?: string;
+}
+
 function getImageOriginSrc(image: ExtractedImage): string {
   return image.originSrc || image.dataUrl || '';
 }
@@ -66,6 +74,34 @@ async function detectImageOrigins(
     return {
       origins: [],
       error: err instanceof Error ? err.message : '检测图片失败',
+    };
+  }
+}
+
+async function detectImageFailure(
+  payload: ExtractWebviewImagesPayload
+): Promise<DetectedImageFailure> {
+  const { handler, wc, error } = await findWebContents(payload);
+  if (!handler || !wc) {
+    return { failed: false, error };
+  }
+
+  try {
+    const script = handler.buildDetectImageFailureScript();
+    const result = (await wc.executeJavaScript(script)) as DetectedImageFailure;
+    if (result?.failed) {
+      return {
+        failed: true,
+        message: result.message,
+        matched: result.matched,
+        selector: result.selector,
+      };
+    }
+    return { failed: false };
+  } catch (err) {
+    return {
+      failed: false,
+      error: err instanceof Error ? err.message : '检测生图失败提示失败',
     };
   }
 }
@@ -214,6 +250,17 @@ export async function waitForNewWebviewImages(
   const goal = Math.max(1, targetCount);
 
   while (Date.now() < deadline) {
+    const failure = await detectImageFailure(payload);
+    if (failure.failed) {
+      return {
+        success: false,
+        images: [],
+        error: failure.message
+          ? `生图失败: ${failure.message}`
+          : `生图失败${failure.matched ? ` (${failure.matched})` : ''}`,
+      };
+    }
+
     const detected = await detectImageOrigins(payload);
     for (const item of detected.origins) {
       const originSrc = item.originSrc;

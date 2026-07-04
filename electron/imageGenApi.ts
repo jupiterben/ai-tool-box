@@ -1,13 +1,17 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { BrowserWindow } from 'electron';
-import type { GenImageResult } from '../src/types/image-gen-api.js';
+import {
+  IMAGE_GEN_API_DEFAULT_TOOL_ID,
+  type GenImageResult,
+  type GenImageRequest,
+} from '../src/types/image-gen-api.js';
 import { generateImageViaWebview, type ImageGenProgressEvent } from './imageGenService.js';
 import { parseGenImageRequest } from './imageGenRequestParser.js';
 import {
   formatApiAccessUrls,
   getApiBindHost,
   getApiPort,
-  getApiWorkerCount,
+  getApiDefaultWorkerCount,
   isLanBindHost,
 } from './imageGenApiConfig.js';
 import { getApiWorkerStatus, runWithApiWorker } from './imageGenApiWorkers.js';
@@ -87,6 +91,10 @@ function isAuthorized(req: IncomingMessage): boolean {
   return false;
 }
 
+function getRequestToolId(request: GenImageRequest): string {
+  return request.toolId?.trim() || IMAGE_GEN_API_DEFAULT_TOOL_ID;
+}
+
 async function handleGenImage(
   getMainWindow: () => BrowserWindow | null,
   req: IncomingMessage,
@@ -99,7 +107,8 @@ async function handleGenImage(
 
   try {
     const request = await parseGenImageRequest(req);
-    const result: GenImageResult = await runWithApiWorker((threadId) =>
+    const toolId = getRequestToolId(request);
+    const result: GenImageResult = await runWithApiWorker(toolId, (threadId) =>
       generateImageViaWebview(getMainWindow(), request, { threadId })
     );
     sendJson(res, result.success ? 200 : 500, result);
@@ -154,12 +163,13 @@ async function handleGenImageStream(
   send('accepted', {
     type: 'accepted',
     request,
-    workerStatus: getApiWorkerStatus(),
+    workerStatus: getApiWorkerStatus(getRequestToolId(request)),
   });
 
   try {
-    const result: GenImageResult = await runWithApiWorker((threadId) => {
-      send('assigned', { type: 'assigned', threadId, request });
+    const toolId = getRequestToolId(request);
+    const result: GenImageResult = await runWithApiWorker(toolId, (threadId) => {
+      send('assigned', { type: 'assigned', threadId, toolId, request });
       return generateImageViaWebview(getMainWindow(), request, {
         threadId,
         onProgress: (event: ImageGenProgressEvent) => send(event.type, { ...event, threadId }),
@@ -301,10 +311,10 @@ export function startImageGenApi(getMainWindow: () => BrowserWindow | null): voi
         port,
         host: bindHost,
         lanEnabled: isLanBindHost(bindHost),
-        workerCount: getApiWorkerCount(),
+        defaultWorkerCountPerTool: getApiDefaultWorkerCount(),
         workerStatus: getApiWorkerStatus(),
         accessUrls: formatApiAccessUrls(bindHost, port),
-        features: ['prompt', 'referenceImage', 'multipart-upload', 'stream', 'debug', 'parallel-workers'],
+        features: ['prompt', 'referenceImage', 'multipart-upload', 'stream', 'debug', 'parallel-workers', 'per-tool-workers'],
       });
       return;
     }

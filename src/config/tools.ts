@@ -196,6 +196,13 @@ export const DEFAULT_IMAGE_TOOLS: AITool[] = [
     category: 'image',
   },
   {
+    id: 'grok-image',
+    name: 'Grok Imagine',
+    url: 'https://grok.com/imagine',
+    region: 'international',
+    category: 'image',
+  },
+  {
     id: 'midjourney',
     name: 'Midjourney',
     url: 'https://www.midjourney.com/',

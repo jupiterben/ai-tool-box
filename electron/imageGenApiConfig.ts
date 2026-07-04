@@ -29,19 +29,72 @@ export function getApiPort(): number {
 }
 
 export function getApiWorkerCount(): number {
-  const raw =
-    process.env.AI_TOOLBOX_API_THREADS?.trim() ||
-    process.env.AI_TOOLBOX_API_WORKERS?.trim();
+  return getApiDefaultWorkerCount();
+}
+
+function normalizeWorkerCount(raw: string | undefined, fallback: number): number {
   if (!raw) {
-    return 1;
+    return fallback;
   }
 
   const count = Number(raw);
   if (!Number.isFinite(count)) {
-    return 1;
+    return fallback;
   }
 
   return Math.min(Math.max(1, Math.floor(count)), 16);
+}
+
+function normalizeEnvToolId(toolId: string): string {
+  return toolId.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+}
+
+function getToolWorkerCountFromJson(toolId: string): number | null {
+  const raw = process.env.AI_TOOLBOX_API_TOOL_THREADS?.trim();
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const value = parsed[toolId] ?? parsed[normalizeEnvToolId(toolId)];
+    if (typeof value === 'number' || typeof value === 'string') {
+      return normalizeWorkerCount(String(value), getApiDefaultWorkerCount());
+    }
+  } catch {
+    // ignore invalid JSON and fall back to env/default settings
+  }
+
+  return null;
+}
+
+export function getApiDefaultWorkerCount(): number {
+  const defaultWorkerCount = 2;
+  const raw =
+    process.env.AI_TOOLBOX_API_DEFAULT_THREADS?.trim() ||
+    process.env.AI_TOOLBOX_API_DEFAULT_WORKERS?.trim() ||
+    process.env.AI_TOOLBOX_API_THREADS?.trim() ||
+    process.env.AI_TOOLBOX_API_WORKERS?.trim();
+
+  return normalizeWorkerCount(raw, defaultWorkerCount);
+}
+
+export function getApiToolWorkerCount(toolId: string): number {
+  const normalizedToolId = normalizeEnvToolId(toolId);
+  const explicit =
+    process.env[`AI_TOOLBOX_API_THREADS_${normalizedToolId}`]?.trim() ||
+    process.env[`AI_TOOLBOX_API_WORKERS_${normalizedToolId}`]?.trim();
+
+  if (explicit) {
+    return normalizeWorkerCount(explicit, getApiDefaultWorkerCount());
+  }
+
+  const jsonCount = getToolWorkerCountFromJson(toolId);
+  if (jsonCount != null) {
+    return jsonCount;
+  }
+
+  return getApiDefaultWorkerCount();
 }
 
 export function getLanIPv4Addresses(): string[] {

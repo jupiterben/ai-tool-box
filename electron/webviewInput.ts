@@ -442,6 +442,164 @@ async function sendGrokNative(
   });
 }
 
+async function sendJimengNative(
+  wc: WebContents,
+  handler: BaseSiteHandler,
+  content: string
+): Promise<WebviewSendInputResult> {
+  const contentJson = JSON.stringify(content);
+  const script = `(async function(){
+    ${handler.buildBrowserRuntimeScript()}
+    try {
+      var input = __findInputElement();
+      if (!input) return { success: false, error: '未找到即梦输入框' };
+
+      function getText() {
+        return (input.innerText || input.textContent || input.value || '').replace(/\\s+/g, ' ').trim();
+      }
+
+      function isVisible(el) {
+        if (!el || el.closest('[aria-hidden="true"]')) return false;
+        var rect = el.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return false;
+        var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+        if (style && (style.visibility === 'hidden' || style.display === 'none' || style.pointerEvents === 'none')) return false;
+        return true;
+      }
+
+      function isEnabledButton(btn) {
+        if (!btn || !isVisible(btn)) return false;
+        if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') return false;
+        if (btn.classList && btn.classList.contains('lv-btn-disabled')) return false;
+        return true;
+      }
+
+      function findSubmitButton() {
+        var selectors = [
+          'button[class*="submit-button"]',
+          '.submit-button',
+          'button.lv-btn-primary'
+        ];
+        var candidates = [];
+        for (var s = 0; s < selectors.length; s++) {
+          try {
+            var nodes = document.querySelectorAll(selectors[s]);
+            for (var i = 0; i < nodes.length; i++) {
+              if (isEnabledButton(nodes[i])) candidates.push(nodes[i]);
+            }
+          } catch (e) {}
+        }
+        if (!candidates.length) return null;
+
+        var inputRect = input.getBoundingClientRect();
+        candidates.sort(function(a, b) {
+          var ar = a.getBoundingClientRect();
+          var br = b.getBoundingClientRect();
+          var ad = Math.abs((ar.left + ar.width / 2) - (inputRect.right - 18))
+            + Math.abs((ar.top + ar.height / 2) - (inputRect.bottom + 18));
+          var bd = Math.abs((br.left + br.width / 2) - (inputRect.right - 18))
+            + Math.abs((br.top + br.height / 2) - (inputRect.bottom + 18));
+          return ad - bd;
+        });
+        return candidates[0];
+      }
+
+      input.focus();
+      if (input.isContentEditable) {
+        var selection = window.getSelection();
+        if (selection) {
+          var range = document.createRange();
+          range.selectNodeContents(input);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        document.execCommand('selectAll', false, null);
+        document.execCommand('delete', false, null);
+        input.innerHTML = '';
+        await new Promise(function(r){ setTimeout(r, 100); });
+        input.focus();
+        var inserted = document.execCommand('insertText', false, ${contentJson});
+        if (!inserted || getText() !== ${contentJson}) {
+          input.innerHTML = '<p>' + ${contentJson}.replace(/[&<>]/g, function(ch) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch];
+          }) + '</p>';
+        }
+      } else {
+        input.value = '';
+        input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' }));
+        input.value = ${contentJson};
+      }
+
+      input.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: ${contentJson} }));
+      input.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: ${contentJson} }));
+      input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+
+      var btn = null;
+      for (var attempt = 0; attempt < 50; attempt++) {
+        btn = findSubmitButton();
+        if (btn) break;
+        await new Promise(function(r){ setTimeout(r, 100); });
+      }
+
+      if (!btn) {
+        return { success: false, error: '即梦发送按钮未就绪', remaining: getText() };
+      }
+
+      var rect = btn.getBoundingClientRect();
+      return {
+        success: true,
+        fillMethod: 'jimeng-prosemirror',
+        btnReady: true,
+        inputTag: input.tagName,
+        remaining: getText(),
+        x: Math.round(rect.left + rect.width / 2),
+        y: Math.round(rect.top + rect.height / 2)
+      };
+    } catch (e) {
+      return { success: false, error: e.message || '即梦发送异常' };
+    }
+  })()`;
+
+  try {
+    const fillResult = (await wc.executeJavaScript(script)) as WebviewSendInputResult & {
+      x?: number;
+      y?: number;
+    };
+    if (!fillResult.success) {
+      return fillResult;
+    }
+
+    if (fillResult.x != null && fillResult.y != null) {
+      await clickAt(wc, fillResult.x, fillResult.y);
+      await sleep(1200);
+      return {
+        success: true,
+        fillMethod: fillResult.fillMethod,
+        sendMethod: 'native-click',
+        btnReady: true,
+        inputTag: fillResult.inputTag,
+        remaining: fillResult.remaining,
+      };
+    }
+
+    await pressEnter(wc);
+    await sleep(1200);
+    return {
+      success: true,
+      fillMethod: fillResult.fillMethod,
+      sendMethod: 'native-enter',
+      btnReady: fillResult.btnReady,
+      inputTag: fillResult.inputTag,
+      remaining: fillResult.remaining,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '即梦原生发送失败',
+    };
+  }
+}
+
 /** 火山 Ark：React 受控输入，原生 insertText + Enter */
 async function sendVolcengineNative(
   wc: WebContents,
@@ -575,6 +733,14 @@ export async function sendWebviewInput(
         return nativeResult;
       }
       console.warn('[webviewInput] grok 原生失败，回退注入:', nativeResult.error);
+    }
+
+    if (payload.toolId === 'jimeng') {
+      const nativeResult = await sendJimengNative(wc, handler, payload.content);
+      if (nativeResult.success) {
+        return nativeResult;
+      }
+      console.warn('[webviewInput] jimeng 原生失败，回退注入:', nativeResult.error);
     }
 
     if (payload.toolId === 'volcengine') {

@@ -5,6 +5,45 @@ function json(value: unknown): string {
 }
 
 const DEFAULT_MIN_IMAGE_SIZE = 128;
+const DEFAULT_IMAGE_FAILURE_SELECTORS = [
+  '[role="alert"]',
+  '[aria-live]',
+  '[data-testid*="error" i]',
+  '[data-testid*="toast" i]',
+  '[class*="error" i]',
+  '[class*="toast" i]',
+  '[class*="warning" i]',
+  '[data-message-author-role="assistant"]',
+];
+const DEFAULT_IMAGE_FAILURE_TEXTS = [
+  '无法生成',
+  '不能生成',
+  '无法创建',
+  '不能创建',
+  '生成失败',
+  '创建失败',
+  '请求失败',
+  '内容政策',
+  '安全政策',
+  '违反政策',
+  '不符合政策',
+  '敏感内容',
+  'unable to generate',
+  'cannot generate',
+  "can't generate",
+  'could not generate',
+  "couldn't generate",
+  'not able to generate',
+  'failed to generate',
+  'generation failed',
+  'content policy',
+  'safety policy',
+  'violates',
+  'violate',
+  'disallowed',
+  'unsafe',
+  'blocked',
+];
 
 function buildCollectImagesHelpers(
   imageSelectors: string,
@@ -79,6 +118,87 @@ export function buildDetectImageOriginsScript(config: SiteHandlerConfig): string
       ${buildCollectImagesHelpers(imageSelectors, imageRootSelectors, minSize)}
       var searchRoot = findSearchRoot();
       return collectImages(searchRoot);
+    })();
+  `;
+}
+
+export function buildDetectImageFailureScript(config: SiteHandlerConfig): string {
+  const selectors = json(config.imageFailureSelectors ?? DEFAULT_IMAGE_FAILURE_SELECTORS);
+  const failureTexts = json(config.imageFailureTexts ?? DEFAULT_IMAGE_FAILURE_TEXTS);
+  const rootSelectors = json(config.imageResultRootSelectors ?? ['main', '[role="main"]', 'body']);
+
+  return `
+    (function() {
+      var failureSelectors = ${selectors};
+      var failureTexts = ${failureTexts}.map(function(text) {
+        return String(text || '').toLowerCase();
+      }).filter(Boolean);
+      var rootSelectors = ${rootSelectors};
+
+      function findSearchRoot() {
+        for (var i = 0; i < rootSelectors.length; i++) {
+          try {
+            var root = document.querySelector(rootSelectors[i]);
+            if (root) return root;
+          } catch (e) {}
+        }
+        return document.body || document;
+      }
+
+      function isVisible(el) {
+        if (!el || el.closest('[aria-hidden="true"]')) return false;
+        var rect = el.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return false;
+        var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+        if (style && (style.visibility === 'hidden' || style.display === 'none')) return false;
+        return true;
+      }
+
+      function normalizeText(text) {
+        return String(text || '').replace(/\\s+/g, ' ').trim();
+      }
+
+      function matchFailureText(text) {
+        var normalized = normalizeText(text);
+        if (!normalized) return null;
+        var lower = normalized.toLowerCase();
+        for (var i = 0; i < failureTexts.length; i++) {
+          if (lower.indexOf(failureTexts[i]) >= 0) {
+            return {
+              text: normalized.slice(0, 500),
+              matched: failureTexts[i],
+            };
+          }
+        }
+        return null;
+      }
+
+      var root = findSearchRoot();
+      var seen = [];
+      for (var s = 0; s < failureSelectors.length; s++) {
+        var nodes = [];
+        try {
+          nodes = root.querySelectorAll(failureSelectors[s]);
+        } catch (e) {
+          continue;
+        }
+        for (var n = nodes.length - 1; n >= 0; n--) {
+          var node = nodes[n];
+          if (!isVisible(node) || seen.indexOf(node) >= 0) continue;
+          seen.push(node);
+          var match = matchFailureText(node.innerText || node.textContent || '');
+          if (match) {
+            return {
+              failed: true,
+              selector: failureSelectors[s],
+              matched: match.matched,
+              message: match.text,
+            };
+          }
+        }
+      }
+
+      return { failed: false };
     })();
   `;
 }

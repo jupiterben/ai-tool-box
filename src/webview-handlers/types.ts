@@ -76,6 +76,10 @@ export interface SiteHandlerConfig {
   imageResultRootSelectors?: string[];
   /** 忽略小于该尺寸（px）的图片 */
   imageResultMinSize?: number;
+  /** 生图失败提示的 DOM 选择器，命中后会提前终止等待图片 */
+  imageFailureSelectors?: string[];
+  /** 生图失败提示文本，大小写不敏感，命中后会提前终止等待图片 */
+  imageFailureTexts?: string[];
 }
 
 /** 与旧版 inputSelectors 兼容 */
