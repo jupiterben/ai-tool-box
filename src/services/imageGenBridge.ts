@@ -4,25 +4,35 @@ export interface EnsureImageWebviewHandlerResult {
   error?: string;
 }
 
-type EnsureImageWebviewHandler = (toolId: string) => Promise<EnsureImageWebviewHandlerResult>;
+type EnsureImageWebviewHandler = (
+  toolId: string,
+  threadId?: string
+) => Promise<EnsureImageWebviewHandlerResult>;
 
-let ensureHandler: EnsureImageWebviewHandler | null = null;
+type EnsureHandlerScope = 'default' | 'api';
 
-export function registerImageGenEnsureHandler(handler: EnsureImageWebviewHandler): void {
-  ensureHandler = handler;
+const ensureHandlers: Partial<Record<EnsureHandlerScope, EnsureImageWebviewHandler>> = {};
+
+export function registerImageGenEnsureHandler(
+  handler: EnsureImageWebviewHandler,
+  scope: EnsureHandlerScope = 'default'
+): void {
+  ensureHandlers[scope] = handler;
 }
 
-export function unregisterImageGenEnsureHandler(): void {
-  ensureHandler = null;
+export function unregisterImageGenEnsureHandler(scope: EnsureHandlerScope = 'default'): void {
+  delete ensureHandlers[scope];
 }
 
 export async function runImageGenEnsureHandler(
-  toolId: string
+  toolId: string,
+  threadId?: string
 ): Promise<EnsureImageWebviewHandlerResult> {
+  const ensureHandler = threadId ? ensureHandlers.api : ensureHandlers.default || ensureHandlers.api;
   if (!ensureHandler) {
     return { success: false, error: '生图页面未就绪' };
   }
-  return ensureHandler(toolId);
+  return ensureHandler(toolId, threadId);
 }
 
 function sleep(ms: number): Promise<void> {
@@ -30,10 +40,13 @@ function sleep(ms: number): Promise<void> {
 }
 
 /** 等待生图页挂载并注册 ensure handler */
-export async function waitForImageGenEnsureHandler(timeoutMs = 30_000): Promise<boolean> {
+export async function waitForImageGenEnsureHandler(
+  timeoutMs = 30_000,
+  scope: EnsureHandlerScope = 'default'
+): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (ensureHandler) {
+    if (ensureHandlers[scope]) {
       return true;
     }
     await sleep(200);

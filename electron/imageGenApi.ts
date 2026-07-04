@@ -7,8 +7,10 @@ import {
   formatApiAccessUrls,
   getApiBindHost,
   getApiPort,
+  getApiWorkerCount,
   isLanBindHost,
 } from './imageGenApiConfig.js';
+import { getApiWorkerStatus, runWithApiWorker } from './imageGenApiWorkers.js';
 import {
   debugWebviewEval,
   debugWebviewInfo,
@@ -97,7 +99,9 @@ async function handleGenImage(
 
   try {
     const request = await parseGenImageRequest(req);
-    const result: GenImageResult = await generateImageViaWebview(getMainWindow(), request);
+    const result: GenImageResult = await runWithApiWorker((threadId) =>
+      generateImageViaWebview(getMainWindow(), request, { threadId })
+    );
     sendJson(res, result.success ? 200 : 500, result);
   } catch (error) {
     sendJson(res, 400, {
@@ -147,11 +151,19 @@ async function handleGenImageStream(
     }
   }, 15_000);
 
-  send('accepted', { type: 'accepted', request });
+  send('accepted', {
+    type: 'accepted',
+    request,
+    workerStatus: getApiWorkerStatus(),
+  });
 
   try {
-    const result: GenImageResult = await generateImageViaWebview(getMainWindow(), request, {
-      onProgress: (event: ImageGenProgressEvent) => send(event.type, event),
+    const result: GenImageResult = await runWithApiWorker((threadId) => {
+      send('assigned', { type: 'assigned', threadId, request });
+      return generateImageViaWebview(getMainWindow(), request, {
+        threadId,
+        onProgress: (event: ImageGenProgressEvent) => send(event.type, { ...event, threadId }),
+      });
     });
 
     if (!result.success) {
@@ -289,8 +301,10 @@ export function startImageGenApi(getMainWindow: () => BrowserWindow | null): voi
         port,
         host: bindHost,
         lanEnabled: isLanBindHost(bindHost),
+        workerCount: getApiWorkerCount(),
+        workerStatus: getApiWorkerStatus(),
         accessUrls: formatApiAccessUrls(bindHost, port),
-        features: ['prompt', 'referenceImage', 'multipart-upload', 'stream', 'debug'],
+        features: ['prompt', 'referenceImage', 'multipart-upload', 'stream', 'debug', 'parallel-workers'],
       });
       return;
     }

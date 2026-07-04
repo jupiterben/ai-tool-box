@@ -58,6 +58,7 @@ export interface GenImageResult {
 export interface EnsureImageWebviewRequest {
   requestId: string;
   toolId: string;
+  threadId?: string;
 }
 
 export interface EnsureImageWebviewResult {

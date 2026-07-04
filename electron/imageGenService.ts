@@ -56,6 +56,7 @@ export type ImageGenProgressEvent =
 
 export interface GenerateImageOptions {
   onProgress?: (event: ImageGenProgressEvent) => void;
+  threadId?: string;
 }
 
 function emitProgress(options: GenerateImageOptions | undefined, event: ImageGenProgressEvent): void {
@@ -418,7 +419,7 @@ export async function generateImageViaWebview(
 
   let webContentsId: number | undefined;
   try {
-    const ensured = await requestEnsureImageWebview(mainWindow, toolId);
+    const ensured = await requestEnsureImageWebview(mainWindow, toolId, options.threadId);
     webContentsId = ensured.webContentsId;
     emitProgress(options, {
       type: 'webview_ready',

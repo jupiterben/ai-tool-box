@@ -28,6 +28,22 @@ export function getApiPort(): number {
   return Number.isFinite(port) && port > 0 && port < 65536 ? port : IMAGE_GEN_API_PORT;
 }
 
+export function getApiWorkerCount(): number {
+  const raw =
+    process.env.AI_TOOLBOX_API_THREADS?.trim() ||
+    process.env.AI_TOOLBOX_API_WORKERS?.trim();
+  if (!raw) {
+    return 1;
+  }
+
+  const count = Number(raw);
+  if (!Number.isFinite(count)) {
+    return 1;
+  }
+
+  return Math.min(Math.max(1, Math.floor(count)), 16);
+}
+
 export function getLanIPv4Addresses(): string[] {
   const addresses = new Set<string>();
 

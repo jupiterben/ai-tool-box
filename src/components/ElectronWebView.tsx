@@ -19,6 +19,7 @@ export interface ElectronWebViewProps {
   partition?: string;
   webpreferences?: string;
   'data-tool-id'?: string;
+  'data-thread-id'?: string;
   'aria-label'?: string;
 }
 

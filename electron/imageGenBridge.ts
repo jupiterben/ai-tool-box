@@ -31,6 +31,7 @@ export function registerImageGenBridgeHandlers(): void {
 export function requestEnsureImageWebview(
   mainWindow: BrowserWindow | null,
   toolId: string,
+  threadId?: string,
   timeoutMs = 60_000
 ): Promise<{ webContentsId?: number }> {
   if (!mainWindow || mainWindow.isDestroyed()) {
@@ -45,7 +46,7 @@ export function requestEnsureImageWebview(
     }, timeoutMs);
 
     pendingEnsures.set(requestId, { resolve, reject, timer });
-    mainWindow.webContents.send('image-gen:ensure-webview', { requestId, toolId });
+    mainWindow.webContents.send('image-gen:ensure-webview', { requestId, toolId, threadId });
   });
 }
 

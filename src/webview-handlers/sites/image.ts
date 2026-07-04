@@ -245,6 +245,66 @@ export const geminiImageHandler = createImageHandler({
   },
 });
 
+export const chatgptImageHandler = createImageHandler({
+  toolId: 'chatgpt-image',
+  urlHint: 'chatgpt.com',
+  urlHints: ['chatgpt.com/images', 'chatgpt.com', 'oaidalleapiprodscus.blob.core.windows.net'],
+  newChatAction: {
+    url: 'https://chatgpt.com/images',
+  },
+  inputRootSelectors: ['main', '[role="main"]', 'body'],
+  inputType: 'contenteditable',
+  inputSelectors: [
+    '#prompt-textarea',
+    '[data-testid="prompt-textarea"]',
+    'div[contenteditable="true"][id="prompt-textarea"]',
+    'div[contenteditable="true"][role="textbox"]',
+    'div.ProseMirror[contenteditable="true"]',
+    'textarea[placeholder*="Message" i]',
+    'textarea',
+    ...DEFAULT_IMAGE_PROMPT_SELECTORS,
+  ],
+  sendButtonSelectors: [
+    '[data-testid="send-button"]',
+    'button[data-testid*="send" i]',
+    'button[aria-label*="Send" i]',
+    'button[type="submit"]',
+    ...DEFAULT_IMAGE_SEND_SELECTORS,
+  ],
+  nearInputSendSelectors: [
+    '[data-testid="send-button"]',
+    'button[data-testid*="send" i]',
+    'button[aria-label*="Send" i]',
+    'button[type="submit"]',
+  ],
+  preferNearInputSendButton: true,
+  sendButtonWaitMs: 10_000,
+  imageResultSelectors: [
+    'img[src*="oaidalleapiprodscus"]',
+    'img[src*="dalle"]',
+    'img[src*="openai"]',
+    'img[src^="blob:"]',
+    'img[src^="data:image"]',
+    '[data-testid*="image"] img',
+    '[data-message-author-role="assistant"] img[src]',
+    'main img[src]',
+  ],
+  imageResultRootSelectors: ['main', '[role="main"]', 'body'],
+  imageResultMinSize: 256,
+  referenceImage: {
+    ...DEFAULT_REFERENCE_IMAGE,
+    triggerSelectors: [
+      '[data-testid*="upload" i]',
+      '[data-testid*="attach" i]',
+      'button[aria-label*="Upload" i]',
+      'button[aria-label*="Attach" i]',
+      'button[aria-label*="Add" i]',
+      ...DEFAULT_REFERENCE_IMAGE.triggerSelectors!,
+    ],
+    waitAfterUploadMs: 1200,
+  },
+});
+
 export const midjourneyHandler = createImageHandler({
   toolId: 'midjourney',
   urlHint: 'midjourney.com',
@@ -299,6 +359,7 @@ export const IMAGE_HANDLERS: Record<string, BaseSiteHandler> = {
   miaohua: miaohuaHandler,
   'doubao-image': doubaoImageHandler,
   'gemini-image': geminiImageHandler,
+  'chatgpt-image': chatgptImageHandler,
   midjourney: midjourneyHandler,
   leonardo: leonardoHandler,
   ideogram: ideogramHandler,

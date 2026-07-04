@@ -17,12 +17,13 @@ const ImageGenBridge: React.FC = () => {
       return;
     }
 
-    const unsubscribe = window.electronAPI.onEnsureImageWebview(async ({ requestId, toolId }) => {
+    const unsubscribe = window.electronAPI.onEnsureImageWebview(async ({ requestId, toolId, threadId }) => {
       try {
-        ensurePageVisited('image-webview');
-        navigateToPage('image-webview');
+        const pageId = threadId ? 'api-webview' : 'image-webview';
+        ensurePageVisited(pageId);
+        navigateToPage(pageId);
 
-        const handlerReady = await waitForImageGenEnsureHandler(30_000);
+        const handlerReady = await waitForImageGenEnsureHandler(30_000, threadId ? 'api' : 'default');
         if (!handlerReady) {
           window.electronAPI?.reportEnsureImageWebview?.({
             requestId,
@@ -32,14 +33,14 @@ const ImageGenBridge: React.FC = () => {
           return;
         }
 
-        activateImageToolTab(toolId);
+        activateImageToolTab(threadId || toolId);
         await sleep(500);
 
-        let result = await runImageGenEnsureHandler(toolId);
+        let result = await runImageGenEnsureHandler(toolId, threadId);
         if (!result.success) {
           for (let i = 0; i < 40 && !result.success; i += 1) {
             await sleep(500);
-            result = await runImageGenEnsureHandler(toolId);
+            result = await runImageGenEnsureHandler(toolId, threadId);
           }
         }
 

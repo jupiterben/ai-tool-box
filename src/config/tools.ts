@@ -189,6 +189,13 @@ export const DEFAULT_IMAGE_TOOLS: AITool[] = [
     category: 'image',
   },
   {
+    id: 'chatgpt-image',
+    name: 'ChatGPT 生图',
+    url: 'https://chatgpt.com/images',
+    region: 'international',
+    category: 'image',
+  },
+  {
     id: 'midjourney',
     name: 'Midjourney',
     url: 'https://www.midjourney.com/',
