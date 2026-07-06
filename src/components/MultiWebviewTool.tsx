@@ -16,8 +16,10 @@ import type { ToolCategory } from '../types/ai-tool';
 import type { ReferenceImage } from '../types/reference-image';
 import {
   SELECTED_IMAGE_TOOLS_STORAGE_KEY,
+  SELECTED_VIDEO_TOOLS_STORAGE_KEY,
   SELECTED_TOOLS_STORAGE_KEY,
 } from '../utils/settingsStorage';
+import { TOOL_CATEGORY_LABELS } from '../config/tools';
 import {
   registerImageGenEnsureHandler,
   unregisterImageGenEnsureHandler,
@@ -41,8 +43,14 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
   const { size: summaryPanelSize, updateSize: updateSummaryPanelSize } = useSummaryPanelSize();
 
   const isChatMode = category === 'chat';
+  const supportsReferenceImage = category === 'image' || category === 'video';
   const selectedToolsStorageKey =
-    category === 'image' ? SELECTED_IMAGE_TOOLS_STORAGE_KEY : SELECTED_TOOLS_STORAGE_KEY;
+    category === 'image'
+      ? SELECTED_IMAGE_TOOLS_STORAGE_KEY
+      : category === 'video'
+        ? SELECTED_VIDEO_TOOLS_STORAGE_KEY
+        : SELECTED_TOOLS_STORAGE_KEY;
+  const toolLabel = TOOL_CATEGORY_LABELS[category];
 
   const enabledTools = useEnabledTools(category);
   const allToolIds = useMemo(() => enabledTools.map((tool) => tool.id), [enabledTools]);
@@ -355,7 +363,7 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
         </Splitter.Panel>
       </Splitter>
       ) : (
-        <div className={styles.workspace} role="main" aria-label="生图工具">
+        <div className={styles.workspace} role="main" aria-label={`${toolLabel}工具`}>
           <div className={styles.main} role="region" aria-label="Webview 内容区域">
             <MultiWebviewGrid
               tools={enabledTools}
@@ -379,8 +387,8 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
               onChange={handleInputChange}
               onSend={handleSend}
               isSending={isSending}
-              placeholder="输入生图提示词..."
-              enableReferenceImage
+              placeholder={`输入${toolLabel}提示词...`}
+              enableReferenceImage={supportsReferenceImage}
               referenceImage={referenceImage}
               onReferenceImageChange={setReferenceImage}
               referenceImageError={referenceImageError}

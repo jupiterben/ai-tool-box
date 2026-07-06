@@ -3,6 +3,7 @@ import { AITool, ToolCategory, ToolRegion, ToolRegionGroup } from '../types/ai-t
 export const TOOL_CATEGORY_LABELS: Record<ToolCategory, string> = {
   chat: '对话',
   image: '生图',
+  video: '生视频',
 };
 
 export const TOOL_REGION_LABELS: Record<ToolRegion, string> = {
@@ -253,7 +254,65 @@ export const DEFAULT_IMAGE_TOOLS: AITool[] = [
   },
 ];
 
-export const ALL_DEFAULT_TOOLS: AITool[] = [...DEFAULT_CHAT_TOOLS, ...DEFAULT_IMAGE_TOOLS];
+export const DEFAULT_VIDEO_TOOLS: AITool[] = [
+  // 国内
+  {
+    id: 'jimeng-video',
+    name: '即梦视频',
+    url: 'https://jimeng.jianying.com/ai-tool/video/generate',
+    region: 'domestic',
+    category: 'video',
+  },
+  {
+    id: 'kling-video',
+    name: '可灵视频',
+    url: 'https://klingai.com/app/video/new',
+    region: 'domestic',
+    category: 'video',
+  },
+  {
+    id: 'hailuo-video',
+    name: '海螺视频',
+    url: 'https://hailuoai.video/',
+    region: 'domestic',
+    category: 'video',
+  },
+  {
+    id: 'pixverse',
+    name: 'PixVerse',
+    url: 'https://app.pixverse.ai/',
+    region: 'domestic',
+    category: 'video',
+  },
+  // 国外
+  {
+    id: 'runway',
+    name: 'Runway',
+    url: 'https://app.runwayml.com/',
+    region: 'international',
+    category: 'video',
+  },
+  {
+    id: 'pika',
+    name: 'Pika',
+    url: 'https://pika.art/',
+    region: 'international',
+    category: 'video',
+  },
+  {
+    id: 'luma',
+    name: 'Luma Dream Machine',
+    url: 'https://lumalabs.ai/dream-machine',
+    region: 'international',
+    category: 'video',
+  },
+];
+
+export const ALL_DEFAULT_TOOLS: AITool[] = [
+  ...DEFAULT_CHAT_TOOLS,
+  ...DEFAULT_IMAGE_TOOLS,
+  ...DEFAULT_VIDEO_TOOLS,
+];
 
 /** 首次安装时默认关闭的网站，可在「网站管理」设置中启用 */
 export const DEFAULT_DISABLED_TOOL_IDS = ['meta', 'mimo', 'recraft', 'stability'];

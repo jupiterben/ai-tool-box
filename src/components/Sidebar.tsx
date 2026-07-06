@@ -6,7 +6,7 @@ export interface ToolPage {
   id: string;
   name: string;
   icon?: string;
-  iconName?: 'Globe' | 'Settings' | 'Zap' | 'Layout' | 'Grid' | 'Code' | 'Sparkles' | 'MapPin' | 'Image' | 'Workflow';
+  iconName?: 'Globe' | 'Settings' | 'Zap' | 'Layout' | 'Grid' | 'Code' | 'Sparkles' | 'MapPin' | 'Image' | 'Video' | 'Workflow';
 }
 
 interface SidebarProps {

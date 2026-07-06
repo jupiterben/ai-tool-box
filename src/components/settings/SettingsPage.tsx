@@ -8,13 +8,14 @@ import SettingsPageLayout from './SettingsPageLayout';
 import { SegmentControl } from '../ui/SegmentControl';
 import styles from './SettingsPage.module.css';
 
-type SettingsTab = 'llm' | 'api' | 'chat-tools' | 'image-tools' | 'proxy' | 'geo';
+type SettingsTab = 'llm' | 'api' | 'chat-tools' | 'image-tools' | 'video-tools' | 'proxy' | 'geo';
 
 const SETTINGS_TABS: { value: SettingsTab; label: string }[] = [
   { value: 'llm', label: 'LLM 汇总' },
   { value: 'api', label: 'API 服务' },
   { value: 'chat-tools', label: '对话网站' },
   { value: 'image-tools', label: '生图网站' },
+  { value: 'video-tools', label: '生视频网站' },
   { value: 'proxy', label: '网络代理' },
   { value: 'geo', label: 'GPS 定位' },
 ];
@@ -24,11 +25,12 @@ const TAB_DESCRIPTIONS: Record<SettingsTab, string> = {
   api: '控制本机生图 API 服务的启用状态、监听端口和实际访问地址。',
   'chat-tools': '管理对话类网站的启用状态、网络代理与 GPS 定位。',
   'image-tools': '管理生图类网站的启用状态、网络代理与 GPS 定位。',
-  proxy: '定义代理预设，在「对话网站」与「生图网站」中为各站分配。',
-  geo: '定义 GPS 位置预设，在「对话网站」与「生图网站」中为各站分配。',
+  'video-tools': '管理生视频类网站的启用状态、网络代理与 GPS 定位。',
+  proxy: '定义代理预设，在「对话网站」「生图网站」与「生视频网站」中为各站分配。',
+  geo: '定义 GPS 位置预设，在「对话网站」「生图网站」与「生视频网站」中为各站分配。',
 };
 
-const WIDE_TABS: SettingsTab[] = ['chat-tools', 'image-tools'];
+const WIDE_TABS: SettingsTab[] = ['chat-tools', 'image-tools', 'video-tools'];
 const COMPACT_TABS: SettingsTab[] = ['proxy', 'geo'];
 
 const SettingsPage: React.FC = () => {
@@ -85,6 +87,11 @@ const SettingsPage: React.FC = () => {
         {visitedTabs.has('image-tools') && (
           <div className={activeTab === 'image-tools' ? undefined : styles.panelHidden}>
             <ToolSettingsPanel category="image" />
+          </div>
+        )}
+        {visitedTabs.has('video-tools') && (
+          <div className={activeTab === 'video-tools' ? undefined : styles.panelHidden}>
+            <ToolSettingsPanel category="video" />
           </div>
         )}
         {visitedTabs.has('proxy') && (

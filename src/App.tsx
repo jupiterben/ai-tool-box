@@ -19,6 +19,9 @@ const MultiWebviewTool = lazyPage(
 const ImageWebviewTool = lazyPage(
   () => import('./components/ImageWebviewTool') as Promise<{ default: ComponentType }>,
 );
+const VideoWebviewTool = lazyPage(
+  () => import('./components/VideoWebviewTool') as Promise<{ default: ComponentType }>,
+);
 const ApiWebviewPage = lazyPage(
   () => import('./components/ApiWebviewPage') as Promise<{ default: ComponentType }>,
 );
@@ -36,6 +39,11 @@ const TOOL_PAGES: ToolPage[] = [
     id: 'image-webview',
     name: '生图',
     iconName: 'Image',
+  },
+  {
+    id: 'video-webview',
+    name: '生视频',
+    iconName: 'Video',
   },
   {
     id: 'api-webview',
@@ -115,6 +123,13 @@ const App: React.FC = () => {
         <KeepAlivePage id="image-webview" active={activePageId === 'image-webview'}>
           <Suspense fallback={<LoadingPlaceholder />}>
             <ImageWebviewTool />
+          </Suspense>
+        </KeepAlivePage>
+      )}
+      {visitedPageIds.has('video-webview') && (
+        <KeepAlivePage id="video-webview" active={activePageId === 'video-webview'}>
+          <Suspense fallback={<LoadingPlaceholder />}>
+            <VideoWebviewTool />
           </Suspense>
         </KeepAlivePage>
       )}

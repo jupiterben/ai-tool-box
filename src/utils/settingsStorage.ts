@@ -11,6 +11,7 @@ export const TOOL_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-tool-sett
 export const THEME_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-theme');
 export const SELECTED_TOOLS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-selected-tools');
 export const SELECTED_IMAGE_TOOLS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-selected-image-tools');
+export const SELECTED_VIDEO_TOOLS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-selected-video-tools');
 export const SUMMARY_PANEL_WIDTH_STORAGE_KEY = withAppEnvSuffix('response-summary-panel-width');
 export const SUMMARY_PANEL_OPEN_STORAGE_KEY = withAppEnvSuffix('response-summary-panel-open');
 
