@@ -47,7 +47,7 @@ export function buildSummaryDocument(
 
   const summarySection = summaryLines.join('\n');
 
-  const markdown = llmMarkdown ?? buildFallbackMarkdown(question, generatedAt, summarySection, responses);
+  const markdown = buildFullMarkdown(question, generatedAt, summarySection, responses, llmMarkdown);
 
   return {
     title: question ? `AI回复汇总 - ${question.slice(0, 40)}` : 'AI 回复汇总',
@@ -61,21 +61,8 @@ export function buildSummaryDocument(
   };
 }
 
-function buildFallbackMarkdown(
-  question: string,
-  generatedAt: string,
-  summarySection: string,
-  responses: ToolResponseItem[]
-): string {
-  const bodyParts: string[] = [
-    `# AI 回复汇总`,
-    ``,
-    `> 生成时间：${generatedAt}`,
-    ``,
-    question ? `## 问题\n\n${question}\n` : '',
-    `## 概要\n\n${summarySection}\n`,
-    `## 各平台详细回复\n`,
-  ];
+function buildResponsesSection(responses: ToolResponseItem[]): string {
+  const bodyParts: string[] = [];
 
   for (const item of responses) {
     bodyParts.push(`### ${item.toolName}\n`);
@@ -86,6 +73,28 @@ function buildFallbackMarkdown(
     }
     bodyParts.push('');
   }
+
+  return bodyParts.join('\n');
+}
+
+function buildFullMarkdown(
+  question: string,
+  generatedAt: string,
+  summarySection: string,
+  responses: ToolResponseItem[],
+  llmMarkdown?: string
+): string {
+  const bodyParts: string[] = [
+    `# AI 回复汇总`,
+    ``,
+    `> 生成时间：${generatedAt}`,
+    ``,
+    question ? `## 问题\n\n${question}\n` : '',
+    llmMarkdown ? `## AI 智能汇总\n\n${llmMarkdown}\n` : '',
+    `## 概要\n\n${summarySection}\n`,
+    `## 各平台详细回复\n`,
+    buildResponsesSection(responses),
+  ];
 
   return bodyParts.filter(Boolean).join('\n');
 }
