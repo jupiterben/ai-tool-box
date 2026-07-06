@@ -1,5 +1,5 @@
 import type { IncomingMessage } from 'node:http';
-import type { GenImageRequest, BingImageOptions } from '../src/types/image-gen-api.js';
+import type { GenImageRequest, BingImageOptions, GeminiImageOptions } from '../src/types/image-gen-api.js';
 import type { ReferenceImage } from '../src/types/reference-image.js';
 import { REFERENCE_IMAGE_MAX_BYTES } from '../src/types/reference-image.js';
 
@@ -168,8 +168,32 @@ function parseBingOptions(input: unknown): BingImageOptions | undefined {
   if (typeof value.ar === 'number' && Number.isFinite(value.ar)) {
     bing.ar = value.ar;
   }
+  if (typeof value.preferWebApi === 'boolean') {
+    bing.preferWebApi = value.preferWebApi;
+  }
+  if (value.mode === 'auto' || value.mode === 'web-api' || value.mode === 'dom') {
+    bing.mode = value.mode;
+  }
 
   return Object.keys(bing).length ? bing : undefined;
+}
+
+function parseGeminiOptions(input: unknown): GeminiImageOptions | undefined {
+  if (!input || typeof input !== 'object') {
+    return undefined;
+  }
+
+  const value = input as Record<string, unknown>;
+  const gemini: GeminiImageOptions = {};
+
+  if (typeof value.preferWebApi === 'boolean') {
+    gemini.preferWebApi = value.preferWebApi;
+  }
+  if (value.mode === 'auto' || value.mode === 'web-api' || value.mode === 'dom') {
+    gemini.mode = value.mode;
+  }
+
+  return Object.keys(gemini).length ? gemini : undefined;
 }
 
 function buildRequestFromParts(parts: {
@@ -182,6 +206,7 @@ function buildRequestFromParts(parts: {
   referenceImageMimeType?: string;
   referenceImageName?: string;
   bing?: BingImageOptions;
+  gemini?: GeminiImageOptions;
 }): GenImageRequest {
   const prompt = parts.prompt?.trim() || '';
   let referenceImage = parts.referenceImage ?? null;
@@ -205,6 +230,7 @@ function buildRequestFromParts(parts: {
     count: parts.count,
     referenceImage,
     bing: parts.bing,
+    gemini: parts.gemini,
   };
 }
 
@@ -232,6 +258,7 @@ function parseJsonRequest(body: string): GenImageRequest {
     count,
     referenceImage,
     bing: parseBingOptions(parsed.bing),
+    gemini: parseGeminiOptions(parsed.gemini),
     referenceImageBase64:
       typeof parsed.referenceImageBase64 === 'string' ? parsed.referenceImageBase64 : undefined,
     referenceImageMimeType:
@@ -270,10 +297,30 @@ function parseMultipartRequest(body: Buffer, boundary: string): GenImageRequest 
     } catch {
       throw new Error('bing 字段必须是合法 JSON');
     }
-  } else if (parsed.fields.bingModel || parsed.fields.bingAspectRatio) {
+  } else if (
+    parsed.fields.bingModel ||
+    parsed.fields.bingAspectRatio ||
+    parsed.fields.bingMode ||
+    parsed.fields.bingPreferWebApi
+  ) {
     bing = parseBingOptions({
       model: parsed.fields.bingModel,
       aspectRatio: parsed.fields.bingAspectRatio,
+      mode: parsed.fields.bingMode,
+      preferWebApi: parsed.fields.bingPreferWebApi === 'true',
+    });
+  }
+  let gemini: GeminiImageOptions | undefined;
+  if (parsed.fields.gemini) {
+    try {
+      gemini = parseGeminiOptions(JSON.parse(parsed.fields.gemini));
+    } catch {
+      throw new Error('gemini field must be valid JSON');
+    }
+  } else if (parsed.fields.geminiMode || parsed.fields.geminiPreferWebApi) {
+    gemini = parseGeminiOptions({
+      mode: parsed.fields.geminiMode,
+      preferWebApi: parsed.fields.geminiPreferWebApi === 'true',
     });
   }
 
@@ -284,6 +331,7 @@ function parseMultipartRequest(body: Buffer, boundary: string): GenImageRequest 
     count: Number.isFinite(count) ? count : undefined,
     referenceImage,
     bing,
+    gemini,
   });
 }
 

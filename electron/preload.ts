@@ -13,6 +13,10 @@ import type {
   EnsureImageWebviewRequest,
   EnsureImageWebviewResult,
 } from '../src/types/image-gen-api';
+import type {
+  ImageGenApiSettings,
+  ImageGenApiSettingsResult,
+} from '../src/types/image-gen-api-settings';
 
 const IPC_CHANNELS = [
   'geolocation:get-settings',
@@ -28,6 +32,8 @@ const IPC_CHANNELS = [
   'llm:summarize-responses',
   'update:check',
   'update:install',
+  'image-gen-api:get-settings',
+  'image-gen-api:save-settings',
 ] as const;
 
 type IpcChannel = (typeof IPC_CHANNELS)[number];
@@ -96,4 +102,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   checkForUpdates: () => invoke<{ success: boolean }>('update:check'),
   installUpdate: () => invoke<{ success: boolean }>('update:install'),
+  getImageGenApiSettings: () =>
+    invoke<ImageGenApiSettingsResult>('image-gen-api:get-settings'),
+  saveImageGenApiSettings: (settings: Partial<ImageGenApiSettings>) =>
+    invoke<ImageGenApiSettingsResult>('image-gen-api:save-settings', settings),
 });

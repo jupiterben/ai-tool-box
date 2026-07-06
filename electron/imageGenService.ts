@@ -18,6 +18,7 @@ import {
 import { requestEnsureImageWebview } from './imageGenBridge.js';
 import { normalizeReferenceImageInput } from './imageGenRequestParser.js';
 import { generateBingImagesViaWebviewFetch } from './bingImageCreator.js';
+import { generateGeminiImagesViaPageFetch } from './geminiImageCreator.js';
 import { findToolWebContents, getUrlHints } from './webviewLocate.js';
 import { resetImageWebviewForApi } from './webviewReset.js';
 
@@ -41,7 +42,10 @@ export type ImageGenProgressEvent =
         | 'image'
         | 'bing_api_start'
         | 'bing_api_done'
-        | 'bing_api_fallback';
+        | 'bing_api_fallback'
+        | 'gemini_web_api_start'
+        | 'gemini_web_api_done'
+        | 'gemini_web_api_fallback';
       toolId: string;
       prompt?: string;
       round?: number;
@@ -58,6 +62,10 @@ export interface GenerateImageOptions {
   onProgress?: (event: ImageGenProgressEvent) => void;
   threadId?: string;
 }
+
+type GeminiPageFetchGenImageResult = GenImageResult & {
+  didSendPrompt?: boolean;
+};
 
 function emitProgress(options: GenerateImageOptions | undefined, event: ImageGenProgressEvent): void {
   try {
@@ -276,6 +284,14 @@ async function generateViaWebviewDom(
     const roundResult = await generateImageRound(roundContext, roundPrompt, seenOrigins, options);
 
     if (!roundResult.success || !roundResult.image) {
+      return {
+        success: false,
+        toolId,
+        prompt,
+        images: allImages.length ? sanitizeImagesForApi(allImages) : undefined,
+        via: 'webview-dom',
+        error: `Round ${round + 1}/${targetCount} failed: ${roundResult.error || 'image generation failed'}`,
+      };
       if (allImages.length > 0) {
         // 已有部分成果，中断并返回已收集的图
         break;
@@ -380,6 +396,91 @@ async function generateBingViaInternalApi(
   };
 }
 
+function shouldUseBingInternalApi(bing?: GenImageRequest['bing']): boolean {
+  if (bing?.mode === 'dom' || bing?.preferWebApi === false) {
+    return false;
+  }
+  return true;
+}
+
+function shouldUseGeminiPageFetch(gemini?: GenImageRequest['gemini']): boolean {
+  if (gemini?.mode === 'dom' || gemini?.preferWebApi === false) {
+    return false;
+  }
+  if (gemini?.mode === 'web-api' || gemini?.preferWebApi) {
+    return true;
+  }
+  return process.env.AI_TOOLBOX_GEMINI_WEB_API !== '0';
+}
+
+async function generateGeminiViaPageFetch(
+  prompt: string,
+  webContentsId: number | undefined,
+  timeoutMs: number,
+  count: number,
+  options?: GenerateImageOptions
+): Promise<GeminiPageFetchGenImageResult> {
+  const handler = getSiteHandler('gemini-image');
+  if (!handler) {
+    return { success: false, error: 'gemini-image handler not found' };
+  }
+
+  const wc = findToolWebContents(
+    getToolPartition('gemini-image'),
+    webContentsId,
+    getUrlHints(handler.config)
+  );
+
+  if (!wc) {
+    return { success: false, error: 'Gemini webview not found' };
+  }
+
+  emitProgress(options, {
+    type: 'gemini_web_api_start',
+    toolId: 'gemini-image',
+    prompt,
+    webContentsId,
+    via: 'web-api',
+    message: 'Capturing Gemini StreamGenerate and replaying with page fetch',
+  });
+
+  const apiResult = await generateGeminiImagesViaPageFetch(wc, {
+    prompt,
+    timeoutMs,
+    count,
+    webContentsId,
+  });
+
+  if (!apiResult.success || !apiResult.images?.length) {
+    return {
+      success: false,
+      toolId: 'gemini-image',
+      prompt,
+      images: apiResult.images,
+      via: 'web-api',
+      error: apiResult.error || 'Gemini page fetch failed',
+      didSendPrompt: apiResult.didSendPrompt,
+    };
+  }
+
+  emitProgress(options, {
+    type: 'gemini_web_api_done',
+    toolId: 'gemini-image',
+    prompt,
+    via: 'web-api',
+    message: 'Gemini page fetch completed',
+  });
+
+  return {
+    success: true,
+    toolId: 'gemini-image',
+    prompt,
+    images: apiResult.images,
+    via: 'web-api',
+    didSendPrompt: apiResult.didSendPrompt,
+  };
+}
+
 function sliceImages(images: ExtractedImage[], count?: number): ExtractedImage[] {
   const limit = normalizeImageCount(count);
   return images.slice(0, limit);
@@ -461,7 +562,7 @@ export async function generateImageViaWebview(
     message: 'Image webview reset',
   });
 
-  if (toolId === 'bing-create' && !referenceImage) {
+  if (toolId === 'bing-create' && !referenceImage && shouldUseBingInternalApi(request.bing)) {
     const apiResult = await generateBingViaInternalApi(prompt, webContentsId, timeoutMs, request.bing, options);
     if (apiResult.success) {
       console.log('[imageGenService] Bing via=web-api');
@@ -491,6 +592,56 @@ export async function generateImageViaWebview(
       apiError: apiResult.error,
       via: 'webview-dom',
       message: 'Bing internal API failed, falling back to webview DOM',
+    });
+    const domResult = await generateViaWebviewDom(
+      toolId,
+      prompt,
+      webContentsId,
+      referenceImage,
+      timeoutMs,
+      count,
+      options
+    );
+    return { ...domResult, apiError: apiResult.error };
+  }
+
+  if (toolId === 'bing-create' && !referenceImage) {
+    return generateViaWebviewDom(toolId, prompt, webContentsId, referenceImage, timeoutMs, count, options);
+  }
+
+  if (toolId === 'gemini-image' && !referenceImage && shouldUseGeminiPageFetch(request.gemini)) {
+    const apiResult = await generateGeminiViaPageFetch(prompt, webContentsId, timeoutMs, count, options);
+    if (apiResult.success) {
+      for (const [index, image] of (apiResult.images ?? []).entries()) {
+        emitProgress(options, {
+          type: 'image',
+          toolId,
+          round: index + 1,
+          totalRounds: apiResult.images?.length,
+          image,
+          via: 'web-api',
+          message: 'Image generated',
+        });
+      }
+      return apiResult;
+    }
+
+    if (apiResult.images?.length) {
+      return apiResult;
+    }
+
+    if (apiResult.didSendPrompt) {
+      return apiResult;
+    }
+
+    console.warn('[imageGenService] Gemini page fetch failed, falling back to webview DOM:', apiResult.error);
+    emitProgress(options, {
+      type: 'gemini_web_api_fallback',
+      toolId,
+      prompt,
+      apiError: apiResult.error,
+      via: 'webview-dom',
+      message: 'Gemini page fetch failed, falling back to webview DOM',
     });
     const domResult = await generateViaWebviewDom(
       toolId,

@@ -3,14 +3,16 @@ import LlmSettingsPanel from '../LlmSettings/LlmSettingsPanel';
 import ToolSettingsPanel from '../ToolSettings/ToolSettingsPanel';
 import ProxySettingsPanel from '../EnvironmentSettings/ProxySettingsPanel';
 import GeolocationSettingsPanel from '../EnvironmentSettings/GeolocationSettingsPanel';
+import ApiSettingsPanel from '../ApiSettings/ApiSettingsPanel';
 import SettingsPageLayout from './SettingsPageLayout';
 import { SegmentControl } from '../ui/SegmentControl';
 import styles from './SettingsPage.module.css';
 
-type SettingsTab = 'llm' | 'chat-tools' | 'image-tools' | 'proxy' | 'geo';
+type SettingsTab = 'llm' | 'api' | 'chat-tools' | 'image-tools' | 'proxy' | 'geo';
 
 const SETTINGS_TABS: { value: SettingsTab; label: string }[] = [
   { value: 'llm', label: 'LLM 汇总' },
+  { value: 'api', label: 'API 服务' },
   { value: 'chat-tools', label: '对话网站' },
   { value: 'image-tools', label: '生图网站' },
   { value: 'proxy', label: '网络代理' },
@@ -19,6 +21,7 @@ const SETTINGS_TABS: { value: SettingsTab; label: string }[] = [
 
 const TAB_DESCRIPTIONS: Record<SettingsTab, string> = {
   llm: '配置 LLM API，收集各平台回复时自动调用 AI 生成结构化 Markdown 汇总。',
+  api: '控制本机生图 API 服务的启用状态、监听端口和实际访问地址。',
   'chat-tools': '管理对话类网站的启用状态、网络代理与 GPS 定位。',
   'image-tools': '管理生图类网站的启用状态、网络代理与 GPS 定位。',
   proxy: '定义代理预设，在「对话网站」与「生图网站」中为各站分配。',
@@ -67,6 +70,11 @@ const SettingsPage: React.FC = () => {
         {visitedTabs.has('llm') && (
           <div className={activeTab === 'llm' ? undefined : styles.panelHidden}>
             <LlmSettingsPanel />
+          </div>
+        )}
+        {visitedTabs.has('api') && (
+          <div className={activeTab === 'api' ? undefined : styles.panelHidden}>
+            <ApiSettingsPanel />
           </div>
         )}
         {visitedTabs.has('chat-tools') && (

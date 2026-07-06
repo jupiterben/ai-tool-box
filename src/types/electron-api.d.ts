@@ -6,6 +6,7 @@ import type {
   EnsureImageWebviewRequest,
   EnsureImageWebviewResult,
 } from './image-gen-api';
+import type { ImageGenApiSettings, ImageGenApiSettingsResult } from './image-gen-api-settings';
 import type { ReferenceImage } from './reference-image';
 
 export interface WebviewSendInputPayload {
@@ -89,6 +90,10 @@ export interface ElectronAPI {
   onUpdateStatus?: (callback: (status: UpdateStatus) => void) => () => void;
   checkForUpdates?: () => Promise<{ success: boolean }>;
   installUpdate?: () => Promise<{ success: boolean }>;
+  getImageGenApiSettings?: () => Promise<ImageGenApiSettingsResult>;
+  saveImageGenApiSettings?: (
+    settings: Partial<ImageGenApiSettings>
+  ) => Promise<ImageGenApiSettingsResult>;
 }
 
 declare global {

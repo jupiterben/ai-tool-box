@@ -98,6 +98,24 @@ return collected images
 
 这样做是为了等上一轮生成结束，避免新 prompt 在站点仍处于生成中时被输入但不能发送。
 
+### 为什么会看到 `(variation 3 of 4)`，但看不到 `(variation 2 of 4)`
+
+`buildRoundPrompt` 的编号规则是：
+
+```text
+round 1: 原始 prompt
+round 2: 原始 prompt (variation 2 of 4)
+round 3: 原始 prompt (variation 3 of 4)
+round 4: 原始 prompt (variation 4 of 4)
+```
+
+所以如果页面里能看到 `(variation 3 of 4)`，说明循环索引已经推进到了第 3 轮；`(variation 2 of 4)` 不见了，通常不是编号算错，而是第 2 轮没有真正进入 Gemini 对话，或者第 2 轮发送后的图片等待误采到了上一轮延迟出现的图片。
+
+为避免这种“跳轮但继续执行”的情况：
+
+- Gemini 原生发送确认必须同时满足输入框清空和页面正文出现本轮 prompt。
+- 任意中间轮次失败时，接口返回 `success:false`，并带上已经生成到的部分 `images`，不再静默当作成功。
+
 ## 图片提取注意点
 
 相关文件：
@@ -227,3 +245,71 @@ curl -N -X POST http://127.0.0.1:3920/api/gen_image/stream \
 - `electron/proxyManager.ts` 中 legacy proxy 类型不匹配。
 
 这些不是 Gemini 发送修复或 stream API 引入的问题。当前相关改动至少应保证 `pnpm run electron:compile` 通过。
+
+## Experimental Gemini Page Fetch
+
+Gemini does not expose a stable public image-generation Web API for this app. The experimental path reuses the logged-in Gemini page itself.
+
+Current stable strategy:
+
+1. Reset and open the normal `gemini-image` webview.
+2. For each round, attach Electron debugger `Network` capture before sending.
+3. Send the prompt through the existing DOM/native-input path so Gemini's own frontend builds a fresh `StreamGenerate` request.
+4. Capture that round's real `StreamGenerate` request and response body.
+5. Parse returned Google image URLs and download them through the same webview session.
+6. If the response body does not expose a downloadable URL, fall back to DOM new-image detection for that same round.
+
+Why this is more stable:
+
+- It no longer replays the first round request body.
+- Each round gets fresh Gemini-generated ids, conversation state, and throttling behavior.
+- It avoids the false quota response caused by reusing stale `c_...` / `r_...` / request state.
+- `AI_TOOLBOX_GEMINI_WEB_API_REPLAY=1` keeps the older replay path available for debugging only.
+
+Older replay strategy, kept only as a debug fallback:
+
+1. Reset and open the normal `gemini-image` webview.
+2. Attach Electron debugger `Network` capture to that webview.
+3. Send the first prompt through the existing DOM/native-input path.
+4. Capture the page's own `StreamGenerate` request URL, headers, and POST body.
+5. For remaining requested rounds, execute `fetch(...)` inside the Gemini page with `credentials: "include"`.
+6. Parse returned Google image URLs and download them through the same webview session.
+
+Enable per request:
+
+```json
+{
+  "toolId": "gemini-image",
+  "prompt": "Create a clean product icon of a glass teapot on white background.",
+  "count": 2,
+  "timeoutMs": 240000,
+  "gemini": {
+    "mode": "web-api"
+  }
+}
+```
+
+Equivalent multipart fields:
+
+```text
+toolId=gemini-image
+prompt=Create a clean product icon of a glass teapot on white background.
+count=2
+geminiMode=web-api
+```
+
+Operational notes:
+
+- Gemini now defaults to this stable page-captured web-api path. Use `gemini.mode="dom"` or `gemini.preferWebApi=false` to force DOM/native input.
+- Bing also supports `bing.mode`: it defaults to the internal web API path; use `bing.mode="dom"` or `bing.preferWebApi=false` to force DOM.
+- The stable page-fetch path captures every round instead of reusing a previous request body.
+- If capture fails before an image is collected, the service falls back to DOM. If a partial result already exists, the API returns `success:false` with partial `images`.
+- `AI_TOOLBOX_GEMINI_WEB_API=1` can force this experiment globally during local testing.
+
+Test command:
+
+```bash
+curl -X POST http://127.0.0.1:3920/api/gen_image \
+  -H "Content-Type: application/json" \
+  -d '{"toolId":"gemini-image","prompt":"Create a simple blue glass teapot icon on a plain white background.","count":2,"timeoutMs":240000,"gemini":{"mode":"web-api"}}'
+```

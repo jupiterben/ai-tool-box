@@ -447,6 +447,71 @@ curl -X POST "http://127.0.0.1:3920/api/debug/eval?toolId=bing-create" \
 > 调试接口同样受 `AI_TOOLBOX_API_TOKEN` 鉴权控制。
 ---
 
+### GET /api/debug/fetch_page
+
+抓取任意 HTTP/HTTPS URL，并返回响应状态、响应头、最终 URL 和网页文本内容，方便外部 AI 调试页面。
+这个接口不需要 `toolId`。
+
+Query 参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `url` | string | 是 | 目标 URL；如果 URL 自身带 query，需要先 URL encode |
+| `method` | string | 否 | HTTP 方法，默认 `GET`；拒绝 `CONNECT` 和 `TRACE` |
+| `timeoutMs` | number | 否 | 超时时间，默认 `15000`，最大 `60000` |
+| `maxBytes` | number | 否 | 最多读取的响应字节数，默认 `1048576`，最大 `5242880` |
+
+示例：
+
+```bash
+curl "http://127.0.0.1:3920/api/debug/fetch_page?url=https%3A%2F%2Fexample.com&maxBytes=200000"
+```
+
+响应示例：
+
+```json
+{
+  "success": true,
+  "url": "https://example.com/",
+  "finalUrl": "https://example.com/",
+  "status": 200,
+  "statusText": "OK",
+  "ok": true,
+  "redirected": false,
+  "headers": {
+    "content-type": "text/html; charset=UTF-8"
+  },
+  "contentType": "text/html; charset=UTF-8",
+  "content": "<!doctype html>...",
+  "contentLength": 513,
+  "truncated": false,
+  "maxBytes": 1048576
+}
+```
+
+### POST /api/debug/fetch_page
+
+需要传自定义 headers、body 或使用非 GET 方法时，用 JSON 请求体：
+
+```bash
+curl -X POST "http://127.0.0.1:3920/api/debug/fetch_page" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com",
+    "headers": {
+      "User-Agent": "AI-Tool-Box-Debug/1.0"
+    },
+    "timeoutMs": 15000,
+    "maxBytes": 1048576
+  }'
+```
+
+注意：
+
+- 仅支持 `http:` 和 `https:` URL。
+- 响应正文按 UTF-8 解码，超过 `maxBytes` 会截断，并返回 `truncated: true`。
+- 该接口同样受可选的 `AI_TOOLBOX_API_TOKEN` 鉴权控制；如果 API 暴露到局域网，建议开启 token。
+
 ## POST /api/gen_image/stream
 
 SSE streaming version of `/api/gen_image`. Request body is the same as `/api/gen_image`.
@@ -496,4 +561,46 @@ data: {"type":"image","toolId":"gemini-image","round":1,"totalRounds":2,"image":
 
 event: done
 data: {"type":"done","result":{"success":true,"toolId":"gemini-image","images":[...]}}
+```
+
+## Web API Mode Options
+
+`gemini-image` now defaults to the stable web-api path. It captures each real Gemini `StreamGenerate`
+request/response from the logged-in webview and downloads the returned image through the same session.
+
+Force Gemini DOM/native-input mode:
+
+```json
+{
+  "toolId": "gemini-image",
+  "prompt": "Create a simple icon.",
+  "count": 2,
+  "gemini": {
+    "mode": "dom"
+  }
+}
+```
+
+`bing-create` also supports the same mode switch. Bing already defaults to its internal web API path;
+use `mode: "dom"` only when you need to force page simulation.
+
+```json
+{
+  "toolId": "bing-create",
+  "prompt": "Create a simple icon.",
+  "bing": {
+    "mode": "web-api",
+    "model": "gpt4o",
+    "aspectRatio": "1:1"
+  }
+}
+```
+
+Multipart flat fields:
+
+```text
+geminiMode=dom
+geminiPreferWebApi=false
+bingMode=dom
+bingPreferWebApi=false
 ```

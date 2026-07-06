@@ -22,10 +22,12 @@ import { loadLlmSettings, saveLlmSettings } from './llmManager';
 import { summarizeResponses } from './llmService';
 import { checkForUpdatesManually, initializeAutoUpdater, quitAndInstallUpdate } from './updateManager';
 import { registerImageGenBridgeHandlers, clearImageGenBridge } from './imageGenBridge';
-import { startImageGenApi, stopImageGenApi } from './imageGenApi';
+import { getImageGenApiStatus, startImageGenApi, stopImageGenApi } from './imageGenApi';
+import { loadImageGenApiSettings, saveImageGenApiSettings } from './imageGenApiSettings';
 import type { GeolocationSettings } from '../src/types/geolocation-settings';
 import type { ProxySettings } from '../src/types/proxy-settings';
 import type { LlmSettingsInput, SummarizeResponsesPayload } from '../src/types/llm-settings';
+import type { ImageGenApiSettings } from '../src/types/image-gen-api-settings';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -78,6 +80,48 @@ function createWindow() {
 }
 
 function registerIpcHandlers() {
+  ipcMain.handle('image-gen-api:get-settings', async () => {
+    try {
+      const settings = await loadImageGenApiSettings();
+      return {
+        success: true,
+        settings,
+        status: getImageGenApiStatus(settings.enabled),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '读取 API 设置失败',
+      };
+    }
+  });
+
+  ipcMain.handle('image-gen-api:save-settings', async (_event, input: Partial<ImageGenApiSettings>) => {
+    try {
+      const settings = await saveImageGenApiSettings(input);
+      if (settings.enabled) {
+        await stopImageGenApi();
+        const status = await startImageGenApi(() => mainWindow, { port: settings.port });
+        return { success: true, settings, status };
+      }
+
+      await stopImageGenApi();
+      return {
+        success: true,
+        settings,
+        status: getImageGenApiStatus(settings.enabled),
+      };
+    } catch (error) {
+      const settings = await loadImageGenApiSettings().catch(() => undefined);
+      return {
+        success: false,
+        settings,
+        status: getImageGenApiStatus(settings?.enabled ?? false),
+        error: error instanceof Error ? error.message : '保存 API 设置失败',
+      };
+    }
+  });
+
   ipcMain.handle('proxy:get-settings', async () => {
     try {
       const settings = await loadProxySettings();
@@ -227,7 +271,12 @@ app.whenReady().then(async () => {
   await initializeGeolocationSettings();
   registerIpcHandlers();
   createWindow();
-  startImageGenApi(() => mainWindow);
+  const apiSettings = await loadImageGenApiSettings();
+  if (apiSettings.enabled) {
+    await startImageGenApi(() => mainWindow, { port: apiSettings.port }).catch((error) => {
+      console.error('[main] Failed to start image API:', error);
+    });
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -238,7 +287,7 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', () => {
   clearImageGenBridge();
-  stopImageGenApi();
+  void stopImageGenApi();
 });
 
 app.on('window-all-closed', () => {

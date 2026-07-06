@@ -1,6 +1,5 @@
 import { memo, useState, useEffect } from 'react';
 import Icon from './ui/Icon';
-import ThemeToggle from './ThemeToggle';
 import styles from './Sidebar.module.css';
 
 export interface ToolPage {
@@ -18,6 +17,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const settingsPage = pages.find((page) => page.id === 'settings');
+  const navPages = pages.filter((page) => page.id !== 'settings');
 
   useEffect(() => {
     const handleResize = () => {
@@ -46,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
       </div>
 
       <nav id="sidebar-navigation" className={styles.nav} role="navigation" aria-label="工具导航">
-        {pages.map((page) => (
+        {navPages.map((page) => (
           <button
             key={page.id}
             className={`${styles.navItem} ${activePageId === page.id ? styles.active : ''}`}
@@ -66,7 +67,24 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
       </nav>
 
       <div className={styles.footer}>
-        <ThemeToggle className={styles.themeToggle} />
+        {settingsPage && (
+          <button
+            className={`${styles.footerNavButton} ${
+              activePageId === settingsPage.id ? styles.footerNavButtonActive : ''
+            }`}
+            onClick={() => onPageChange(settingsPage.id)}
+            aria-label={`切换到${settingsPage.name}`}
+            aria-current={activePageId === settingsPage.id ? 'page' : undefined}
+            title={isCollapsed ? settingsPage.name : undefined}
+          >
+            {settingsPage.iconName ? (
+              <Icon name={settingsPage.iconName} size={20} className={styles.icon} aria-hidden="true" />
+            ) : settingsPage.icon ? (
+              <span className={styles.icon} aria-hidden="true">{settingsPage.icon}</span>
+            ) : null}
+            {!isCollapsed && <span className={styles.name}>{settingsPage.name}</span>}
+          </button>
+        )}
         <button
           className={styles.collapseButton}
           onClick={() => setIsCollapsed(!isCollapsed)}

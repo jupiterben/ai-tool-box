@@ -26,6 +26,17 @@ export interface BingImageOptions {
   mdl?: number | string;
   /** 底层 ar 参数（数值，一般无需手动指定） */
   ar?: number;
+  /** Prefer the internal web API path over DOM sending. Defaults to true. */
+  preferWebApi?: boolean;
+  /** Use "dom" to force DOM sending, "web-api" to force the internal API path. */
+  mode?: 'auto' | 'web-api' | 'dom';
+}
+
+export interface GeminiImageOptions {
+  /** Experimental: prefer the captured page fetch path over DOM-only sending. */
+  preferWebApi?: boolean;
+  /** Experimental mode. Use "web-api" to try the page fetch path, "dom" to force DOM. */
+  mode?: 'auto' | 'web-api' | 'dom';
 }
 
 export interface GenImageRequest {
@@ -41,6 +52,8 @@ export interface GenImageRequest {
   count?: number;
   /** Bing 专用选项 */
   bing?: BingImageOptions;
+  /** Gemini 专用选项（toolId=gemini-image 时生效） */
+  gemini?: GeminiImageOptions;
 }
 
 export interface GenImageResult {

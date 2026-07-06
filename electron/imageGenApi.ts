@@ -5,6 +5,7 @@ import {
   type GenImageResult,
   type GenImageRequest,
 } from '../src/types/image-gen-api.js';
+import type { ImageGenApiStatus } from '../src/types/image-gen-api-settings.js';
 import { generateImageViaWebview, type ImageGenProgressEvent } from './imageGenService.js';
 import { parseGenImageRequest } from './imageGenRequestParser.js';
 import {
@@ -16,13 +17,19 @@ import {
 } from './imageGenApiConfig.js';
 import { getApiWorkerStatus, runWithApiWorker } from './imageGenApiWorkers.js';
 import {
+  debugFetchPage,
   debugWebviewEval,
   debugWebviewInfo,
   debugWebviewScreenshot,
   debugWebviewSnapshot,
+  type DebugFetchPageOptions,
 } from './imageGenDebug.js';
 
 let server: ReturnType<typeof createServer> | null = null;
+let activeHost = '';
+let configuredPort = 0;
+let activePort: number | undefined;
+let lastError: string | undefined;
 
 function sendJson(res: ServerResponse, statusCode: number, body: unknown): void {
   const payload = JSON.stringify(body);
@@ -227,6 +234,49 @@ function readBodyText(req: IncomingMessage): Promise<string> {
   });
 }
 
+function getQueryNumber(query: URLSearchParams, name: string): number | undefined {
+  const raw = query.get(name);
+  if (!raw) {
+    return undefined;
+  }
+
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+async function parseDebugFetchRequest(req: IncomingMessage): Promise<DebugFetchPageOptions> {
+  const { query } = parseQueryUrl(req);
+
+  if (req.method === 'GET') {
+    return {
+      url: query.get('url') || '',
+      method: query.get('method') || undefined,
+      timeoutMs: getQueryNumber(query, 'timeoutMs'),
+      maxBytes: getQueryNumber(query, 'maxBytes'),
+    };
+  }
+
+  const body = await readBodyText(req);
+  if (!body.trim()) {
+    return { url: '' };
+  }
+
+  const parsed = JSON.parse(body) as Partial<DebugFetchPageOptions>;
+  return {
+    url: typeof parsed.url === 'string' ? parsed.url : '',
+    method: typeof parsed.method === 'string' ? parsed.method : undefined,
+    headers:
+      parsed.headers && typeof parsed.headers === 'object' && !Array.isArray(parsed.headers)
+        ? Object.fromEntries(
+            Object.entries(parsed.headers).map(([key, value]) => [key, String(value)])
+          )
+        : undefined,
+    body: typeof parsed.body === 'string' ? parsed.body : undefined,
+    timeoutMs: typeof parsed.timeoutMs === 'number' ? parsed.timeoutMs : undefined,
+    maxBytes: typeof parsed.maxBytes === 'number' ? parsed.maxBytes : undefined,
+  };
+}
+
 async function handleDebug(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (!isAuthorized(req)) {
     sendJson(res, 401, { success: false, error: 'Unauthorized' });
@@ -236,6 +286,19 @@ async function handleDebug(req: IncomingMessage, res: ServerResponse): Promise<v
   const { pathname, query } = parseQueryUrl(req);
   const toolId = query.get('toolId') || undefined;
   const webContentsId = Number(query.get('webContentsId'));
+
+  if (pathname === '/api/debug/fetch_page' && (req.method === 'GET' || req.method === 'POST')) {
+    try {
+      const result = await debugFetchPage(await parseDebugFetchRequest(req));
+      sendJson(res, result.success ? 200 : 400, result);
+    } catch (error) {
+      sendJson(res, 400, {
+        success: false,
+        error: error instanceof Error ? error.message : 'Fetch page request parse failed',
+      });
+    }
+    return;
+  }
 
   if (!toolId) {
     sendJson(res, 400, { success: false, error: 'Missing toolId' });
@@ -282,13 +345,63 @@ async function handleDebug(req: IncomingMessage, res: ServerResponse): Promise<v
   }
 }
 
-export function startImageGenApi(getMainWindow: () => BrowserWindow | null): void {
+function listen(serverToListen: ReturnType<typeof createServer>, port: number, host: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const onError = (error: NodeJS.ErrnoException) => {
+      cleanup();
+      reject(error);
+    };
+    const onListening = () => {
+      cleanup();
+      resolve();
+    };
+    const cleanup = () => {
+      serverToListen.off('error', onError);
+      serverToListen.off('listening', onListening);
+    };
+
+    serverToListen.once('error', onError);
+    serverToListen.once('listening', onListening);
+    serverToListen.listen(port, host);
+  });
+}
+
+async function listenWithPortFallback(
+  serverToListen: ReturnType<typeof createServer>,
+  startPort: number,
+  host: string,
+  maxAttempts = 20
+): Promise<number> {
+  let port = startPort;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      await listen(serverToListen, port, host);
+      return port;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'EADDRINUSE' && code !== 'EACCES') {
+        throw error;
+      }
+      port += 1;
+      if (port >= 65536) {
+        port = 1024;
+      }
+    }
+  }
+
+  throw new Error(`No available API port found from ${startPort}`);
+}
+
+export async function startImageGenApi(
+  getMainWindow: () => BrowserWindow | null,
+  options: { port?: number } = {}
+): Promise<ImageGenApiStatus> {
   if (server) {
-    return;
+    return getImageGenApiStatus(true);
   }
 
   const bindHost = getApiBindHost();
-  const port = getApiPort();
+  const port = options.port ?? getApiPort();
   ensureLanSecurity(bindHost);
 
   server = createServer(async (req, res) => {
@@ -308,13 +421,24 @@ export function startImageGenApi(getMainWindow: () => BrowserWindow | null): voi
       sendJson(res, 200, {
         success: true,
         service: 'ai-tool-box-image-gen',
-        port,
+        port: activePort ?? port,
+        configuredPort: port,
         host: bindHost,
         lanEnabled: isLanBindHost(bindHost),
         defaultWorkerCountPerTool: getApiDefaultWorkerCount(),
         workerStatus: getApiWorkerStatus(),
         accessUrls: formatApiAccessUrls(bindHost, port),
-        features: ['prompt', 'referenceImage', 'multipart-upload', 'stream', 'debug', 'parallel-workers', 'per-tool-workers'],
+        features: [
+          'prompt',
+          'referenceImage',
+          'multipart-upload',
+          'stream',
+          'debug',
+          'debug-fetch-page',
+          'parallel-workers',
+          'per-tool-workers',
+          'gemini-page-fetch-experimental',
+        ],
       });
       return;
     }
@@ -337,24 +461,64 @@ export function startImageGenApi(getMainWindow: () => BrowserWindow | null): voi
     sendJson(res, 404, { success: false, error: 'Not Found' });
   });
 
-  server.listen(port, bindHost, () => {
-    const urls = formatApiAccessUrls(bindHost, port);
-    console.log(`[imageGenApi] API started (${bindHost}:${port})`);
-    for (const url of urls) {
-      console.log(`[imageGenApi]   -> ${url}`);
-    }
-  });
-
   server.on('error', (error) => {
     console.error('[imageGenApi] Failed to start:', error);
   });
+
+  configuredPort = port;
+  activeHost = bindHost;
+  activePort = undefined;
+  lastError = undefined;
+
+  try {
+    const actualPort = await listenWithPortFallback(server, port, bindHost);
+    activePort = actualPort;
+    const urls = formatApiAccessUrls(bindHost, actualPort);
+    console.log(`[imageGenApi] API started (${bindHost}:${actualPort})`);
+    if (actualPort !== port) {
+      console.log(`[imageGenApi] requested port ${port} was unavailable; using ${actualPort}`);
+    }
+    for (const url of urls) {
+      console.log(`[imageGenApi]   -> ${url}`);
+    }
+    return getImageGenApiStatus(true);
+  } catch (error) {
+    lastError = error instanceof Error ? error.message : 'API failed to start';
+    try {
+      server.close();
+    } catch {
+      // server may not have started listening
+    }
+    server = null;
+    activePort = undefined;
+    throw error;
+  }
 }
 
-export function stopImageGenApi(): void {
+export function stopImageGenApi(): Promise<void> {
   if (!server) {
-    return;
+    activePort = undefined;
+    return Promise.resolve();
   }
 
-  server.close();
+  const closingServer = server;
   server = null;
+  activePort = undefined;
+  return new Promise((resolve) => {
+    closingServer.close(() => resolve());
+  });
+}
+
+export function getImageGenApiStatus(enabled = true): ImageGenApiStatus {
+  const host = activeHost || getApiBindHost();
+  const port = configuredPort || getApiPort();
+  return {
+    enabled,
+    running: Boolean(server && activePort),
+    host,
+    configuredPort: port,
+    actualPort: activePort,
+    accessUrls: activePort ? formatApiAccessUrls(host, activePort) : [],
+    error: lastError,
+  };
 }

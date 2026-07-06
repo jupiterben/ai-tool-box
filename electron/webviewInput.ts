@@ -263,14 +263,21 @@ async function sendGeminiNative(
 
     const verifyScript = `(function(){
       ${handler.buildBrowserRuntimeScript()}
+      function normalizeText(value) {
+        return String(value || '').replace(/\\s+/g, ' ').trim();
+      }
       var input = __findInputElement();
       var remaining = input
         ? ((input.tagName === 'TEXTAREA' || input.tagName === 'INPUT')
           ? input.value
-          : (input.innerText || input.textContent || '')).replace(/\\s+/g, ' ').trim()
+          : (input.innerText || input.textContent || ''))
         : '';
-      var sent = remaining === '' || remaining.indexOf(${contentJson}) < 0;
-      return { sent: sent, remaining: remaining };
+      remaining = normalizeText(remaining);
+      var normalizedContent = normalizeText(${contentJson});
+      var bodyText = normalizeText(document.body ? document.body.innerText : '');
+      var inputCleared = remaining === '' || remaining.indexOf(normalizedContent) < 0;
+      var promptVisible = bodyText.indexOf(normalizedContent) >= 0;
+      return { sent: inputCleared && promptVisible, remaining: remaining, promptVisible: promptVisible };
     })()`;
     const verify = (await wc.executeJavaScript(verifyScript)) as VerifySentResult;
     if (verify?.sent) {
