@@ -13,6 +13,8 @@
     "electron:dev:debug": "cross-env ELECTRON_SOURCEMAP=1 pnpm run electron:compile && cross-env ELECTRON_DEV=1 ELECTRON_SOURCEMAP=1 concurrently -k \"vite\" \"wait-on -t 120000 tcp:127.0.0.1:5173 && electron --inspect=9230 .\"",
     "electron:build": "pnpm run generate:icon && pnpm run build && pnpm run electron:compile && electron-builder",
     "electron:build:win": "pnpm run generate:icon && pnpm run build && pnpm run electron:compile && electron-builder --win --x64",
+    "electron:build:mac": "pnpm run generate:icon && pnpm run build && pnpm run electron:compile && electron-builder --mac --arm64",
+    "electron:build:all": "pnpm run generate:icon && pnpm run build && pnpm run electron:compile && electron-builder --win --x64 --mac --arm64",
     "build:exe": "pnpm run generate:icon && pnpm run build && pnpm run electron:compile && electron-builder --win --x64 --dir",
     "build:portable": "pnpm run generate:icon && pnpm run build && pnpm run electron:compile && electron-builder --win portable --x64",
     "generate:icon": "node scripts/generate-icon.mjs",

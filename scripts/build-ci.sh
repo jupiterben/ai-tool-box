@@ -46,7 +46,8 @@ win)
   bash "$ROOT/scripts/generate-latest-yml.sh" win "$RELEASE_DIR" "$VERSION"
   ;;
 mac)
-  npx electron-builder --mac --publish never --config.directories.output="$RELEASE_DIR"
+  # 与 electron-builder.yml 一致：仅 arm64（Apple Silicon）
+  npx electron-builder --mac --arm64 --publish never --config.directories.output="$RELEASE_DIR"
   if [[ -f "$RELEASE_DIR/latest-mac.yml" ]]; then
     echo "📝 使用 electron-builder 生成的 latest-mac.yml（差分更新）"
   else

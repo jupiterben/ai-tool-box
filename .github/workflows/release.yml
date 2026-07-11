@@ -1,4 +1,9 @@
-# GitHub Actions：推送 v* tag 时构建并发布 Linux / Windows / macOS 生产包
+# GitHub Actions：推送 v* tag 时构建并发布 Windows / macOS / Linux 生产包
+#
+# 平台矩阵：
+#   - Windows (windows-latest): NSIS .exe + .zip + latest.yml（x64）
+#   - macOS   (macos-latest):   DMG + .zip + latest-mac.yml（arm64）
+#   - Linux   (ubuntu-latest):  AppImage + latest-linux.yml（x64）
 #
 # 发布流程：
 #   1. 确保 package.json version 与 tag 一致（如 tag v1.0.3 → version 1.0.3）

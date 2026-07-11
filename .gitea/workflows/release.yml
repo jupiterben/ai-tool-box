@@ -1,9 +1,14 @@
-# Gitea Actions：推送 v* tag 时构建并发布多平台安装包
+# Gitea Actions：推送 v* tag 时构建并发布 Windows / macOS / Linux 安装包
+#
+# 平台矩阵：
+#   - Windows (windows-latest): NSIS .exe + .zip + latest.yml（x64）
+#   - macOS   (macos-latest):   DMG + .zip + latest-mac.yml（arm64）
+#   - Linux   (ubuntu-latest):  AppImage + latest-linux.yml（x64）
 #
 # 前置条件（act_runner）：
 #   - 需注册三类 runner 标签：windows-latest / macos-latest / ubuntu-latest
 #   - Windows runner 需安装 Git Bash（build-ci.sh 依赖 bash）
-#   - macOS 构建必须在 macOS runner 上执行（无法交叉编译）
+#   - macOS 构建必须在 macOS runner 上执行（无法交叉编译，且仅 arm64）
 #   - runner 需能访问 .npmrc 中的内网 npm / electron 镜像
 #
 # 发布流程：
@@ -121,9 +126,9 @@ jobs:
 
             | 平台 | 产物 |
             |------|------|
-            | Windows | NSIS 安装包 (.exe) + 增量更新 (.zip) + latest.yml |
-            | macOS | DMG (.dmg) |
-            | Linux | AppImage (.AppImage) |
+            | Windows | NSIS (.exe + .blockmap) + 便携 (.zip) + latest.yml |
+            | macOS | DMG (.dmg) + 差分更新 (.zip + .blockmap) + latest-mac.yml（arm64） |
+            | Linux | AppImage（内嵌 blockmap）+ latest-linux.yml |
           files: |-
             dist/**/*
           sha256sum: true
