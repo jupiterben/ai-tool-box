@@ -1,16 +1,155 @@
-.pageWide {
-  max-width: 1080px;
+.settingsShell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--spacing-8);
 }
 
-.pageCompact {
-  max-width: 680px;
-}
-
-.tabs {
+.navigation {
+  position: sticky;
+  top: 0;
   display: flex;
-  justify-content: flex-start;
+  flex-direction: column;
+  gap: var(--spacing-5);
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-primary) 2%);
+  box-shadow: var(--shadow-sm);
+}
+
+.navGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.navGroupLabel {
+  padding: var(--spacing-1) var(--spacing-3);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+}
+
+.navItems {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.navItem {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.navItem:hover {
+  color: var(--color-text-primary);
+  background: var(--color-background-hover);
+}
+
+.navItem:active {
+  transform: scale(0.98);
+}
+
+.navItem:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.navItemActive,
+.navItemActive:hover {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.navChevron {
+  justify-self: end;
+}
+
+.content {
+  min-width: 0;
+  width: 100%;
+  max-width: 860px;
 }
 
 .panelHidden {
   display: none;
+}
+
+@media (max-width: 860px) {
+  .settingsShell {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-5);
+  }
+
+  .navigation {
+    position: static;
+    flex-direction: row;
+    gap: var(--spacing-4);
+    overflow-x: auto;
+    padding: var(--spacing-2);
+    scrollbar-width: thin;
+  }
+
+  .navGroup {
+    flex: 0 0 auto;
+  }
+
+  .navGroupLabel {
+    padding-left: var(--spacing-2);
+  }
+
+  .navItems {
+    flex-direction: row;
+  }
+
+  .navItem {
+    grid-template-columns: 18px auto;
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .navChevron {
+    display: none;
+  }
+
+  .content {
+    max-width: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .navGroupLabel {
+    display: none;
+  }
+
+  .navigation {
+    gap: var(--spacing-1);
+  }
+
+  .navItems {
+    gap: var(--spacing-1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navItem {
+    transition: none;
+  }
 }

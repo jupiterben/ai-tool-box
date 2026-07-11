@@ -1,8 +1,9 @@
 .container {
+  display: flex;
+  align-items: center;
   width: 100%;
-  padding: var(--spacing-4);
-  background-color: var(--color-background);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--color-surface);
   transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
@@ -10,6 +11,16 @@
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-background);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.inputWrapper:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
 /* 响应式设计 */
@@ -46,17 +57,16 @@
 
 .textarea {
   width: 100%;
-  padding: var(--spacing-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 0;
+  border-radius: 0;
   font-size: var(--font-size-base);
   font-family: var(--font-family-sans);
   line-height: var(--line-height-normal);
   color: var(--color-text-primary);
-  background-color: var(--color-background);
-  resize: vertical;
-  min-height: 80px;
-  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  background: transparent;
+  resize: none;
+  min-height: 48px;
   outline: none;
   will-change: border-color, box-shadow;
 }
@@ -66,13 +76,11 @@
 }
 
 .textarea:hover:not(:disabled):not(:read-only) {
-  border-color: var(--color-border-hover);
+  border-color: transparent;
 }
 
 .textarea:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent);
-  transform: translateY(-1px);
+  box-shadow: none;
 }
 
 .textarea:disabled {
@@ -85,7 +93,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: var(--spacing-2);
+  margin-top: 0;
+  padding: 0 var(--spacing-2) var(--spacing-1) var(--spacing-3);
   gap: var(--spacing-2);
 }
 
@@ -104,8 +113,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-1);
+  min-height: 36px;
   padding: var(--spacing-1) var(--spacing-3);
-  border: 1px solid var(--color-border);
+  border: 0;
   border-radius: var(--radius-md);
   background: var(--color-background-secondary);
   color: var(--color-text-secondary);
@@ -128,11 +138,11 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
-  margin-bottom: var(--spacing-2);
+  margin: var(--spacing-3) var(--spacing-3) 0;
   padding: var(--spacing-2);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-background-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .referenceThumb {
@@ -163,8 +173,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -190,12 +200,17 @@
 }
 
 .sendButton {
-  padding: var(--spacing-2) var(--spacing-6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  min-height: 40px;
+  padding: var(--spacing-2) var(--spacing-5);
   background-color: var(--color-primary-600);
   color: var(--color-text-inverse);
   border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition: all var(--transition-base);
@@ -225,14 +240,27 @@
 }
 
 .sendButton:disabled::after {
-  content: '';
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  margin-left: var(--spacing-2);
-  border: 2px solid var(--color-text-inverse);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-  vertical-align: middle;
+  display: none;
+}
+
+.sendButton:has(svg[class*='lucide-loader']) svg {
+  animation: spin 0.8s linear infinite;
+}
+
+@media (max-width: 640px) {
+  .attachButton,
+  .sendButton,
+  .referenceRemove {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .container,
+  .inputWrapper,
+  .textarea,
+  .attachButton,
+  .sendButton {
+    transition: none;
+  }
 }

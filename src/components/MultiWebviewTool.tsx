@@ -278,65 +278,76 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
               />
             </div>
             <div className={styles.footer} role="region" aria-label="输入和工具选择">
-              <div className={styles.footerToolbar}>
-                <ToolSelector
-                  tools={enabledTools}
-                  selectedToolIds={selectedToolIds}
-                  onSelectionChange={handleSelectionChange}
-                />
-                <button
-                  type="button"
-                  className={styles.collectToolbarButton}
-                  onClick={() => handleConversationAction('recentChat')}
-                  disabled={isConversationAction || selectedToolIds.length === 0}
-                  title="在所有已选平台回到最近一次对话"
-                >
-                  <Icon name="History" size={16} />
-                  {isConversationAction ? '切换中…' : '最近对话'}
-                </button>
-                <button
-                  type="button"
-                  className={styles.collectToolbarButton}
-                  onClick={() => handleConversationAction('newChat')}
-                  disabled={isConversationAction || selectedToolIds.length === 0}
-                  title="在所有已选平台新建对话"
-                >
-                  <Icon name="MessageSquarePlus" size={16} />
-                  新建对话
-                </button>
-                <button
-                  type="button"
-                  className={styles.collectToolbarButton}
-                  onClick={handleCollectResponses}
-                  disabled={isCollectBusy || selectedToolIds.length === 0}
-                  title={
-                    isSummarizing
-                      ? '正在调用 LLM 生成智能汇总'
-                      : isCollecting
-                        ? '正在从各平台提取回复'
-                        : '收集各平台 AI 回复并生成汇总文档'
-                  }
-                >
-                  <Icon name="FileText" size={16} />
-                  {isSummarizing ? 'LLM 汇总中…' : isCollecting ? '收集中…' : '收集回复'}
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.panelToggleButton} ${panelOpen ? styles.panelToggleActive : ''}`}
-                  onClick={handleTogglePanel}
-                  title={panelOpen ? '隐藏汇总面板' : '显示汇总面板'}
-                  aria-pressed={panelOpen}
-                >
-                  <Icon name="PanelRight" size={16} />
-                  汇总
-                </button>
+              <div className={styles.composerDock}>
+                <div className={styles.footerToolbar}>
+                  <div className={styles.composerTitle}>
+                    <span className={styles.composerIcon}><Icon name="MessagesSquare" size={17} /></span>
+                    <span><strong>多平台对话</strong><small>同时发送到 {selectedToolIds.length} 个平台</small></span>
+                  </div>
+                  <div className={styles.toolbarActions}>
+                    <button
+                      type="button"
+                      className={styles.collectToolbarButton}
+                      onClick={() => handleConversationAction('recentChat')}
+                      disabled={isConversationAction || selectedToolIds.length === 0}
+                      title="在所有已选平台回到最近一次对话"
+                    >
+                      <Icon name="History" size={16} />
+                      {isConversationAction ? '切换中…' : '最近对话'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.collectToolbarButton}
+                      onClick={() => handleConversationAction('newChat')}
+                      disabled={isConversationAction || selectedToolIds.length === 0}
+                      title="在所有已选平台新建对话"
+                    >
+                      <Icon name="MessageSquarePlus" size={16} />
+                      新建对话
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.collectToolbarButton}
+                      onClick={handleCollectResponses}
+                      disabled={isCollectBusy || selectedToolIds.length === 0}
+                      title={
+                        isSummarizing
+                          ? '正在调用 LLM 生成智能汇总'
+                          : isCollecting
+                            ? '正在从各平台提取回复'
+                            : '收集各平台 AI 回复并生成汇总文档'
+                      }
+                    >
+                      <Icon name="FileText" size={16} />
+                      {isSummarizing ? 'LLM 汇总中…' : isCollecting ? '收集中…' : '收集回复'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.panelToggleButton} ${panelOpen ? styles.panelToggleActive : ''}`}
+                      onClick={handleTogglePanel}
+                      title={panelOpen ? '隐藏汇总面板' : '显示汇总面板'}
+                      aria-pressed={panelOpen}
+                    >
+                      <Icon name="PanelRight" size={16} />
+                      汇总
+                    </button>
+                  </div>
+                </div>
+                <div className={styles.composerBody}>
+                  <ToolSelector
+                    tools={enabledTools}
+                    selectedToolIds={selectedToolIds}
+                    onSelectionChange={handleSelectionChange}
+                  />
+                  <UnifiedInput
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onSend={handleSend}
+                    isSending={isSending}
+                    placeholder="向已选平台同时提问…"
+                  />
+                </div>
               </div>
-              <UnifiedInput
-                value={inputValue}
-                onChange={handleInputChange}
-                onSend={handleSend}
-                isSending={isSending}
-              />
             </div>
           </div>
         </Splitter.Panel>
@@ -375,25 +386,33 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
             />
           </div>
           <div className={styles.footer} role="region" aria-label="输入和工具选择">
-            <div className={styles.footerToolbar}>
-              <ToolSelector
-                tools={enabledTools}
-                selectedToolIds={selectedToolIds}
-                onSelectionChange={handleSelectionChange}
-              />
+            <div className={styles.composerDock}>
+              <div className={styles.footerToolbar}>
+                <div className={styles.composerTitle}>
+                  <span className={styles.composerIcon}><Icon name={category === 'video' ? 'Clapperboard' : 'Image'} size={17} /></span>
+                  <span><strong>{category === 'video' ? '视频创作台' : '图像创作台'}</strong><small>同步创作 · {selectedToolIds.length} 个平台</small></span>
+                </div>
+              </div>
+              <div className={styles.composerBody}>
+                <ToolSelector
+                  tools={enabledTools}
+                  selectedToolIds={selectedToolIds}
+                  onSelectionChange={handleSelectionChange}
+                />
+                <UnifiedInput
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onSend={handleSend}
+                  isSending={isSending}
+                  placeholder={`描述你想生成的${toolLabel}内容、风格与镜头…`}
+                  enableReferenceImage={supportsReferenceImage}
+                  referenceImage={referenceImage}
+                  onReferenceImageChange={setReferenceImage}
+                  referenceImageError={referenceImageError}
+                  onReferenceImageError={setReferenceImageError}
+                />
+              </div>
             </div>
-            <UnifiedInput
-              value={inputValue}
-              onChange={handleInputChange}
-              onSend={handleSend}
-              isSending={isSending}
-              placeholder={`输入${toolLabel}提示词...`}
-              enableReferenceImage={supportsReferenceImage}
-              referenceImage={referenceImage}
-              onReferenceImageChange={setReferenceImage}
-              referenceImageError={referenceImageError}
-              onReferenceImageError={setReferenceImageError}
-            />
           </div>
         </div>
       )}

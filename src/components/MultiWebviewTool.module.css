@@ -34,17 +34,120 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  background-color: var(--color-background);
+  padding: var(--spacing-2);
+  background: color-mix(in srgb, var(--color-background) 94%, transparent);
   border-top: 1px solid var(--color-border);
   transition: background-color var(--transition-base), border-color var(--transition-base);
+}
+
+.composerDock {
+  width: 100%;
+  max-width: none;
+  overflow: visible;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  container-type: inline-size;
+}
+
+.composerBody {
+  display: grid;
+  grid-template-columns: minmax(260px, 36%) minmax(420px, 1fr);
+  align-items: stretch;
+  min-width: 0;
+  overflow: visible;
+}
+
+.composerBody > :first-child {
+  border-right: 1px solid var(--color-border);
 }
 
 .footerToolbar {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-3) 0;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  min-height: 44px;
+  padding: var(--spacing-1) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;
+}
+
+.composerTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  min-width: max-content;
+}
+
+.composerTitle > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.composerTitle strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.composerTitle small {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+}
+
+.composerIcon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-lg);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+@container (max-width: 720px) {
+  .composerTitle {
+    flex: 1 0 100%;
+  }
+
+  .toolbarActions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .collectToolbarButton,
+  .panelToggleButton {
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .composerBody {
+    grid-template-columns: 1fr;
+  }
+
+  .composerBody > :first-child {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+
+@container (max-width: 440px) {
+  .toolbarActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .collectToolbarButton,
@@ -52,9 +155,10 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-2);
+  min-height: 36px;
   padding: var(--spacing-2) var(--spacing-3);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-xs);
   font-family: var(--font-family-sans);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
@@ -85,10 +189,37 @@
 }
 
 .panelToggleButton {
-  margin-left: auto;
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text-secondary);
+}
+
+@media (max-width: 640px) {
+  .footer {
+    padding: var(--spacing-2);
+  }
+
+  .composerDock {
+    border-radius: var(--radius-lg);
+  }
+
+  .composerTitle small {
+    display: none;
+  }
+
+  .collectToolbarButton,
+  .panelToggleButton {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer,
+  .collectToolbarButton,
+  .panelToggleButton,
+  .main {
+    transition: none;
+  }
 }
 
 .panelToggleButton:hover {

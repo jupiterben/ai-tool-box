@@ -27,21 +27,21 @@ function renderTabStatus(status: InputDeliveryState['status'] | 'pending') {
   if (status === 'sending') {
     return (
       <span className={styles.tabStatus} aria-label="发送中">
-        ⏳
+        <Icon name="LoaderCircle" size={14} />
       </span>
     );
   }
   if (status === 'success') {
     return (
       <span className={styles.tabStatus} aria-label="发送成功">
-        ✓
+        <Icon name="CircleCheck" size={14} />
       </span>
     );
   }
   if (status === 'error') {
     return (
       <span className={styles.tabStatus} aria-label="发送失败">
-        ✗
+        <Icon name="CircleX" size={14} />
       </span>
     );
   }
@@ -276,7 +276,8 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
   if (!selectedTools.length) {
     return (
       <div className={styles.emptyState}>
-        <p>请至少选择一个 AI 工具</p>
+        <span className={styles.emptyIcon}><Icon name="PanelsTopLeft" size={24} /></span>
+        <div><strong>还没有选择平台</strong><p>请在下方创作台中至少选择一个 AI 工具。</p></div>
       </div>
     );
   }

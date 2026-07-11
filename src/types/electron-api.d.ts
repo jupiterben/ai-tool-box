@@ -8,6 +8,7 @@ import type {
 } from './image-gen-api';
 import type { ImageGenApiSettings, ImageGenApiSettingsResult } from './image-gen-api-settings';
 import type { ReferenceImage } from './reference-image';
+import type { AgentCliConfig, AgentCliId, AgentCliResult } from './agent-cli';
 
 export interface WebviewSendInputPayload {
   toolId: string;
@@ -43,6 +44,9 @@ export interface ExtractWebviewResponsesResult {
 }
 
 export interface ElectronAPI {
+  listAgentClis: () => Promise<AgentCliResult>;
+  installAgentCli: (id: AgentCliId) => Promise<AgentCliResult>;
+  saveAgentCliConfig: (id: AgentCliId, config: AgentCliConfig) => Promise<AgentCliResult>;
   getGeolocationSettings: () => Promise<{
     success: boolean;
     settings?: GeolocationSettings;

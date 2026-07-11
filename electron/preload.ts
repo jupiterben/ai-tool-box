@@ -17,6 +17,7 @@ import type {
   ImageGenApiSettings,
   ImageGenApiSettingsResult,
 } from '../src/types/image-gen-api-settings';
+import type { AgentCliConfig, AgentCliId, AgentCliResult } from '../src/types/agent-cli';
 
 const IPC_CHANNELS = [
   'geolocation:get-settings',
@@ -34,6 +35,9 @@ const IPC_CHANNELS = [
   'update:install',
   'image-gen-api:get-settings',
   'image-gen-api:save-settings',
+  'agent-cli:list',
+  'agent-cli:install',
+  'agent-cli:save-config',
 ] as const;
 
 type IpcChannel = (typeof IPC_CHANNELS)[number];
@@ -46,6 +50,10 @@ function invoke<T>(channel: IpcChannel, data?: unknown): Promise<T> {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  listAgentClis: () => invoke<AgentCliResult>('agent-cli:list'),
+  installAgentCli: (id: AgentCliId) => invoke<AgentCliResult>('agent-cli:install', id),
+  saveAgentCliConfig: (id: AgentCliId, config: AgentCliConfig) =>
+    invoke<AgentCliResult>('agent-cli:save-config', { id, config }),
   getGeolocationSettings: () =>
     invoke<{ success: boolean; settings?: GeolocationSettings; error?: string }>(
       'geolocation:get-settings'

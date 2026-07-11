@@ -153,7 +153,7 @@ const UnifiedInput: React.FC<UnifiedInputProps> = memo(({
           placeholder={placeholder}
           maxLength={maxLength}
           disabled={isSending}
-          rows={3}
+          rows={2}
           aria-label="输入内容"
           aria-describedby="input-counter"
         />
@@ -194,7 +194,8 @@ const UnifiedInput: React.FC<UnifiedInputProps> = memo(({
             aria-label="发送"
             aria-disabled={!canSend}
           >
-            {isSending ? '发送中...' : '发送'}
+            <Icon name={isSending ? 'LoaderCircle' : 'ArrowUp'} size={17} />
+            {isSending ? '发送中…' : '发送'}
           </button>
         </div>
       </div>

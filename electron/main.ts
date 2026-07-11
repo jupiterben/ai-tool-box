@@ -28,6 +28,8 @@ import type { GeolocationSettings } from '../src/types/geolocation-settings';
 import type { ProxySettings } from '../src/types/proxy-settings';
 import type { LlmSettingsInput, SummarizeResponsesPayload } from '../src/types/llm-settings';
 import type { ImageGenApiSettings } from '../src/types/image-gen-api-settings';
+import type { AgentCliConfig, AgentCliId } from '../src/types/agent-cli';
+import { installAgentCli, listAgentClis, saveAgentCliConfig } from './agentCliManager';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -80,6 +82,18 @@ function createWindow() {
 }
 
 function registerIpcHandlers() {
+  ipcMain.handle('agent-cli:list', async () => {
+    try { return { success: true, agents: await listAgentClis() }; }
+    catch (error) { return { success: false, error: error instanceof Error ? error.message : '读取 Agent CLI 失败' }; }
+  });
+  ipcMain.handle('agent-cli:install', async (_event, id: AgentCliId) => {
+    try { await installAgentCli(id); return { success: true, agents: await listAgentClis() }; }
+    catch (error) { return { success: false, error: error instanceof Error ? error.message : '安装失败' }; }
+  });
+  ipcMain.handle('agent-cli:save-config', async (_event, payload: { id: AgentCliId; config: AgentCliConfig }) => {
+    try { await saveAgentCliConfig(payload.id, payload.config); return { success: true }; }
+    catch (error) { return { success: false, error: error instanceof Error ? error.message : '保存配置失败' }; }
+  });
   ipcMain.handle('image-gen-api:get-settings', async () => {
     try {
       const settings = await loadImageGenApiSettings();

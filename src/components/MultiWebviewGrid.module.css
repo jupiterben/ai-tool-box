@@ -13,7 +13,8 @@
   align-items: center;
   gap: var(--spacing-1);
   flex-shrink: 0;
-  padding: var(--spacing-2) var(--spacing-3) 0;
+  min-height: 48px;
+  padding: var(--spacing-2) var(--spacing-3);
   border-bottom: 1px solid var(--color-border);
   background-color: var(--color-background-secondary);
   overflow-x: auto;
@@ -25,10 +26,10 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-4);
+  min-height: 36px;
+  padding: var(--spacing-2) var(--spacing-3);
   border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: var(--radius-base) var(--radius-base) 0 0;
+  border-radius: var(--radius-lg);
   background: transparent;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
@@ -44,11 +45,9 @@
 }
 
 .tabActive {
-  color: var(--color-text-primary);
-  background-color: var(--color-background);
-  border-color: var(--color-border);
-  margin-bottom: -1px;
-  padding-bottom: calc(var(--spacing-2) + 1px);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-background));
+  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--color-border));
 }
 
 .tabIcon {
@@ -70,7 +69,7 @@
 }
 
 .tabStatus[aria-label='发送中'] {
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 .tabStatus[aria-label='发送成功'] {
@@ -86,7 +85,7 @@
   align-items: center;
   gap: var(--spacing-2);
   margin-left: auto;
-  padding-bottom: var(--spacing-2);
+  padding-left: var(--spacing-2);
   flex-shrink: 0;
 }
 
@@ -128,17 +127,39 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: var(--spacing-3);
   height: 100%;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
+}
+
+.emptyState strong {
+  display: block;
+  margin-bottom: var(--spacing-1);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+}
+
+.emptyState p {
+  margin: 0;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-xl);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .toolbarButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
@@ -146,6 +167,17 @@
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--transition-base);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabsRoot,
+  .tab,
+  .toolbarButton,
+  .retryButton,
+  .tabStatus[aria-label='发送中'] {
+    transition: none;
+    animation: none;
+  }
 }
 
 .toolbarButton:hover:not(:disabled) {
