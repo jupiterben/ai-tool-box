@@ -4,7 +4,7 @@
 
 **Goal:** 实现可命名的 Preset 工作区：Default 内置、可增删改、每 Preset 独立设置与登录态，切换时新开窗口且每 Preset 最多一窗。
 
-**Architecture:** 主进程维护 Preset 注册表与 `Map<presetId, BrowserWindow>`；每个窗口注入 `presetId`；webview 统一使用 `persist:preset-{presetId}`（同 Preset 工具共享 Cookie）。Preset 级设置存 `userData/presets/{id}/`；渲染侧 localStorage 键带 `presetId` 后缀。因 Chromium session 级代理，**同 Preset 内代理/GPS 为整区一份**（不再按 tool 分 partition）。
+**Architecture:** 主进程维护 Preset 注册表与 `Map<presetId, BrowserWindow>`；每个窗口注入 `presetId`；webview 统一使用 `persist:preset-{presetId}`（同 Preset 工具共享 Cookie）。Preset 级设置存 `userData/presets/{id}/`；渲染侧 localStorage 键带 `presetId` 后缀。因 Chromium session 级代理，**同 Preset 只配一个上游 + 一份 GPS**；若需按站分流，上游指向本机 Clash 等，由该代理做域名路由（应用内不做规则引擎）。
 
 **Tech Stack:** Electron 43、React 19、TypeScript、现有 IPC/`electronAPI`、node:test。
 
@@ -17,7 +17,8 @@
 - 每 Preset 最多一个 `BrowserWindow`；已存在则 `focus()`。
 - 旧 Cookie（`persist:tool-*`）本版不迁移。
 - 主题 / LLM / Agent CLI / 生图 API 保持全局。
-- 同 Preset 共享 session ⇒ **一份代理 + 一份 GPS** 作用于该 Preset 分区。
+- 同 Preset 共享 session ⇒ **一份上游代理 + 一份 GPS**；去掉每 tool `setProxy`。
+- **不做**应用内按站点分流 UI；文案提示：多出口请用本机代理规则。
 
 ---
 
@@ -405,7 +406,7 @@ findToolWebContents(getPresetPartition(presetId), …)
 - Modify: `src/components/Sidebar.tsx`（header 下放切换器）
 - Modify: `src/components/settings/SettingsPage.tsx`（新分组「工作区」→ Preset 管理）
 - Modify: `src/components/ToolSettings/ToolSettingsPanel.tsx` — **去掉每站代理/GPS 列**（或禁用并提示「请到运行环境按 Preset 配置」）；启用开关仍按 Preset 存
-- Modify: `src/components/EnvironmentSettings/ProxySettingsPanel.tsx` / `GeolocationSettingsPanel.tsx` — 编辑当前 Preset 的 `session` 代理/GPS + profiles
+- Modify: `src/components/EnvironmentSettings/ProxySettingsPanel.tsx` / `GeolocationSettingsPanel.tsx` — 编辑当前 Preset 的 `session` 上游 + profiles；Proxy 面板增加简短说明：「同一 Preset 共用一个上游；按网站分流请在 Clash 等本机代理中配置规则」
 
 **切换器行为：**
 - 展示当前 Preset 名

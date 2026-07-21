@@ -1,7 +1,7 @@
 # Preset 工作区设计
 
 日期：2026-07-20  
-状态：待用户终审  
+状态：已确认（含代理路由修订）  
 
 ## 问题
 
@@ -20,6 +20,8 @@
 - 主题、LLM、Agent CLI、生图 API 等应用级配置按 Preset 隔离。
 - 同一 Preset 多窗口并行。
 - 云同步 Preset。
+- 应用内按站点/工具做 Electron 级分流（见下方「代理模型」）。
+- 内置完整规则引擎（Clash 规则 UI 等）；分流交给用户本机/上游代理。
 
 ## 行为
 
@@ -64,19 +66,35 @@ interface PresetRegistry {
 
 - 工具启用列表（可添加/移除应用）
 - 对话 / 生图 / 生视频各自「当前勾选」工具
-- 代理设置
-- 地理位置设置
+- **一份**上游代理（直连 / 系统 / 指定 profile，常见为本机 Clash 等端口）
+- **一份**地理位置设置
 - Webview 登录态：分区名 `persist:preset-{presetId}`（**同 Preset 内所有工具共享 Cookie**）
+
+### 代理模型（修订）
+
+同 Preset 共享一个 Chromium `session`，因此只能 `setProxy` **一次**：
+
+```
+Preset 内全部 webview
+    → 唯一上游（如 127.0.0.1:7890）
+    → 本机/上游代理按域名规则分流
+```
+
+- **应用负责：** Preset 级选一个上游（可推荐「系统代理」或本机 HTTP/SOCKS profile）。
+- **分流负责方：** Clash / sing-box / 系统代理等；不同站不同出口在规则里配，不在 Tool 列表里每站选代理。
+- **本版不做：** 应用内按 toolId 挂不同 Electron proxy；不做内置规则编辑器。
 
 ### 仍为全局
 
 - LLM 摘要、Agent CLI、生图 API、主题等
+- 代理 **profile 定义** 可仍放在设置里复用；**选用哪个上游** 按 Preset
 
 ### Partition 规则
 
 - 现：`persist:tool-{toolId}`
 - 新：`persist:preset-{presetId}`
 - 代理 / GPS / `clearToolWebviewData` 均改为按 **preset 分区** 操作（不再按 tool 分区）。清缓存 UI 文案改为「清理当前 Preset 缓存」。
+- 工具设置页 **去掉每站代理列**；改在运行环境 / Preset 环境中配置「本 Preset 上游」。
 
 ## UI
 
@@ -133,6 +151,7 @@ interface PresetRegistry {
 | 模型 | Preset = 完整工作区（非仅 Cookie） |
 | 切换 | Chrome 式新开窗口 |
 | 窗口数 | 每 Preset 最多一窗 |
-| 设置范围 | 工具列表、勾选、代理、GPS、登录态 |
+| 设置范围 | 工具列表、勾选、上游代理、GPS、登录态 |
+| 代理 | Preset 一份上游；域名分流交给本机/上游代理 |
 | 新建默认 | 拷贝 Default 启用工具 |
 | 旧 Cookie | 不自动迁移 |
