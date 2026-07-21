@@ -229,17 +229,24 @@ export function useGeolocationSettings() {
   }, []);
 
   const updateToolConfig = useCallback((toolId: string, patch: Partial<ToolGeolocationConfig>) => {
-    setSettings((prev) => ({
-      ...prev,
-      tools: {
-        ...prev.tools,
-        [toolId]: {
-          ...prev.tools[toolId],
-          ...patch,
-          toolId,
+    setSettings((prev) => {
+      const nextTool = {
+        ...prev.tools[toolId],
+        ...patch,
+        toolId,
+      };
+      return {
+        ...prev,
+        tools: {
+          ...prev.tools,
+          [toolId]: nextTool,
         },
-      },
-    }));
+        session: {
+          mode: nextTool.mode,
+          profileId: nextTool.profileId,
+        },
+      };
+    });
     clearSaveFeedback();
   }, [clearSaveFeedback]);
 

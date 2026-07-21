@@ -1,6 +1,6 @@
 import type { WebContents } from 'electron';
 import type { ExtractedImage } from '../src/types/image-gen-api.js';
-import { getToolPartition } from '../src/utils/toolPartition.js';
+import { getActivePresetPartition } from './presetPartition.js';
 import { sendWebviewInput, waitForWebviewSendReady } from './webviewInput.js';
 import {
   getBaselineOriginSrcs,
@@ -597,7 +597,7 @@ async function generateGeminiImagesViaPageNativeFetch(
   const perRoundTimeoutMs = Math.max(Math.floor(timeoutMs / Math.max(1, targetCount)), FETCH_TIMEOUT_FLOOR_MS);
   const payload = {
     toolId: GEMINI_TOOL_ID,
-    partition: getToolPartition(GEMINI_TOOL_ID),
+    partition: getActivePresetPartition(),
     webContentsId: options.webContentsId,
   };
 
@@ -727,7 +727,7 @@ async function generateGeminiImagesViaReplayFetch(
   const perRoundTimeoutMs = Math.max(Math.floor(timeoutMs / Math.max(1, targetCount)), FETCH_TIMEOUT_FLOOR_MS);
   const payload = {
     toolId: GEMINI_TOOL_ID,
-    partition: getToolPartition(GEMINI_TOOL_ID),
+    partition: getActivePresetPartition(),
     webContentsId: options.webContentsId,
   };
 

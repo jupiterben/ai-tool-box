@@ -1,12 +1,24 @@
 import { memo, useState, useEffect } from 'react';
 import Icon from './ui/Icon';
+import PresetSwitcher from './PresetSwitcher/PresetSwitcher';
 import styles from './Sidebar.module.css';
 
 export interface ToolPage {
   id: string;
   name: string;
   icon?: string;
-  iconName?: 'Globe' | 'Settings' | 'Zap' | 'Layout' | 'Grid' | 'Code' | 'Sparkles' | 'MapPin' | 'Image' | 'Video' | 'Workflow';
+  iconName?:
+    | 'Globe'
+    | 'Settings'
+    | 'Zap'
+    | 'Layout'
+    | 'Grid'
+    | 'Code'
+    | 'Sparkles'
+    | 'MapPin'
+    | 'Image'
+    | 'Video'
+    | 'Workflow';
 }
 
 interface SidebarProps {
@@ -46,6 +58,14 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
         </div>
       </div>
 
+      <PresetSwitcher
+        collapsed={isCollapsed}
+        onManage={() => {
+          sessionStorage.setItem('ai-tool-box-settings-tab', 'presets');
+          onPageChange('settings');
+        }}
+      />
+
       <nav id="sidebar-navigation" className={styles.nav} role="navigation" aria-label="工具导航">
         {navPages.map((page) => (
           <button
@@ -59,7 +79,9 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
             {page.iconName ? (
               <Icon name={page.iconName} size={20} className={styles.icon} aria-hidden="true" />
             ) : page.icon ? (
-              <span className={styles.icon} aria-hidden="true">{page.icon}</span>
+              <span className={styles.icon} aria-hidden="true">
+                {page.icon}
+              </span>
             ) : null}
             {!isCollapsed && <span className={styles.name}>{page.name}</span>}
           </button>
@@ -78,23 +100,16 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
             title={isCollapsed ? settingsPage.name : undefined}
           >
             {settingsPage.iconName ? (
-              <Icon name={settingsPage.iconName} size={20} className={styles.icon} aria-hidden="true" />
-            ) : settingsPage.icon ? (
-              <span className={styles.icon} aria-hidden="true">{settingsPage.icon}</span>
+              <Icon
+                name={settingsPage.iconName}
+                size={20}
+                className={styles.icon}
+                aria-hidden="true"
+              />
             ) : null}
             {!isCollapsed && <span className={styles.name}>{settingsPage.name}</span>}
           </button>
         )}
-        <button
-          className={styles.collapseButton}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          aria-label={isCollapsed ? '展开侧边栏' : '折叠侧边栏'}
-          aria-expanded={!isCollapsed}
-          aria-controls="sidebar-navigation"
-          title={isCollapsed ? '展开' : '折叠'}
-        >
-          <Icon name={isCollapsed ? 'ChevronRight' : 'ChevronLeft'} size={18} aria-hidden="true" />
-        </button>
       </div>
     </aside>
   );

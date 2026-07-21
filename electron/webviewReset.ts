@@ -2,7 +2,7 @@ import type { WebContents } from 'electron';
 import { DEFAULT_IMAGE_TOOLS } from '../src/config/tools.js';
 import { getSiteHandler } from '../src/webview-handlers/index.js';
 import type { BaseSiteHandler } from '../src/webview-handlers/BaseSiteHandler.js';
-import { getToolPartition } from '../src/utils/toolPartition.js';
+import { getActivePresetPartition } from './presetPartition.js';
 import { findToolWebContents, getUrlHints } from './webviewLocate.js';
 
 const IMAGE_RESET_URLS: Record<string, string> = Object.fromEntries(
@@ -90,7 +90,7 @@ export async function resetImageWebviewForApi(
   }
 
   const wc = findToolWebContents(
-    getToolPartition(toolId),
+    getActivePresetPartition(),
     webContentsId,
     getUrlHints(handler.config)
   );

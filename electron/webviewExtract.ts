@@ -1,6 +1,6 @@
 import { getSiteHandler } from '../src/webview-handlers/index.js';
 import { findToolWebContents, getUrlHints } from './webviewLocate.js';
-import { getToolPartition } from '../src/utils/toolPartition.js';
+import { getActivePresetPartition } from './presetPartition.js';
 
 export interface ExtractedToolResponse {
   toolId: string;
@@ -40,7 +40,7 @@ export async function extractWebviewResponses(
       continue;
     }
 
-    const partition = getToolPartition(toolId);
+    const partition = getActivePresetPartition();
     const webContentsId = payload.webContentsIds?.[toolId];
     const wc = findToolWebContents(partition, webContentsId, getUrlHints(handler.config));
 

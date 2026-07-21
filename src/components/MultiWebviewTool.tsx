@@ -18,7 +18,9 @@ import {
   SELECTED_IMAGE_TOOLS_STORAGE_KEY,
   SELECTED_VIDEO_TOOLS_STORAGE_KEY,
   SELECTED_TOOLS_STORAGE_KEY,
+  presetStorageKey,
 } from '../utils/settingsStorage';
+import { usePresetId } from '../hooks/usePresetContext';
 import { TOOL_CATEGORY_LABELS } from '../config/tools';
 import {
   registerImageGenEnsureHandler,
@@ -41,15 +43,18 @@ const MultiWebviewTool: React.FC<MultiWebviewToolProps> = ({ category = 'chat' }
   const [isConversationAction, setIsConversationAction] = useState<boolean>(false);
   const { theme: appTheme } = useTheme();
   const { size: summaryPanelSize, updateSize: updateSummaryPanelSize } = useSummaryPanelSize();
+  const presetId = usePresetId();
 
   const isChatMode = category === 'chat';
   const supportsReferenceImage = category === 'image' || category === 'video';
-  const selectedToolsStorageKey =
+  const selectedToolsStorageKey = presetStorageKey(
     category === 'image'
       ? SELECTED_IMAGE_TOOLS_STORAGE_KEY
       : category === 'video'
         ? SELECTED_VIDEO_TOOLS_STORAGE_KEY
-        : SELECTED_TOOLS_STORAGE_KEY;
+        : SELECTED_TOOLS_STORAGE_KEY,
+    presetId
+  );
   const toolLabel = TOOL_CATEGORY_LABELS[category];
 
   const enabledTools = useEnabledTools(category);

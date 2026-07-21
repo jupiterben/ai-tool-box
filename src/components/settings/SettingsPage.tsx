@@ -8,8 +8,18 @@ import SettingsPageLayout from './SettingsPageLayout';
 import { Icon, type IconName } from '../ui/Icon';
 import styles from './SettingsPage.module.css';
 import AgentCliSettingsPanel from '../AgentCliSettings/AgentCliSettingsPanel';
+import PresetSettingsPanel from '../PresetSettings/PresetSettingsPanel';
 
-type SettingsTab = 'agents' | 'llm' | 'api' | 'chat-tools' | 'image-tools' | 'video-tools' | 'proxy' | 'geo';
+type SettingsTab =
+  | 'presets'
+  | 'agents'
+  | 'llm'
+  | 'api'
+  | 'chat-tools'
+  | 'image-tools'
+  | 'video-tools'
+  | 'proxy'
+  | 'geo';
 
 interface SettingsNavItem {
   value: SettingsTab;
@@ -18,6 +28,10 @@ interface SettingsNavItem {
 }
 
 const SETTINGS_GROUPS: { label: string; items: SettingsNavItem[] }[] = [
+  {
+    label: '工作区',
+    items: [{ value: 'presets', label: 'Preset', icon: 'Layers' }],
+  },
   {
     label: '智能能力',
     items: [
@@ -44,19 +58,30 @@ const SETTINGS_GROUPS: { label: string; items: SettingsNavItem[] }[] = [
 ];
 
 const TAB_DESCRIPTIONS: Record<SettingsTab, string> = {
+  presets: '管理命名工作区：新建、重命名、删除；切换时新开窗口并隔离登录态。',
   agents: '统一安装、升级和配置 Cursor、Claude、Gemini 等本机 Agent CLI。',
   llm: '配置 LLM API，收集各平台回复时自动调用 AI 生成结构化 Markdown 汇总。',
   api: '控制本机生图 API 服务的启用状态、监听端口和实际访问地址。',
-  'chat-tools': '管理对话类网站的启用状态、网络代理与 GPS 定位。',
-  'image-tools': '管理生图类网站的启用状态、网络代理与 GPS 定位。',
-  'video-tools': '管理生视频类网站的启用状态、网络代理与 GPS 定位。',
-  proxy: '定义代理预设，在「对话网站」「生图网站」与「生视频网站」中为各站分配。',
-  geo: '定义 GPS 位置预设，在「对话网站」「生图网站」与「生视频网站」中为各站分配。',
+  'chat-tools': '管理对话类网站的启用状态。',
+  'image-tools': '管理生图类网站的启用状态。',
+  'video-tools': '管理生视频类网站的启用状态。',
+  proxy: '配置当前 Preset 的上游代理。同一 Preset 共用一个上游；按站分流请在本机代理规则中配置。',
+  geo: '配置当前 Preset 的 GPS 定位。',
 };
 
+function readInitialTab(): SettingsTab {
+  const fromStorage = sessionStorage.getItem('ai-tool-box-settings-tab');
+  if (fromStorage === 'presets') {
+    sessionStorage.removeItem('ai-tool-box-settings-tab');
+    return 'presets';
+  }
+  return 'presets';
+}
+
 const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('agents');
-  const [visitedTabs, setVisitedTabs] = useState<Set<SettingsTab>>(() => new Set(['agents']));
+  const initial = readInitialTab();
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initial);
+  const [visitedTabs, setVisitedTabs] = useState<Set<SettingsTab>>(() => new Set([initial]));
 
   useEffect(() => {
     setVisitedTabs((prev) => {
@@ -91,7 +116,9 @@ const SettingsPage: React.FC = () => {
                     >
                       <Icon name={item.icon} size={18} strokeWidth={1.8} />
                       <span>{item.label}</span>
-                      {isActive && <Icon name="ChevronRight" size={15} className={styles.navChevron} />}
+                      {isActive && (
+                        <Icon name="ChevronRight" size={15} className={styles.navChevron} />
+                      )}
                     </button>
                   );
                 })}
@@ -101,46 +128,51 @@ const SettingsPage: React.FC = () => {
         </nav>
 
         <section className={styles.content} aria-live="polite">
-        {visitedTabs.has('agents') && (
-          <div className={activeTab === 'agents' ? undefined : styles.panelHidden}>
-            <AgentCliSettingsPanel />
-          </div>
-        )}
-        {visitedTabs.has('llm') && (
-          <div className={activeTab === 'llm' ? undefined : styles.panelHidden}>
-            <LlmSettingsPanel />
-          </div>
-        )}
-        {visitedTabs.has('api') && (
-          <div className={activeTab === 'api' ? undefined : styles.panelHidden}>
-            <ApiSettingsPanel />
-          </div>
-        )}
-        {visitedTabs.has('chat-tools') && (
-          <div className={activeTab === 'chat-tools' ? undefined : styles.panelHidden}>
-            <ToolSettingsPanel category="chat" />
-          </div>
-        )}
-        {visitedTabs.has('image-tools') && (
-          <div className={activeTab === 'image-tools' ? undefined : styles.panelHidden}>
-            <ToolSettingsPanel category="image" />
-          </div>
-        )}
-        {visitedTabs.has('video-tools') && (
-          <div className={activeTab === 'video-tools' ? undefined : styles.panelHidden}>
-            <ToolSettingsPanel category="video" />
-          </div>
-        )}
-        {visitedTabs.has('proxy') && (
-          <div className={activeTab === 'proxy' ? undefined : styles.panelHidden}>
-            <ProxySettingsPanel />
-          </div>
-        )}
-        {visitedTabs.has('geo') && (
-          <div className={activeTab === 'geo' ? undefined : styles.panelHidden}>
-            <GeolocationSettingsPanel />
-          </div>
-        )}
+          {visitedTabs.has('presets') && (
+            <div className={activeTab === 'presets' ? undefined : styles.panelHidden}>
+              <PresetSettingsPanel />
+            </div>
+          )}
+          {visitedTabs.has('agents') && (
+            <div className={activeTab === 'agents' ? undefined : styles.panelHidden}>
+              <AgentCliSettingsPanel />
+            </div>
+          )}
+          {visitedTabs.has('llm') && (
+            <div className={activeTab === 'llm' ? undefined : styles.panelHidden}>
+              <LlmSettingsPanel />
+            </div>
+          )}
+          {visitedTabs.has('api') && (
+            <div className={activeTab === 'api' ? undefined : styles.panelHidden}>
+              <ApiSettingsPanel />
+            </div>
+          )}
+          {visitedTabs.has('chat-tools') && (
+            <div className={activeTab === 'chat-tools' ? undefined : styles.panelHidden}>
+              <ToolSettingsPanel category="chat" />
+            </div>
+          )}
+          {visitedTabs.has('image-tools') && (
+            <div className={activeTab === 'image-tools' ? undefined : styles.panelHidden}>
+              <ToolSettingsPanel category="image" />
+            </div>
+          )}
+          {visitedTabs.has('video-tools') && (
+            <div className={activeTab === 'video-tools' ? undefined : styles.panelHidden}>
+              <ToolSettingsPanel category="video" />
+            </div>
+          )}
+          {visitedTabs.has('proxy') && (
+            <div className={activeTab === 'proxy' ? undefined : styles.panelHidden}>
+              <ProxySettingsPanel />
+            </div>
+          )}
+          {visitedTabs.has('geo') && (
+            <div className={activeTab === 'geo' ? undefined : styles.panelHidden}>
+              <GeolocationSettingsPanel />
+            </div>
+          )}
         </section>
       </div>
     </SettingsPageLayout>

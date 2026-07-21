@@ -7,7 +7,7 @@ import {
   type GenImageRequest,
   type GenImageResult,
 } from '../src/types/image-gen-api.js';
-import { getToolPartition } from '../src/utils/toolPartition.js';
+import { getActivePresetPartition } from './presetPartition.js';
 import { sendWebviewInput, waitForWebviewSendReady } from './webviewInput.js';
 import {
   getBaselineOriginSrcs,
@@ -17,7 +17,7 @@ import {
 } from './webviewExtractImages.js';
 import { requestEnsureImageWebview } from './imageGenBridge.js';
 import { normalizeReferenceImageInput } from './imageGenRequestParser.js';
-import { generateBingImagesViaWebviewFetch } from './bingImageCreator.js';
+import { generateBingImagesViaWebviewFetch, resolveBingApiParams } from './bingImageCreator.js';
 import { generateGeminiImagesViaPageFetch } from './geminiImageCreator.js';
 import { findToolWebContents, getUrlHints } from './webviewLocate.js';
 import { resetImageWebviewForApi } from './webviewReset.js';
@@ -122,7 +122,7 @@ async function generateImageRound(
   const { toolId, webContentsId, referenceImage, perRoundTimeoutMs, roundIndex, totalRounds } = context;
   const sendPayload = {
     toolId,
-    partition: getToolPartition(toolId),
+    partition: getActivePresetPartition(),
     content: prompt,
     referenceImage: roundIndex === 0 ? referenceImage : null,
     webContentsId,
@@ -344,7 +344,7 @@ async function generateBingViaInternalApi(
   }
 
   const wc = findToolWebContents(
-    getToolPartition('bing-create'),
+    getActivePresetPartition(),
     webContentsId,
     getUrlHints(handler.config)
   );
@@ -426,7 +426,7 @@ async function generateGeminiViaPageFetch(
   }
 
   const wc = findToolWebContents(
-    getToolPartition('gemini-image'),
+    getActivePresetPartition(),
     webContentsId,
     getUrlHints(handler.config)
   );
@@ -512,6 +512,19 @@ export async function generateImageViaWebview(
   const toolId = request.toolId?.trim() || IMAGE_GEN_API_DEFAULT_TOOL_ID;
   if (!isImageToolId(toolId)) {
     return { success: false, error: `不支持的生图工具: ${toolId}` };
+  }
+
+  if (toolId === 'bing-create') {
+    try {
+      resolveBingApiParams(request.bing ?? {});
+    } catch (error) {
+      return {
+        success: false,
+        toolId,
+        prompt,
+        error: error instanceof Error ? error.message : 'Bing 参数无效',
+      };
+    }
   }
 
   const timeoutMs = request.timeoutMs ?? DEFAULT_TIMEOUT_MS;

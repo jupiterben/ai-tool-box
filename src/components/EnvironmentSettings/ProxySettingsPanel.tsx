@@ -28,6 +28,10 @@ const ProxySettingsPanel: React.FC = () => {
 
   return (
     <>
+      <Alert variant="info">
+        当前 Preset 共用一个上游代理。若需不同网站走不同出口，请把上游设为本机 Clash 等，并在其中配置域名规则。
+      </Alert>
+
       <div className={styles.toolbar}>
         <Button size="sm" variant="outline" onClick={proxy.addProfile} disabled={proxy.isSaving}>
           添加代理

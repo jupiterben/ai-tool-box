@@ -14,20 +14,31 @@ import {
   loadToolSettingsFromStorage,
   saveToolSettingsToStorage,
 } from '../utils/settingsStorage';
+import { usePresetId } from './usePresetContext';
 
 const TOOL_SETTINGS_CHANGED_EVENT = 'tool-settings-changed';
 
 let toolSettingsRevision = 0;
 let cachedToolSettings: ToolSettings | null = null;
+let cachedPresetId: string | null = null;
+
+function currentPresetId(): string {
+  if (typeof window !== 'undefined' && window.electronAPI?.getPresetId) {
+    return window.electronAPI.getPresetId();
+  }
+  return 'default';
+}
 
 function readToolSettingsFromStorage(): ToolSettings {
   const defaults = buildDefaultSettings();
-  const loaded = loadToolSettingsFromStorage(defaults) ?? defaults;
+  const loaded = loadToolSettingsFromStorage(defaults, currentPresetId()) ?? defaults;
   return sanitizeSettings(loaded);
 }
 
 function getCachedToolSettings(): ToolSettings {
-  if (!cachedToolSettings) {
+  const presetId = currentPresetId();
+  if (!cachedToolSettings || cachedPresetId !== presetId) {
+    cachedPresetId = presetId;
     cachedToolSettings = readToolSettingsFromStorage();
   }
   return cachedToolSettings;
@@ -105,6 +116,7 @@ export function useToolSettingsRevision(): number {
 }
 
 export function useToolSettings() {
+  const presetId = usePresetId();
   const [settings, setSettings] = useState<ToolSettings>(() => getCachedToolSettings());
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -115,9 +127,10 @@ export function useToolSettings() {
     setIsLoading(true);
     const sanitized = readToolSettingsFromStorage();
     cachedToolSettings = sanitized;
+    cachedPresetId = currentPresetId();
     setSettings(sanitized);
     setIsLoading(false);
-  }, []);
+  }, [presetId]);
 
   useEffect(() => {
     loadSettings();
@@ -126,7 +139,9 @@ export function useToolSettings() {
   const persistSettings = useCallback((next: ToolSettings) => {
     const sanitized = sanitizeSettings(next);
     cachedToolSettings = sanitized;
-    saveToolSettingsToStorage(sanitized);
+    cachedPresetId = currentPresetId();
+    saveToolSettingsToStorage(sanitized, cachedPresetId);
+    void window.electronAPI?.saveToolSettings?.(sanitized);
     setSaveMessage('已保存');
     notifyToolSettingsChanged();
     window.setTimeout(() => setSaveMessage(null), 2000);

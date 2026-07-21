@@ -245,17 +245,25 @@ export function useProxySettings() {
   }, []);
 
   const updateToolConfig = useCallback((toolId: string, patch: Partial<ToolProxyConfig>) => {
-    setSettings((prev) => ({
-      ...prev,
-      tools: {
-        ...prev.tools,
-        [toolId]: {
-          ...prev.tools[toolId],
-          ...patch,
-          toolId,
+    setSettings((prev) => {
+      const nextTool = {
+        ...prev.tools[toolId],
+        ...patch,
+        toolId,
+      };
+      return {
+        ...prev,
+        tools: {
+          ...prev.tools,
+          [toolId]: nextTool,
         },
-      },
-    }));
+        // 同 Preset 共用一份上游：以最近修改的工具配置作为 session
+        session: {
+          mode: nextTool.mode,
+          profileId: nextTool.profileId,
+        },
+      };
+    });
     clearSaveFeedback();
   }, [clearSaveFeedback]);
 

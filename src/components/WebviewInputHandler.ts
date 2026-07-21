@@ -1,4 +1,4 @@
-import { getToolPartition } from '../utils/toolPartition';
+import { getPresetPartition } from '../utils/toolPartition';
 import type { ReferenceImage, WebviewInputPayload } from '../types/reference-image';
 import {
   buildInjectCheckScriptForSite,
@@ -88,9 +88,13 @@ async function tryNativeWebviewSendViaIpc(
   }
 
   console.log(`[WebviewInputHandler] ${handler.toolId} 通过主进程 IPC 发送`);
+  const presetId =
+    typeof window !== 'undefined' && window.electronAPI?.getPresetId
+      ? window.electronAPI.getPresetId()
+      : 'default';
   return window.electronAPI.sendWebviewInput({
     toolId: handler.toolId,
-    partition: getToolPartition(handler.toolId),
+    partition: getPresetPartition(presetId),
     content: inputContent,
     referenceImage: referenceImage ?? null,
     webContentsId,

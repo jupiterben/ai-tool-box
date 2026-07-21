@@ -1,7 +1,7 @@
 import type { WebContents } from 'electron';
 import { getSiteHandler } from '../src/webview-handlers/index.js';
 import type { ExtractedImage } from '../src/types/image-gen-api.js';
-import { getToolPartition } from '../src/utils/toolPartition.js';
+import { getActivePresetPartition } from './presetPartition.js';
 import { findToolWebContents, getUrlHints } from './webviewLocate.js';
 
 export interface ExtractWebviewImagesPayload {
@@ -44,7 +44,7 @@ async function findWebContents(payload: ExtractWebviewImagesPayload) {
     return { handler: null, wc: null, error: `未找到站点 handler: ${payload.toolId}` };
   }
 
-  const partition = getToolPartition(payload.toolId);
+  const partition = getActivePresetPartition();
   const wc = findToolWebContents(
     partition,
     payload.webContentsId,

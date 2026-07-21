@@ -8,7 +8,8 @@ import {
 } from '../services/imageGenBridge';
 import { findToolById } from '../config/tools';
 import { getFaviconFallbackUrl, getLoadableFaviconUrl } from '../utils/favicon';
-import { getToolPartition } from '../utils/toolPartition';
+import { getPresetPartition } from '../utils/toolPartition';
+import { usePresetId } from '../hooks/usePresetContext';
 import { getSiteHandler } from '../webview-handlers';
 import type { AITool } from '../types/ai-tool';
 import styles from './ApiWebviewPage.module.css';
@@ -36,6 +37,7 @@ function getWorkerLabel(worker: ApiWorkerView, tool?: AITool): string {
 }
 
 const ApiWebviewPage: React.FC = () => {
+  const presetId = usePresetId();
   const [workers, setWorkers] = useState<ApiWorkerView[]>([]);
   const [activeThreadId, setActiveThreadId] = useState('');
   const [favicons, setFavicons] = useState<Record<string, string>>({});
@@ -262,7 +264,7 @@ const ApiWebviewPage: React.FC = () => {
                 <ElectronWebView
                   key={`${worker.threadId}-${worker.toolId}`}
                   ref={(el) => handleWebviewRef(worker, el)}
-                  partition={getToolPartition(worker.toolId)}
+                  partition={getPresetPartition(presetId)}
                   data-tool-id={worker.toolId}
                   data-thread-id={worker.threadId}
                   src={tool.url}

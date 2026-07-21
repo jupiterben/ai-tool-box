@@ -1,5 +1,5 @@
 import { getSiteHandler } from '../src/webview-handlers/index.js';
-import { getToolPartition } from '../src/utils/toolPartition.js';
+import { getActivePresetPartition } from './presetPartition.js';
 import { findToolWebContents, getUrlHints } from './webviewLocate.js';
 
 const DEFAULT_DEBUG_FETCH_TIMEOUT_MS = 15_000;
@@ -198,7 +198,7 @@ async function findWebContents(toolId: string, webContentsId?: number) {
     return { wc: null, error: `未找到站点 handler: ${toolId}` };
   }
 
-  const partition = getToolPartition(toolId);
+  const partition = getActivePresetPartition();
   const wc = findToolWebContents(
     partition,
     webContentsId,

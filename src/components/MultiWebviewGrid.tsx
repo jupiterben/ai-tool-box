@@ -4,7 +4,8 @@ import { InputDeliveryState } from '../types/input-delivery';
 import { getSiteHandler } from '../webview-handlers';
 import { preInjectScript } from './WebviewInputHandler';
 import { ElectronWebView, type ElectronWebViewElement } from './ElectronWebView';
-import { getToolPartition } from '../utils/toolPartition';
+import { getPresetPartition } from '../utils/toolPartition';
+import { usePresetId } from '../hooks/usePresetContext';
 import { getFaviconFallbackUrl, getLoadableFaviconUrl } from '../utils/favicon';
 import { ACTIVATE_IMAGE_TOOL_EVENT } from '../services/imageGenBridge';
 import Icon from './ui/Icon';
@@ -56,6 +57,7 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
   onRetry,
   onWebviewRef,
 }) => {
+  const presetId = usePresetId();
   const webviewRefs = useRef<Record<string, WebviewElement>>({});
   const webviewReadyRef = useRef<Record<string, boolean>>({});
   const listenerCleanups = useRef<Record<string, () => void>>({});
@@ -239,8 +241,10 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
 
   const handleClearCache = useCallback(
     async (toolId: string, toolName: string, url: string) => {
+      void toolId;
+      void toolName;
       const confirmed = window.confirm(
-        `确定清理「${toolName}」的所有缓存数据吗？\n\n将清除 Cookie、本地存储与网络缓存，可能需要重新登录。`
+        `确定清理当前 Preset 的所有缓存数据吗？\n\n将清除本工作区内所有站点的 Cookie、本地存储与网络缓存，可能需要重新登录。`
       );
       if (!confirmed) {
         return;
@@ -253,24 +257,24 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
 
       setIsClearingData(true);
       try {
-        const result = await window.electronAPI.clearToolWebviewData(toolId);
+        const result = await window.electronAPI.clearToolWebviewData();
         if (!result.success) {
           window.alert(result.error ?? '清理缓存失败');
           return;
         }
 
-        const webview = webviewRefs.current[toolId];
+        const webview = webviewRefs.current[activeTabId];
         if (webview) {
           webview.src = url;
         }
-        syncNavState(toolId);
+        syncNavState(activeTabId);
       } catch (error) {
         window.alert(error instanceof Error ? error.message : '清理缓存失败');
       } finally {
         setIsClearingData(false);
       }
     },
-    [syncNavState]
+    [activeTabId, syncNavState]
   );
 
   if (!selectedTools.length) {
@@ -363,8 +367,8 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
               className={`${styles.toolbarButton} ${styles.toolbarButtonDanger}`}
               onClick={() => handleClearCache(activeTool.id, activeTool.name, activeTool.url)}
               disabled={isClearingData}
-              aria-label={`清理 ${activeTool.name} 缓存`}
-              title="清理所有缓存数据"
+              aria-label="清理当前 Preset 缓存"
+              title="清理当前 Preset 缓存"
             >
               <Icon name="Eraser" size={16} />
             </button>
@@ -390,7 +394,7 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
                 <ElectronWebView
                   key={`${tool.id}-${proxyRevision}`}
                   ref={(el) => handleWebviewRef(tool.id, tool.name, el)}
-                  partition={getToolPartition(tool.id)}
+                  partition={getPresetPartition(presetId)}
                   data-tool-id={tool.id}
                   src={tool.url}
                   style={{
