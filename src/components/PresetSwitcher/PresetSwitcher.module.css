@@ -76,6 +76,39 @@
   background: var(--color-sidebar-border);
 }
 
+.createRow {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+}
+
+.createInput {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--color-sidebar-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.createSubmit {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--color-sidebar-border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-sidebar-accent) 18%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.createSubmit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .error {
   margin: 6px 0 0;
   font-size: 12px;
