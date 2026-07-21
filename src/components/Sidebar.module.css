@@ -194,6 +194,7 @@
 /* ── Footer ── */
 
 .footer {
+  position: relative;
   padding: var(--spacing-3) var(--spacing-2);
   border-top: 1px solid var(--color-sidebar-border);
   display: flex;
@@ -207,11 +208,18 @@
   justify-content: center;
 }
 
-.presetLabel {
+.presetSwitch {
+  position: relative;
   min-width: 0;
   flex: 1;
+}
+
+.presetLabel {
+  width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
+  gap: 4px;
   height: 36px;
   padding: 0 var(--spacing-2);
   border: none;
@@ -235,6 +243,8 @@
 }
 
 .presetLabelText {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -242,11 +252,80 @@
   font-weight: var(--font-weight-medium);
 }
 
-.sidebar.collapsed .presetLabel {
+.sidebar.collapsed .presetSwitch {
   flex: 0 0 auto;
+}
+
+.sidebar.collapsed .presetLabel {
   width: 36px;
   justify-content: center;
   padding: 0;
+}
+
+.presetMenu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 280px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--color-sidebar-border);
+  border-radius: var(--radius-md);
+  background: var(--color-sidebar-bg);
+  box-shadow: var(--shadow-lg);
+}
+
+.sidebar.collapsed .presetMenu {
+  left: 0;
+  right: auto;
+  width: 180px;
+}
+
+.presetMenuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font-size: var(--font-size-sm);
+}
+
+.presetMenuItem:hover {
+  background: color-mix(in srgb, var(--color-sidebar-accent) 12%, transparent);
+}
+
+.presetMenuItemActive {
+  background: color-mix(in srgb, var(--color-sidebar-accent) 18%, transparent);
+}
+
+.presetBadge {
+  font-size: 11px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.presetMenuDivider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--color-sidebar-border);
+}
+
+.presetError {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--color-danger, #c44);
 }
 
 .settingsIconButton {

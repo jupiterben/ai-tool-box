@@ -1,7 +1,7 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import Icon from './ui/Icon';
 import { usePresetId } from '../hooks/usePresetContext';
-import { DEFAULT_PRESET_ID } from '../types/preset';
+import { DEFAULT_PRESET_ID, type PresetMeta } from '../types/preset';
 import styles from './Sidebar.module.css';
 
 export interface ToolPage {
@@ -30,24 +30,27 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [presetName, setPresetName] = useState('默认');
+  const [presets, setPresets] = useState<PresetMeta[]>([]);
+  const [openIds, setOpenIds] = useState<string[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const presetId = usePresetId();
+  const footerRef = useRef<HTMLDivElement>(null);
   const settingsPage = pages.find((page) => page.id === 'settings');
   const navPages = pages.filter((page) => page.id !== 'settings');
 
-  const refreshPresetName = useCallback(async () => {
+  const refreshPresets = useCallback(async () => {
     const result = await window.electronAPI?.listPresets?.();
     if (result?.success && result.presets) {
-      const current = result.presets.find((p) => p.id === presetId);
-      setPresetName(current?.name ?? (presetId === DEFAULT_PRESET_ID ? '默认' : presetId));
-      return;
+      setPresets(result.presets);
+      setOpenIds(result.openIds ?? []);
     }
-    setPresetName(presetId === DEFAULT_PRESET_ID ? '默认' : presetId);
-  }, [presetId]);
+  }, []);
 
   useEffect(() => {
-    void refreshPresetName();
-  }, [refreshPresetName]);
+    void refreshPresets();
+  }, [refreshPresets]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -59,10 +62,57 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDocClick = (event: MouseEvent) => {
+      if (!footerRef.current?.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [menuOpen]);
+
+  const currentName =
+    presets.find((p) => p.id === presetId)?.name ??
+    (presetId === DEFAULT_PRESET_ID ? '默认' : presetId);
+
   const openPresetSettings = () => {
+    setMenuOpen(false);
     sessionStorage.setItem('ai-tool-box-settings-tab', 'presets');
     if (settingsPage) {
       onPageChange(settingsPage.id);
+    }
+  };
+
+  const openSettings = () => {
+    setMenuOpen(false);
+    if (settingsPage) {
+      onPageChange(settingsPage.id);
+    }
+  };
+
+  const handleSwitch = async (id: string) => {
+    setError(null);
+    if (id === presetId) {
+      setMenuOpen(false);
+      return;
+    }
+    if (!window.electronAPI?.openPreset) {
+      setError('切换不可用，请重启应用');
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await window.electronAPI.openPreset(id);
+      if (!result.success) {
+        setError(result.error ?? '切换失败');
+        return;
+      }
+      setMenuOpen(false);
+      await refreshPresets();
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -104,24 +154,72 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
         ))}
       </nav>
 
-      <div className={styles.footer}>
-        <button
-          type="button"
-          className={styles.presetLabel}
-          onClick={openPresetSettings}
-          title={`当前 Preset：${presetName}`}
-          aria-label={`当前 Preset ${presetName}，打开管理`}
-        >
-          {!isCollapsed && <span className={styles.presetLabelText}>{presetName}</span>}
-          {isCollapsed && <Icon name="Layers" size={16} aria-hidden="true" />}
-        </button>
+      <div className={styles.footer} ref={footerRef}>
+        <div className={styles.presetSwitch}>
+          <button
+            type="button"
+            className={styles.presetLabel}
+            onClick={() => {
+              setError(null);
+              setMenuOpen((open) => !open);
+              void refreshPresets();
+            }}
+            title={`当前 Preset：${currentName}`}
+            aria-label={`当前 Preset ${currentName}，快捷切换`}
+            aria-expanded={menuOpen}
+            aria-haspopup="listbox"
+            disabled={busy}
+          >
+            {!isCollapsed && (
+              <>
+                <span className={styles.presetLabelText}>{currentName}</span>
+                <Icon name="ChevronDown" size={14} aria-hidden="true" />
+              </>
+            )}
+            {isCollapsed && <Icon name="Layers" size={16} aria-hidden="true" />}
+          </button>
+
+          {menuOpen && (
+            <div className={styles.presetMenu} role="listbox">
+              {presets.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`${styles.presetMenuItem} ${
+                    preset.id === presetId ? styles.presetMenuItemActive : ''
+                  }`}
+                  role="option"
+                  aria-selected={preset.id === presetId}
+                  disabled={busy}
+                  onClick={() => void handleSwitch(preset.id)}
+                >
+                  <span>{preset.name}</span>
+                  {openIds.includes(preset.id) && (
+                    <span className={styles.presetBadge}>已打开</span>
+                  )}
+                </button>
+              ))}
+              <div className={styles.presetMenuDivider} />
+              <button
+                type="button"
+                className={styles.presetMenuItem}
+                disabled={busy}
+                onClick={openPresetSettings}
+              >
+                管理 Preset…
+              </button>
+            </div>
+          )}
+          {error && <p className={styles.presetError}>{error}</p>}
+        </div>
+
         {settingsPage && (
           <button
             type="button"
             className={`${styles.settingsIconButton} ${
               activePageId === settingsPage.id ? styles.settingsIconButtonActive : ''
             }`}
-            onClick={openPresetSettings}
+            onClick={openSettings}
             aria-label="设置"
             aria-current={activePageId === settingsPage.id ? 'page' : undefined}
             title="设置"
