@@ -125,14 +125,17 @@ export async function openPresetWindow(presetId: string): Promise<BrowserWindow>
   });
 
   windows.set(presetId, win);
-  webContentsToPreset.set(win.webContents.id, presetId);
+  const webContentsId = win.webContents.id;
+  webContentsToPreset.set(webContentsId, presetId);
 
   win.once('ready-to-show', () => {
-    win.show();
+    if (!win.isDestroyed()) {
+      win.show();
+    }
   });
 
   win.on('closed', () => {
-    webContentsToPreset.delete(win.webContents.id);
+    webContentsToPreset.delete(webContentsId);
     if (windows.get(presetId) === win) {
       windows.delete(presetId);
     }
