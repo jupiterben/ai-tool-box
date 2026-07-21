@@ -1,26 +1,26 @@
 import { app, session, webContents, type WebContents } from 'electron';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
 import { ALL_DEFAULT_TOOLS } from '../src/config/tools';
 import {
   GEOLOCATION_SETTINGS_VERSION,
   createDefaultGeolocationProfiles,
+  createDefaultSessionGeolocationConfig,
   createDefaultToolGeolocationConfig,
-  resolveToolGeolocation,
+  deriveSessionGeolocationFromTools,
+  resolveSessionGeolocation,
   type GeolocationSettings,
   type ResolvedGeolocation,
+  type SessionGeolocationConfig,
   type ToolGeolocationConfig,
 } from '../src/types/geolocation-settings';
-import { getToolPartition } from '../src/utils/toolPartition';
-
-const SETTINGS_FILE = 'geolocation-settings.json';
+import { DEFAULT_PRESET_ID } from '../src/types/preset';
+import { getPresetPartition } from '../src/utils/toolPartition';
+import {
+  loadPresetGeolocationSettingsRaw,
+  savePresetGeolocationSettingsRaw,
+} from './presetSettingsStore';
 
 const partitionOverrides = new Map<string, ResolvedGeolocation | null>();
 const configuredSessions = new Set<string>();
-
-function getSettingsPath(): string {
-  return join(app.getPath('userData'), SETTINGS_FILE);
-}
 
 function getWebviewToolIds(): string[] {
   return ALL_DEFAULT_TOOLS.filter((tool) => Boolean(tool.url)).map((tool) => tool.id);
@@ -42,10 +42,21 @@ function mergeWithDefaults(settings?: Partial<GeolocationSettings>): Geolocation
     };
   }
 
+  const session =
+    settings?.session ??
+    deriveSessionGeolocationFromTools(tools) ??
+    createDefaultSessionGeolocationConfig();
+
+  if (session.mode === 'profile' && session.profileId && !profiles[session.profileId]) {
+    session.mode = 'system';
+    delete session.profileId;
+  }
+
   return {
     version: GEOLOCATION_SETTINGS_VERSION,
     profiles,
     tools,
+    session,
   };
 }
 
@@ -145,51 +156,60 @@ async function applyGeolocationForPartition(
   );
 }
 
+export async function applyPresetGeolocation(
+  presetId: string,
+  settings: GeolocationSettings,
+  sessionConfig?: SessionGeolocationConfig
+): Promise<void> {
+  const partition = getPresetPartition(presetId);
+  const coords = resolveSessionGeolocation(settings, sessionConfig ?? settings.session);
+  await applyGeolocationForPartition(partition, coords);
+}
+
+/** @deprecated 使用 applyPresetGeolocation */
 export async function applyToolGeolocation(
   toolId: string,
   settings: GeolocationSettings,
   config: ToolGeolocationConfig
 ): Promise<void> {
-  const partition = getToolPartition(toolId);
-  const coords = resolveToolGeolocation(settings, config);
-  await applyGeolocationForPartition(partition, coords);
+  void toolId;
+  void config;
+  await applyPresetGeolocation(DEFAULT_PRESET_ID, settings, settings.session);
 }
 
 export async function applyToolGeolocationById(toolId: string): Promise<void> {
-  const settings = await loadGeolocationSettings();
-  const config = settings.tools[toolId] ?? createDefaultToolGeolocationConfig(toolId);
-  await applyToolGeolocation(toolId, settings, config);
+  void toolId;
+  const settings = await loadGeolocationSettings(DEFAULT_PRESET_ID);
+  await applyPresetGeolocation(DEFAULT_PRESET_ID, settings, settings.session);
 }
 
-export async function loadGeolocationSettings(): Promise<GeolocationSettings> {
-  try {
-    const raw = await fs.readFile(getSettingsPath(), 'utf-8');
-    const parsed = JSON.parse(raw) as Partial<GeolocationSettings>;
-    return mergeWithDefaults(parsed);
-  } catch {
-    return mergeWithDefaults();
-  }
+export async function applyPresetGeolocationById(presetId: string): Promise<void> {
+  const settings = await loadGeolocationSettings(presetId);
+  await applyPresetGeolocation(presetId, settings, settings.session);
+}
+
+export async function loadGeolocationSettings(
+  presetId: string = DEFAULT_PRESET_ID
+): Promise<GeolocationSettings> {
+  const raw = await loadPresetGeolocationSettingsRaw(presetId);
+  return mergeWithDefaults(raw ?? undefined);
 }
 
 export async function saveGeolocationSettings(
-  settings: GeolocationSettings
+  settings: GeolocationSettings,
+  presetId: string = DEFAULT_PRESET_ID
 ): Promise<GeolocationSettings> {
   const merged = mergeWithDefaults(settings);
-  await fs.mkdir(app.getPath('userData'), { recursive: true });
-  await fs.writeFile(getSettingsPath(), JSON.stringify(merged, null, 2), 'utf-8');
-
-  for (const [toolId, config] of Object.entries(merged.tools)) {
-    await applyToolGeolocation(toolId, merged, config);
-  }
-
+  await savePresetGeolocationSettingsRaw(presetId, merged);
+  await applyPresetGeolocation(presetId, merged, merged.session);
   return merged;
 }
 
-export async function initializeGeolocationSettings(): Promise<void> {
-  const settings = await loadGeolocationSettings();
-  for (const [toolId, config] of Object.entries(settings.tools)) {
-    await applyToolGeolocation(toolId, settings, config);
-  }
+export async function initializeGeolocationSettings(
+  presetId: string = DEFAULT_PRESET_ID
+): Promise<void> {
+  const settings = await loadGeolocationSettings(presetId);
+  await applyPresetGeolocation(presetId, settings, settings.session);
 }
 
 export function registerGeolocationWebContentsListener(): void {

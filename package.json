@@ -8,7 +8,7 @@
     "dev": "pnpm electron:dev",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test tests/bingImageCreator.test.ts tests/presetPartition.test.ts tests/presetRegistry.test.ts",
+    "test": "node --experimental-strip-types --test tests/bingImageCreator.test.ts tests/presetPartition.test.ts tests/presetRegistry.test.ts tests/presetSessionDerive.test.ts",
     "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test-coverage-include=electron/bingImageCreator.ts --test-coverage-lines=90 --test-coverage-branches=75 --test-coverage-functions=85 --test tests/bingImageCreator.test.ts",
     "test:e2e": "node --experimental-strip-types --test --test-concurrency=1 tests/imageGenApi.e2e.test.ts",
     "test:e2e:all": "cross-env E2E_IMAGE_TOOLS=all E2E_BING_MATRIX=1 E2E_GEMINI_MATRIX=1 E2E_INCLUDE_REFERENCE=1 E2E_INCLUDE_COUNT=1 E2E_INCLUDE_CONCURRENCY=1 node --experimental-strip-types --test --test-concurrency=1 tests/imageGenApi.e2e.test.ts",

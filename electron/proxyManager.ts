@@ -1,19 +1,24 @@
 import { app, session } from 'electron';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
 import { ALL_DEFAULT_TOOLS } from '../src/config/tools';
 import {
   PROXY_SETTINGS_VERSION,
+  createDefaultSessionProxyConfig,
   createDefaultToolProxyConfig,
-  resolveToolProxy,
+  deriveSessionProxyFromTools,
+  resolveSessionProxy,
+  type ProxyMode,
   type ProxyProfile,
   type ProxySettings,
   type ResolvedManualProxy,
+  type SessionProxyConfig,
   type ToolProxyConfig,
 } from '../src/types/proxy-settings';
-import { getToolPartition } from '../src/utils/toolPartition';
-
-const SETTINGS_FILE = 'proxy-settings.json';
+import { DEFAULT_PRESET_ID } from '../src/types/preset';
+import { getPresetPartition } from '../src/utils/toolPartition';
+import {
+  loadPresetProxySettingsRaw,
+  savePresetProxySettingsRaw,
+} from './presetSettingsStore';
 
 const proxyCredentials = new Map<string, { username: string; password: string }>();
 
@@ -32,10 +37,7 @@ interface LegacyProxySettings {
   version?: string;
   profiles?: Record<string, ProxyProfile>;
   tools?: Record<string, LegacyToolProxyConfig>;
-}
-
-function getSettingsPath(): string {
-  return join(app.getPath('userData'), SETTINGS_FILE);
+  session?: SessionProxyConfig;
 }
 
 function getWebviewToolIds(): string[] {
@@ -120,17 +122,53 @@ function migrateLegacySettings(parsed: LegacyProxySettings): Partial<ProxySettin
     version: PROXY_SETTINGS_VERSION,
     profiles,
     tools,
+    session: parsed.session,
   };
 }
 
-export async function applyToolProxy(
-  toolId: string,
-  settings: ProxySettings,
-  config: ToolProxyConfig
+function mergeWithDefaults(settings?: Partial<ProxySettings>): ProxySettings {
+  const migrated = migrateLegacySettings((settings ?? {}) as LegacyProxySettings);
+  const toolIds = getWebviewToolIds();
+  const tools: Record<string, ToolProxyConfig> = {};
+  const profiles: Record<string, ProxyProfile> = { ...(migrated.profiles ?? {}) };
+
+  for (const toolId of toolIds) {
+    tools[toolId] = {
+      ...createDefaultToolProxyConfig(toolId),
+      ...(migrated.tools?.[toolId] ?? {}),
+      toolId,
+    };
+
+    if (tools[toolId].mode === 'profile' && tools[toolId].profileId) {
+      if (!profiles[tools[toolId].profileId!]) {
+        tools[toolId] = createDefaultToolProxyConfig(toolId);
+      }
+    }
+  }
+
+  const session =
+    migrated.session ??
+    deriveSessionProxyFromTools(tools) ??
+    createDefaultSessionProxyConfig();
+
+  if (session.mode === 'profile' && session.profileId && !profiles[session.profileId]) {
+    session.mode = 'system';
+    delete session.profileId;
+  }
+
+  return {
+    version: PROXY_SETTINGS_VERSION,
+    profiles,
+    tools,
+    session,
+  };
+}
+
+async function applyResolvedProxy(
+  partition: string,
+  resolved: ReturnType<typeof resolveSessionProxy>
 ): Promise<void> {
-  const partition = getToolPartition(toolId);
   const ses = session.fromPartition(partition);
-  const resolved = resolveToolProxy(settings, config);
 
   if (resolved === 'direct' || resolved === null) {
     proxyCredentials.delete(partition);
@@ -161,60 +199,47 @@ export async function applyToolProxy(
   }
 }
 
-function mergeWithDefaults(settings?: Partial<ProxySettings>): ProxySettings {
-  const migrated = migrateLegacySettings((settings ?? {}) as LegacyProxySettings);
-  const toolIds = getWebviewToolIds();
-  const tools: Record<string, ToolProxyConfig> = {};
-  const profiles: Record<string, ProxyProfile> = { ...(migrated.profiles ?? {}) };
-
-  for (const toolId of toolIds) {
-    tools[toolId] = {
-      ...createDefaultToolProxyConfig(toolId),
-      ...(migrated.tools?.[toolId] ?? {}),
-      toolId,
-    };
-
-    if (tools[toolId].mode === 'profile' && tools[toolId].profileId) {
-      if (!profiles[tools[toolId].profileId!]) {
-        tools[toolId] = createDefaultToolProxyConfig(toolId);
-      }
-    }
-  }
-
-  return {
-    version: PROXY_SETTINGS_VERSION,
-    profiles,
-    tools,
-  };
+export async function applyPresetProxy(
+  presetId: string,
+  settings: ProxySettings,
+  sessionConfig?: SessionProxyConfig
+): Promise<void> {
+  const partition = getPresetPartition(presetId);
+  const resolved = resolveSessionProxy(settings, sessionConfig ?? settings.session);
+  await applyResolvedProxy(partition, resolved);
 }
 
-export async function loadProxySettings(): Promise<ProxySettings> {
-  try {
-    const raw = await fs.readFile(getSettingsPath(), 'utf-8');
-    const parsed = JSON.parse(raw) as LegacyProxySettings;
-    return mergeWithDefaults(parsed);
-  } catch {
-    return mergeWithDefaults();
-  }
+/** @deprecated 同 Preset 共享分区后请用 applyPresetProxy */
+export async function applyToolProxy(
+  toolId: string,
+  settings: ProxySettings,
+  config: ToolProxyConfig
+): Promise<void> {
+  void toolId;
+  void config;
+  await applyPresetProxy(DEFAULT_PRESET_ID, settings, settings.session);
 }
 
-export async function saveProxySettings(settings: ProxySettings): Promise<ProxySettings> {
+export async function loadProxySettings(
+  presetId: string = DEFAULT_PRESET_ID
+): Promise<ProxySettings> {
+  const raw = await loadPresetProxySettingsRaw(presetId);
+  return mergeWithDefaults(raw ?? undefined);
+}
+
+export async function saveProxySettings(
+  settings: ProxySettings,
+  presetId: string = DEFAULT_PRESET_ID
+): Promise<ProxySettings> {
   const merged = mergeWithDefaults(settings);
-  await fs.mkdir(app.getPath('userData'), { recursive: true });
-  await fs.writeFile(getSettingsPath(), JSON.stringify(merged, null, 2), 'utf-8');
-
-  for (const [toolId, config] of Object.entries(merged.tools)) {
-    await applyToolProxy(toolId, merged, config);
-  }
-
+  await savePresetProxySettingsRaw(presetId, merged);
+  await applyPresetProxy(presetId, merged, merged.session);
   return merged;
 }
 
-export async function initializeProxySettings(): Promise<void> {
-  const settings = await loadProxySettings();
-  for (const [toolId, config] of Object.entries(settings.tools)) {
-    await applyToolProxy(toolId, settings, config);
-  }
+export async function initializeProxySettings(presetId: string = DEFAULT_PRESET_ID): Promise<void> {
+  const settings = await loadProxySettings(presetId);
+  await applyPresetProxy(presetId, settings, settings.session);
 }
 
 export function registerProxyLoginHandler(): void {
@@ -232,3 +257,5 @@ export function registerProxyLoginHandler(): void {
     }
   });
 }
+
+export type { ProxyMode, SessionProxyConfig };
