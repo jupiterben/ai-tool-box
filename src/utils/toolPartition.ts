@@ -1,4 +1,4 @@
-import { DEFAULT_PRESET_ID } from '../types/preset.js';
+import { DEFAULT_PRESET_ID } from '../types/preset.ts';
 
 export { DEFAULT_PRESET_ID };
 
