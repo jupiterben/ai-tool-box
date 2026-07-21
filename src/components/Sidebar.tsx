@@ -1,5 +1,7 @@
-import { memo, useState, useEffect } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import Icon from './ui/Icon';
+import { usePresetId } from '../hooks/usePresetContext';
+import { DEFAULT_PRESET_ID } from '../types/preset';
 import styles from './Sidebar.module.css';
 
 export interface ToolPage {
@@ -28,8 +30,24 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [presetName, setPresetName] = useState('默认');
+  const presetId = usePresetId();
   const settingsPage = pages.find((page) => page.id === 'settings');
   const navPages = pages.filter((page) => page.id !== 'settings');
+
+  const refreshPresetName = useCallback(async () => {
+    const result = await window.electronAPI?.listPresets?.();
+    if (result?.success && result.presets) {
+      const current = result.presets.find((p) => p.id === presetId);
+      setPresetName(current?.name ?? (presetId === DEFAULT_PRESET_ID ? '默认' : presetId));
+      return;
+    }
+    setPresetName(presetId === DEFAULT_PRESET_ID ? '默认' : presetId);
+  }, [presetId]);
+
+  useEffect(() => {
+    void refreshPresetName();
+  }, [refreshPresetName]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -40,6 +58,13 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const openPresetSettings = () => {
+    sessionStorage.setItem('ai-tool-box-settings-tab', 'presets');
+    if (settingsPage) {
+      onPageChange(settingsPage.id);
+    }
+  };
 
   return (
     <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
@@ -80,19 +105,26 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
       </nav>
 
       <div className={styles.footer}>
+        <button
+          type="button"
+          className={styles.presetLabel}
+          onClick={openPresetSettings}
+          title={`当前 Preset：${presetName}`}
+          aria-label={`当前 Preset ${presetName}，打开管理`}
+        >
+          {!isCollapsed && <span className={styles.presetLabelText}>{presetName}</span>}
+          {isCollapsed && <Icon name="Layers" size={16} aria-hidden="true" />}
+        </button>
         {settingsPage && (
           <button
             type="button"
             className={`${styles.settingsIconButton} ${
               activePageId === settingsPage.id ? styles.settingsIconButtonActive : ''
             }`}
-            onClick={() => {
-              sessionStorage.setItem('ai-tool-box-settings-tab', 'presets');
-              onPageChange(settingsPage.id);
-            }}
-            aria-label="设置与 Preset"
+            onClick={openPresetSettings}
+            aria-label="设置"
             aria-current={activePageId === settingsPage.id ? 'page' : undefined}
-            title="设置与 Preset"
+            title="设置"
           >
             <Icon name="Settings" size={20} aria-hidden="true" />
           </button>
