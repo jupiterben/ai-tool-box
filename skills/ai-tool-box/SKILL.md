@@ -1,5 +1,5 @@
 ---
-name: aitoolbox-image-gen
+name: ai-tool-box
 description: Generate images via the local AI Tool Box HTTP API (POST /api/gen_image, http://127.0.0.1:3920). The primary/default source is gemini-image (Gemini 生图) — use it first. Also supports jimeng, wanxiang, kling, and 11 other sources; use `--tool-id ID` to switch. Use when the user wants to create images through AI Tool Box's logged-in webviews. Triggers on requests like "用 AI 工具箱生图", "用 gemini 出图", "出 X 张产品图", or any task that maps to the AI Tool Box image-gen API doc. Only use non-gemini tools if the user explicitly asks for a specific source.
 ---
 

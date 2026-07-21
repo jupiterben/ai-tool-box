@@ -234,7 +234,7 @@ export const DEFAULT_IMAGE_TOOLS: AITool[] = [
   {
     id: 'bing-create',
     name: 'Bing 图像创建',
-    url: 'https://www.bing.com/images/create',
+    url: 'https://www.bing.com/images/create/ai-image-generator',
     region: 'international',
     category: 'image',
   },

@@ -1,4 +1,4 @@
-export type AgentCliId = 'cursor' | 'claude' | 'gemini';
+export type AgentCliId = 'cursor' | 'claude' | 'gemini' | 'openclaw' | 'codex' | 'opencode' | 'hermes';
 
 export interface AgentCliConfig {
   model: string;

@@ -2,6 +2,7 @@ import type { Session, WebContents } from 'electron';
 import type { ExtractedImage } from '../src/types/image-gen-api.js';
 
 const BING_ORIGIN = 'https://www.bing.com';
+const BING_IMAGE_CREATOR_PATH = '/images/create/ai-image-generator';
 const DEFAULT_MODEL = 'gpt4o';
 const DEFAULT_ASPECT_RATIO = '1:1';
 const POLL_INTERVAL_MS = 1500;
@@ -172,22 +173,39 @@ function buildWebviewFetchScript(
 
       function extractRequestId(redirectUrl) {
         var queryMatch = redirectUrl.match(/[?&]id=([^&]+)/);
-        if (queryMatch && queryMatch[1]) return queryMatch[1];
+        if (queryMatch && queryMatch[1]) return decodeURIComponent(queryMatch[1]);
         var pathMatch = redirectUrl.match(/\\/(\\d+-[a-f0-9]{16,})(?:[/?]|$)/i);
         if (pathMatch && pathMatch[1]) return pathMatch[1];
         throw new Error('无法解析 request id: ' + redirectUrl);
       }
 
+      function extractRequestIdFromBody(body, includeJson) {
+        if (!body) return '';
+        var patterns = [/data-request-id=["']([^"']+)["']/i];
+        if (includeJson) {
+          patterns.push(/["']requestId["']\\s*:\\s*["']([^"']+)["']/i);
+        }
+        for (var i = 0; i < patterns.length; i++) {
+          var match = body.match(patterns[i]);
+          if (match && match[1]) return match[1];
+        }
+        return '';
+      }
+
       function extractImageUrls(html) {
-        // 先解码 HTML 实体（&amp; -> &），避免 URL 里的 & 被编码成 &amp;
-        var decoded = html.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+        // 新版结果既可能返回 HTML，也可能返回带转义 URL 的 JSON。
+        var decoded = html
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .split(String.fromCharCode(92) + 'u0026').join('&')
+          .split(String.fromCharCode(92) + 'u003d').join('=')
+          .split(String.fromCharCode(92) + '/').join('/');
         var urls = [];
         var seen = {};
-        var match;
-        var pattern = /src="([^"]+)"/g;
-        while ((match = pattern.exec(decoded)) !== null) {
-          var src = match[1];
-          if (!src || src.indexOf('data:') === 0) continue;
+        function add(src) {
+          if (!src || src.indexOf('data:') === 0) return;
           if (src.indexOf('/th/id/') >= 0 || src.indexOf('th.bing.com') >= 0) {
             if (!seen[src]) {
               seen[src] = true;
@@ -195,8 +213,13 @@ function buildWebviewFetchScript(
             }
           }
         }
+        var match;
+        var attrPattern = /(?:src|data-src|data-full-url|mediaUrl|srcLq)\\s*[=:]\\s*["']([^"']+)["']/gi;
+        while ((match = attrPattern.exec(decoded)) !== null) add(match[1]);
+        var rawUrlPattern = /https?:\\/\\/th\\.bing\\.com\\/th\\/id\\/[^\\s"'<>\\\\]+/gi;
+        while ((match = rawUrlPattern.exec(decoded)) !== null) add(match[0]);
         var generated = urls.filter(function(u) {
-          return u.indexOf('/th/id/OIG') >= 0 || u.indexOf('pid=ImgGn') >= 0;
+          return /\\/th\\/id\\/OIG\\d?\\./i.test(u) || u.indexOf('pid=ImgGn') >= 0;
         });
         return generated.length ? generated : urls;
       }
@@ -206,7 +229,7 @@ function buildWebviewFetchScript(
       }
 
       try {
-        var createUrl = cfg.origin + '/images/create?q=' + encodedPrompt + '&rt=4&mdl=' + cfg.mdl + '&ar=' + cfg.ar + '&FORM=GENCRE';
+        var createUrl = cfg.origin + '${BING_IMAGE_CREATOR_PATH}?q=' + encodedPrompt + '&rt=4&mdl=' + cfg.mdl + '&ar=' + cfg.ar + '&FORM=GENCRE';
         var createResp = await fetch(createUrl, {
           method: 'POST',
           redirect: 'follow',
@@ -214,21 +237,23 @@ function buildWebviewFetchScript(
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            Referer: cfg.origin + '/images/create',
+            Referer: cfg.origin + '${BING_IMAGE_CREATOR_PATH}',
           },
           body: 'q=' + encodedPrompt + '&qs=ds',
         });
 
         var finalUrl = createResp.url || '';
-        if (!finalUrl || finalUrl === createUrl) {
-          return { success: false, error: 'Bing 未重定向，请确认已在 webview 登录 (status=' + createResp.status + ')' };
-        }
-
         var requestId = '';
         try { requestId = extractRequestId(finalUrl); } catch (e) {}
 
         var createHtml = '';
         try { createHtml = await createResp.text(); } catch (e) {}
+        var responseContentType = createResp.headers.get('content-type') || '';
+        if (!requestId) requestId = extractRequestIdFromBody(createHtml, responseContentType.indexOf('json') >= 0);
+
+        if (!requestId) {
+          return { success: false, error: 'Bing 未返回生成任务，请确认已在 webview 登录 (status=' + createResp.status + ')' };
+        }
 
         var deadline = Date.now() + cfg.timeoutMs;
         var html = '';
@@ -236,12 +261,13 @@ function buildWebviewFetchScript(
         // 只有当最终 URL 就是 async/results 结果页时，createHtml 才是本次结果；
         // 否则 createHtml 只是生成页（可能含历史图/占位图），必须轮询 async/results。
         var isAsyncResultPage = finalUrl.indexOf('/async/results/') >= 0;
-        if (isAsyncResultPage && createHtml && extractImageUrls(createHtml).length) {
+        var isResultDetailPage = /\\/images\\/create\\/.+\\/\\d+-[a-f0-9]{16,}/i.test(finalUrl);
+        if ((isAsyncResultPage || isResultDetailPage) && createHtml && extractImageUrls(createHtml).length) {
           html = createHtml;
         }
 
         if (!html && requestId) {
-          var pollingUrl = cfg.origin + '/images/create/async/results/' + requestId + '?q=' + encodedPrompt + '&mdl=' + cfg.mdl + '&ar=' + cfg.ar;
+          var pollingUrl = cfg.origin + '${BING_IMAGE_CREATOR_PATH}/async/results/' + encodeURIComponent(requestId) + '?q=' + encodedPrompt + '&mdl=' + cfg.mdl + '&ar=' + cfg.ar;
           while (!html && Date.now() < deadline) {
             var pollResp = await fetch(pollingUrl, { credentials: 'include' });
             if (!pollResp.ok) {
@@ -258,18 +284,20 @@ function buildWebviewFetchScript(
                 if (json.errorMessage) {
                   return { success: false, error: 'Bing 错误: ' + json.errorMessage };
                 }
+                if (json.errorType !== undefined || json.status === 3) {
+                  return {
+                    success: false,
+                    error: 'Bing 生成失败: status=' + json.status + ', errorType=' + json.errorType
+                  };
+                }
               } catch (e) {}
-              await sleep(${POLL_INTERVAL_MS});
-              continue;
             }
-            html = text;
-            break;
+            if (extractImageUrls(text).length) {
+              html = text;
+              break;
+            }
+            await sleep(${POLL_INTERVAL_MS});
           }
-        }
-
-        // 仅当无法解析 requestId 且无法轮询时，才退回 createHtml 作为最后手段
-        if (!html && createHtml) {
-          html = createHtml;
         }
 
         if (!html) {

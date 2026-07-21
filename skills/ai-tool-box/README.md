@@ -1,4 +1,4 @@
-# aitoolbox-image-gen
+# ai-tool-box
 
 Call the local **AI Tool Box** image generation API at
 `http://127.0.0.1:3920` and save the returned base64 images to disk.
@@ -32,7 +32,7 @@ node src/cli.js "product shot" --tool-id gemini-image,jimeng,wanxiang --count 1
 ### 1. Install dependencies
 
 ```powershell
-cd "$HOME\.config\opencode\skills\aitoolbox-image-gen"
+cd "$HOME\.config\opencode\skills\ai-tool-box"
 npm install
 ```
 
@@ -121,7 +121,7 @@ The agent runs the CLI and consumes the file paths it prints.
 ## Files
 
 ```
-aitoolbox-image-gen/
+ai-tool-box/
 ├── SKILL.md          opencode skill definition
 ├── README.md         this file
 ├── package.json

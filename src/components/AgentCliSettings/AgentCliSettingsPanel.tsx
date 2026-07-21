@@ -7,7 +7,9 @@ import { Toggle } from '../ui/Toggle';
 import type { AgentCliConfig, AgentCliId, AgentCliInfo } from '../../types/agent-cli';
 import styles from './AgentCliSettingsPanel.module.css';
 
-const BRAND: Record<AgentCliId, string> = { cursor: 'CU', claude: 'CL', gemini: 'GE' };
+const BRAND: Record<AgentCliId, string> = {
+  cursor: 'CU', claude: 'CL', gemini: 'GE', openclaw: 'OC', codex: 'CX', opencode: 'OP', hermes: 'HE',
+};
 
 const AgentCliSettingsPanel: React.FC = () => {
   const [agents, setAgents] = useState<AgentCliInfo[]>([]);
@@ -80,7 +82,7 @@ const AgentCliSettingsPanel: React.FC = () => {
         <div className={styles.versionBar}>
           <span><Icon name="Terminal" size={16} />命令 <code>{selected.command}</code></span>
           <span>当前版本 <b>{selected.version || '—'}</b></span>
-          <span>最新版本 <b>{selected.latestVersion || '检测失败'}</b></span>
+          <span>最新版本 <b>{selected.latestVersion || (selected.id === 'hermes' ? '由官方安装器管理' : '检测失败')}</b></span>
         </div>
 
         <div className={styles.formSection}>

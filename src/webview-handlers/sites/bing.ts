@@ -13,6 +13,9 @@ const DEFAULT_REFERENCE_IMAGE = {
 };
 
 const DEFAULT_IMAGE_RESULT_SELECTORS = [
+  'aigc-results-view aigc-media-viewer[data-status="success"] #aigc-media-display img[src*="/th/id/OIG"]',
+  'aigc-results-view aigc-media-viewer[data-status="success"] aigc-filmstrip-item[aria-selected="true"] img[src*="/th/id/OIG"]',
+  'aigc-results-view[data-request-id] img[src*="pid=ImgGn"]',
   'a[id^="img-cont-"] img[src*="/th/id/OIG"]',
   'a[id^="img-cont-"] img[src*="pid=ImgGn"]',
   'img.image-row-img[src*="/th/id/OIG"]',
@@ -27,9 +30,11 @@ export class BingCreateHandler extends BaseSiteHandler {
     urlHint: 'bing.com',
     urlHints: ['bing.com/images/create', 'bing.com', 'www.bing.com'],
     newChatAction: {
-      url: 'https://www.bing.com/images/create',
+      url: 'https://www.bing.com/images/create/ai-image-generator',
     },
     inputRootSelectors: [
+      'gm-composer',
+      '.aigc-composer',
       '#create_input_form',
       '#gir_form',
       '[class*="ImageCreator"]',
@@ -38,6 +43,7 @@ export class BingCreateHandler extends BaseSiteHandler {
       'main',
     ],
     inputSelectors: [
+      'textarea.gmc__textarea',
       'textarea.b_searchbox.gi_sb',
       'textarea.b_searchbox',
       'textarea.gi_sb',
@@ -52,6 +58,8 @@ export class BingCreateHandler extends BaseSiteHandler {
     ],
     inputType: 'textarea',
     sendButtonSelectors: [
+      'gm-composer gm-generate-btn .gmbtn__btn',
+      'gm-generate-btn .gmbtn__btn',
       '#create_btn_c',
       'a#create_btn_c',
       '#create_btn',
@@ -63,6 +71,7 @@ export class BingCreateHandler extends BaseSiteHandler {
       'button[aria-label*="Create" i]',
     ],
     nearInputSendSelectors: [
+      'gm-generate-btn .gmbtn__btn',
       '#create_btn_c',
       'a#create_btn_c',
       '#create_btn',
@@ -77,6 +86,10 @@ export class BingCreateHandler extends BaseSiteHandler {
     imageResultSelectors: DEFAULT_IMAGE_RESULT_SELECTORS,
     imageResultRootSelectors: ['main', 'body'],
     imageResultMinSize: 128,
+    imageFailureSelectors: [
+      'aigc-media-viewer[data-status="error"] .aigc-error__desc',
+      '.aigc-viewer__error:not([hidden]) .aigc-error__desc',
+    ],
   };
 }
 

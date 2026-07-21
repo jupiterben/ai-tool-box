@@ -62,7 +62,7 @@ function parseMultipartForm(body: Buffer, boundary: string): ParsedMultipart {
 
     const headerText = part.subarray(0, headerEnd).toString('utf8');
     const content = part.subarray(headerEnd + 4);
-    const contentBody = content.endsWith('\r\n')
+    const contentBody = content.length >= 2 && content.subarray(content.length - 2).equals(Buffer.from('\r\n'))
       ? content.subarray(0, content.length - 2)
       : content;
 
