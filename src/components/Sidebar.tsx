@@ -1,6 +1,5 @@
 import { memo, useState, useEffect } from 'react';
 import Icon from './ui/Icon';
-import PresetSwitcher from './PresetSwitcher/PresetSwitcher';
 import styles from './Sidebar.module.css';
 
 export interface ToolPage {
@@ -58,14 +57,6 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
         </div>
       </div>
 
-      <PresetSwitcher
-        collapsed={isCollapsed}
-        onManage={() => {
-          sessionStorage.setItem('ai-tool-box-settings-tab', 'presets');
-          onPageChange('settings');
-        }}
-      />
-
       <nav id="sidebar-navigation" className={styles.nav} role="navigation" aria-label="工具导航">
         {navPages.map((page) => (
           <button
@@ -91,23 +82,19 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
       <div className={styles.footer}>
         {settingsPage && (
           <button
-            className={`${styles.footerNavButton} ${
-              activePageId === settingsPage.id ? styles.footerNavButtonActive : ''
+            type="button"
+            className={`${styles.settingsIconButton} ${
+              activePageId === settingsPage.id ? styles.settingsIconButtonActive : ''
             }`}
-            onClick={() => onPageChange(settingsPage.id)}
-            aria-label={`切换到${settingsPage.name}`}
+            onClick={() => {
+              sessionStorage.setItem('ai-tool-box-settings-tab', 'presets');
+              onPageChange(settingsPage.id);
+            }}
+            aria-label="设置与 Preset"
             aria-current={activePageId === settingsPage.id ? 'page' : undefined}
-            title={isCollapsed ? settingsPage.name : undefined}
+            title="设置与 Preset"
           >
-            {settingsPage.iconName ? (
-              <Icon
-                name={settingsPage.iconName}
-                size={20}
-                className={styles.icon}
-                aria-hidden="true"
-              />
-            ) : null}
-            {!isCollapsed && <span className={styles.name}>{settingsPage.name}</span>}
+            <Icon name="Settings" size={20} aria-hidden="true" />
           </button>
         )}
       </div>

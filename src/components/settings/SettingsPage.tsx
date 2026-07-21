@@ -30,7 +30,7 @@ interface SettingsNavItem {
 const SETTINGS_GROUPS: { label: string; items: SettingsNavItem[] }[] = [
   {
     label: '工作区',
-    items: [{ value: 'presets', label: 'Preset', icon: 'Layers' }],
+    items: [{ value: 'presets', label: 'Preset 工作区', icon: 'Layers' }],
   },
   {
     label: '智能能力',
