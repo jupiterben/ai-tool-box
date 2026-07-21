@@ -1,18 +1,19 @@
 import { session } from 'electron';
-import { getToolPartition } from '../src/utils/toolPartition.js';
+import { DEFAULT_PRESET_ID } from '../src/types/preset.js';
+import { getPresetPartition } from '../src/utils/toolPartition.js';
 
-export interface ClearToolWebviewDataResult {
+export interface ClearPresetWebviewDataResult {
   success: boolean;
   error?: string;
 }
 
-export async function clearToolWebviewData(toolId: string): Promise<ClearToolWebviewDataResult> {
-  if (!toolId?.trim()) {
-    return { success: false, error: '无效的工具 ID' };
+export async function clearPresetWebviewData(presetId: string): Promise<ClearPresetWebviewDataResult> {
+  if (!presetId?.trim()) {
+    return { success: false, error: '无效的 Preset ID' };
   }
 
   try {
-    const partition = getToolPartition(toolId);
+    const partition = getPresetPartition(presetId);
     const ses = session.fromPartition(partition);
 
     await ses.clearStorageData();
@@ -27,4 +28,9 @@ export async function clearToolWebviewData(toolId: string): Promise<ClearToolWeb
       error: error instanceof Error ? error.message : '清理缓存失败',
     };
   }
+}
+
+/** @deprecated 使用 clearPresetWebviewData */
+export async function clearToolWebviewData(_toolId: string): Promise<ClearPresetWebviewDataResult> {
+  return clearPresetWebviewData(DEFAULT_PRESET_ID);
 }

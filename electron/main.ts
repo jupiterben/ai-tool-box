@@ -1,23 +1,19 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
 import { configureIsolatedUserData } from './appEnvironment';
 import {
-  initializeGeolocationSettings,
   loadGeolocationSettings,
   registerGeolocationWebContentsListener,
   saveGeolocationSettings,
-  applyToolGeolocationById,
+  applyPresetGeolocationById,
 } from './geolocationManager';
 import {
-  initializeProxySettings,
   loadProxySettings,
   registerProxyLoginHandler,
   saveProxySettings,
 } from './proxyManager';
 import { sendWebviewInput } from './webviewInput';
 import { extractWebviewResponses } from './webviewExtract';
-import { clearToolWebviewData } from './webviewSession';
+import { clearPresetWebviewData } from './webviewSession';
 import { loadLlmSettings, saveLlmSettings } from './llmManager';
 import { summarizeResponses } from './llmService';
 import { checkForUpdatesManually, initializeAutoUpdater, quitAndInstallUpdate } from './updateManager';
@@ -30,69 +26,175 @@ import type { LlmSettingsInput, SummarizeResponsesPayload } from '../src/types/l
 import type { ImageGenApiSettings } from '../src/types/image-gen-api-settings';
 import type { AgentCliConfig, AgentCliId } from '../src/types/agent-cli';
 import { installAgentCli, listAgentClis, saveAgentCliConfig } from './agentCliManager';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { DEFAULT_PRESET_ID } from '../src/types/preset';
+import {
+  createPreset,
+  deletePreset,
+  listPresets,
+  loadPresetRegistry,
+  renamePreset,
+} from './presetRegistry';
+import {
+  copyPresetSettings,
+  deletePresetSettings,
+  migrateLegacySettingsIntoDefault,
+  loadPresetToolSettings,
+  savePresetToolSettings,
+} from './presetSettingsStore';
+import type { ToolSettings } from '../src/types/tool-settings';
+import {
+  closePresetWindow,
+  getFocusedPresetId,
+  getFocusedPresetWindow,
+  getPresetIdForWebContentsId,
+  listOpenPresetIds,
+  openPresetWindow,
+  setPresetWindowTitle,
+} from './presetWindowManager';
 
 configureIsolatedUserData();
 
-let mainWindow: BrowserWindow | null = null;
-
-function getAppIconPath(): string {
-  const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
-  if (app.isPackaged) {
-    return join(process.resourcesPath, iconFile);
-  }
-  return join(__dirname, '../resources', iconFile);
-}
-
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    icon: getAppIconPath(),
-    webPreferences: {
-      preload: join(__dirname, 'preload.cjs'),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-      webviewTag: true,
-    },
-    title: 'AI Tool Box',
-    show: false,
-  });
-
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-    initializeAutoUpdater(mainWindow);
-  });
-
-  const isDev = process.env.ELECTRON_DEV === '1' || !app.isPackaged;
-
-  if (isDev) {
-    mainWindow.loadURL('http://127.0.0.1:5173');
-    mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(join(__dirname, '../dist/index.html'));
-  }
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
+function resolvePresetIdFromEvent(event: Electron.IpcMainInvokeEvent): string {
+  return (
+    getPresetIdForWebContentsId(event.sender.id) ??
+    getFocusedPresetId() ??
+    DEFAULT_PRESET_ID
+  );
 }
 
 function registerIpcHandlers() {
+  ipcMain.handle('preset:get-id', async (event) => {
+    return { success: true, presetId: resolvePresetIdFromEvent(event) };
+  });
+
+  ipcMain.handle('preset:list', async () => {
+    try {
+      return { success: true, presets: await listPresets(), openIds: listOpenPresetIds() };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '读取 Preset 失败',
+      };
+    }
+  });
+
+  ipcMain.handle('preset:create', async (_event, name: string) => {
+    try {
+      const meta = await createPreset(name);
+      await copyPresetSettings(DEFAULT_PRESET_ID, meta.id);
+      return { success: true, preset: meta };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '创建 Preset 失败',
+      };
+    }
+  });
+
+  ipcMain.handle('preset:rename', async (_event, payload: { id: string; name: string }) => {
+    try {
+      const meta = await renamePreset(payload.id, payload.name);
+      setPresetWindowTitle(meta.id, meta.name);
+      return { success: true, preset: meta };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '重命名失败',
+      };
+    }
+  });
+
+  ipcMain.handle('preset:delete', async (_event, id: string) => {
+    try {
+      closePresetWindow(id);
+      await deletePresetSettings(id);
+      await clearPresetWebviewData(id);
+      await deletePreset(id);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '删除 Preset 失败',
+      };
+    }
+  });
+
+  ipcMain.handle('preset:open', async (_event, id: string) => {
+    try {
+      const win = await openPresetWindow(id);
+      if (listOpenPresetIds().length === 1) {
+        initializeAutoUpdater(win);
+      }
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '打开 Preset 失败',
+      };
+    }
+  });
+
+  ipcMain.handle('preset:list-open', async () => {
+    return { success: true, openIds: listOpenPresetIds() };
+  });
+
+  ipcMain.handle('tool-settings:get', async (event) => {
+    try {
+      const presetId = resolvePresetIdFromEvent(event);
+      const settings = await loadPresetToolSettings(presetId);
+      return { success: true, settings };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '读取工具设置失败',
+      };
+    }
+  });
+
+  ipcMain.handle('tool-settings:save', async (event, settings: ToolSettings) => {
+    try {
+      const presetId = resolvePresetIdFromEvent(event);
+      const saved = await savePresetToolSettings(presetId, settings);
+      return { success: true, settings: saved };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '保存工具设置失败',
+      };
+    }
+  });
+
   ipcMain.handle('agent-cli:list', async () => {
-    try { return { success: true, agents: await listAgentClis() }; }
-    catch (error) { return { success: false, error: error instanceof Error ? error.message : '读取 Agent CLI 失败' }; }
+    try {
+      return { success: true, agents: await listAgentClis() };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '读取 Agent CLI 失败',
+      };
+    }
   });
   ipcMain.handle('agent-cli:install', async (_event, id: AgentCliId) => {
-    try { await installAgentCli(id); return { success: true, agents: await listAgentClis() }; }
-    catch (error) { return { success: false, error: error instanceof Error ? error.message : '安装失败' }; }
+    try {
+      await installAgentCli(id);
+      return { success: true, agents: await listAgentClis() };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '安装失败',
+      };
+    }
   });
   ipcMain.handle('agent-cli:save-config', async (_event, payload: { id: AgentCliId; config: AgentCliConfig }) => {
-    try { await saveAgentCliConfig(payload.id, payload.config); return { success: true }; }
-    catch (error) { return { success: false, error: error instanceof Error ? error.message : '保存配置失败' }; }
+    try {
+      await saveAgentCliConfig(payload.id, payload.config);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '保存配置失败',
+      };
+    }
   });
   ipcMain.handle('image-gen-api:get-settings', async () => {
     try {
@@ -115,7 +217,9 @@ function registerIpcHandlers() {
       const settings = await saveImageGenApiSettings(input);
       if (settings.enabled) {
         await stopImageGenApi();
-        const status = await startImageGenApi(() => mainWindow, { port: settings.port });
+        const status = await startImageGenApi(() => getFocusedPresetWindow(), {
+          port: settings.port,
+        });
         return { success: true, settings, status };
       }
 
@@ -136,9 +240,9 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('proxy:get-settings', async () => {
+  ipcMain.handle('proxy:get-settings', async (event) => {
     try {
-      const settings = await loadProxySettings();
+      const settings = await loadProxySettings(resolvePresetIdFromEvent(event));
       return { success: true, settings };
     } catch (error) {
       return {
@@ -148,9 +252,9 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('geolocation:get-settings', async () => {
+  ipcMain.handle('geolocation:get-settings', async (event) => {
     try {
-      const settings = await loadGeolocationSettings();
+      const settings = await loadGeolocationSettings(resolvePresetIdFromEvent(event));
       return { success: true, settings };
     } catch (error) {
       return {
@@ -160,9 +264,9 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('geolocation:save-settings', async (_event, settings: GeolocationSettings) => {
+  ipcMain.handle('geolocation:save-settings', async (event, settings: GeolocationSettings) => {
     try {
-      const saved = await saveGeolocationSettings(settings);
+      const saved = await saveGeolocationSettings(settings, resolvePresetIdFromEvent(event));
       return { success: true, settings: saved };
     } catch (error) {
       return {
@@ -172,9 +276,9 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('geolocation:apply-for-tool', async (_event, toolId: string) => {
+  ipcMain.handle('geolocation:apply-for-tool', async (event, _toolId: string) => {
     try {
-      await applyToolGeolocationById(toolId);
+      await applyPresetGeolocationById(resolvePresetIdFromEvent(event));
       return { success: true };
     } catch (error) {
       return {
@@ -184,9 +288,9 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('proxy:save-settings', async (_event, settings: ProxySettings) => {
+  ipcMain.handle('proxy:save-settings', async (event, settings: ProxySettings) => {
     try {
-      const saved = await saveProxySettings(settings);
+      const saved = await saveProxySettings(settings, resolvePresetIdFromEvent(event));
       return { success: true, settings: saved };
     } catch (error) {
       return {
@@ -219,9 +323,9 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('webview:clear-tool-data', async (_event, toolId: string) => {
+  ipcMain.handle('webview:clear-tool-data', async (event, _toolId?: string) => {
     try {
-      return await clearToolWebviewData(toolId);
+      return await clearPresetWebviewData(resolvePresetIdFromEvent(event));
     } catch (error) {
       return {
         success: false,
@@ -266,7 +370,7 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('update:check', async () => {
-    checkForUpdatesManually(mainWindow);
+    checkForUpdatesManually(getFocusedPresetWindow());
     return { success: true };
   });
 
@@ -281,20 +385,25 @@ registerGeolocationWebContentsListener();
 registerImageGenBridgeHandlers();
 
 app.whenReady().then(async () => {
-  await initializeProxySettings();
-  await initializeGeolocationSettings();
+  await loadPresetRegistry();
+  await migrateLegacySettingsIntoDefault();
   registerIpcHandlers();
-  createWindow();
+
+  const defaultWin = await openPresetWindow(DEFAULT_PRESET_ID);
+  initializeAutoUpdater(defaultWin);
+
   const apiSettings = await loadImageGenApiSettings();
   if (apiSettings.enabled) {
-    await startImageGenApi(() => mainWindow, { port: apiSettings.port }).catch((error) => {
-      console.error('[main] Failed to start image API:', error);
-    });
+    await startImageGenApi(() => getFocusedPresetWindow(), { port: apiSettings.port }).catch(
+      (error) => {
+        console.error('[main] Failed to start image API:', error);
+      }
+    );
   }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      void openPresetWindow(DEFAULT_PRESET_ID);
     }
   });
 });

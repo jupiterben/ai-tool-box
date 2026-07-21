@@ -9,6 +9,8 @@ import type {
 import type { ImageGenApiSettings, ImageGenApiSettingsResult } from './image-gen-api-settings';
 import type { ReferenceImage } from './reference-image';
 import type { AgentCliConfig, AgentCliId, AgentCliResult } from './agent-cli';
+import type { PresetMeta } from './preset';
+import type { ToolSettings } from './tool-settings';
 
 export interface WebviewSendInputPayload {
   toolId: string;
@@ -44,6 +46,35 @@ export interface ExtractWebviewResponsesResult {
 }
 
 export interface ElectronAPI {
+  getPresetId: () => string;
+  listPresets: () => Promise<{
+    success: boolean;
+    presets?: PresetMeta[];
+    openIds?: string[];
+    error?: string;
+  }>;
+  createPreset: (name: string) => Promise<{
+    success: boolean;
+    preset?: PresetMeta;
+    error?: string;
+  }>;
+  renamePreset: (
+    id: string,
+    name: string
+  ) => Promise<{ success: boolean; preset?: PresetMeta; error?: string }>;
+  deletePreset: (id: string) => Promise<{ success: boolean; error?: string }>;
+  openPreset: (id: string) => Promise<{ success: boolean; error?: string }>;
+  listOpenPresets: () => Promise<{ success: boolean; openIds?: string[]; error?: string }>;
+  getToolSettings?: () => Promise<{
+    success: boolean;
+    settings?: ToolSettings;
+    error?: string;
+  }>;
+  saveToolSettings?: (settings: ToolSettings) => Promise<{
+    success: boolean;
+    settings?: ToolSettings;
+    error?: string;
+  }>;
   listAgentClis: () => Promise<AgentCliResult>;
   installAgentCli: (id: AgentCliId) => Promise<AgentCliResult>;
   saveAgentCliConfig: (id: AgentCliId, config: AgentCliConfig) => Promise<AgentCliResult>;
@@ -75,7 +106,7 @@ export interface ElectronAPI {
   extractWebviewResponses: (
     payload: ExtractWebviewResponsesPayload
   ) => Promise<ExtractWebviewResponsesResult>;
-  clearToolWebviewData: (toolId: string) => Promise<{ success: boolean; error?: string }>;
+  clearToolWebviewData: (toolId?: string) => Promise<{ success: boolean; error?: string }>;
   getLlmSettings: () => Promise<{
     success: boolean;
     settings?: LlmSettings;
