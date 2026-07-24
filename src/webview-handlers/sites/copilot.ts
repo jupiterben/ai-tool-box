@@ -21,14 +21,18 @@ export class CopilotHandler extends BaseSiteHandler {
       "button[type='submit']",
     ],
     sendMethod: 'enter',
+    // 2026-07 DOM：data-content/testid 为 ai-message（非 assistant）；优先 body 去掉 "Copilot said"
     responseSelectors: [
+      '[data-testid="ai-message-body"]',
+      '[data-testid="ai-message"]',
+      '[data-content="ai-message"]',
       '[data-content="assistant"]',
       '.bot-turn',
       '[data-testid="response-message"]',
       '.ac-textBlock',
-      '[class*="response"]',
     ],
     userMessageSelectors: [
+      '[data-content="user-message"]',
       '[data-content="user"]',
       '.user-turn',
       '[class*="user-message"]',

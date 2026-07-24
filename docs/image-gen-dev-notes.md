@@ -66,6 +66,7 @@ Gemini 配置里增加了：
 
 - 优先找输入框附近的 `Send` / `Submit` 按钮。
 - 避免命中页面顶部、历史回复区或工具面板里的其它按钮。
+- `waitForWebviewSendReady` 在 `preferNearInputSendButton` 站点只检查输入框附近按钮；附近无按钮且不在生成中即视为可发下一条，避免被页面其它 disabled 按钮误判为 `send-disabled` 而卡死第二轮。
 
 `__isSendReady` 也做了收紧：
 

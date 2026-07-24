@@ -90,13 +90,24 @@ function buildFullMarkdown(
     `> 生成时间：${generatedAt}`,
     ``,
     question ? `## 问题\n\n${question}\n` : '',
-    llmMarkdown ? `## AI 智能汇总\n\n${llmMarkdown}\n` : '',
+    llmMarkdown ? `## 结论与结果\n\n${llmMarkdown}\n` : '',
     `## 概要\n\n${summarySection}\n`,
     `## 各平台详细回复\n`,
     buildResponsesSection(responses),
   ];
 
   return bodyParts.filter(Boolean).join('\n');
+}
+
+/** 下载用：始终按 responses 重建，保证含全部平台原文（不仅是 LLM 结论） */
+export function buildDownloadMarkdown(doc: ResponseSummaryDocument): string {
+  return buildFullMarkdown(
+    doc.question,
+    doc.generatedAt,
+    doc.summarySection,
+    doc.responses,
+    doc.llmMarkdown
+  );
 }
 
 export function downloadMarkdownFile(filename: string, content: string): void {

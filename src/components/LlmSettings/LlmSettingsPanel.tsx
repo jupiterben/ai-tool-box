@@ -47,7 +47,7 @@ const LlmSettingsPanel: React.FC = () => {
             onChange={(e) => updateSettings({ enabled: e.target.checked })}
           />
           <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-primary)' }}>
-            启用 LLM 智能汇总
+            启用 LLM 方案提炼
           </span>
         </label>
 

@@ -378,6 +378,8 @@ export class GrokHandler extends BaseSiteHandler {
     urlHint: 'grok.com',
     urlHints: ['grok.com'],
     inputSelectors: [
+      '[data-testid="chat-input"] [contenteditable="true"]',
+      '[data-testid="chat-input"] div[role="textbox"]',
       "textarea[data-testid='grok-input']",
       '[contenteditable="true"][data-testid*="input" i]',
       '[contenteditable="true"][aria-label*="message" i]',
@@ -401,13 +403,17 @@ export class GrokHandler extends BaseSiteHandler {
     preferNearInputSendButton: true,
     sendButtonWaitMs: 5000,
     sendMethod: 'click',
+    // 2026-07 DOM：assistant-message / response-content-markdown；勿用 [class*='response']（会误取 "57 sources"）
     responseSelectors: [
+      '[data-testid="assistant-message"] .response-content-markdown',
+      '[data-testid="assistant-message"]',
+      '.response-content-markdown',
       '[data-testid="grok-response"]',
       '.grok-response',
-      "[class*='response']",
     ],
     userMessageSelectors: [
       '[data-testid="user-message"]',
+      '[data-testid="user-message"] .response-content-markdown',
       '.user-message',
     ],
     newChatAction: {

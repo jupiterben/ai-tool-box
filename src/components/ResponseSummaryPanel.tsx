@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react';
 import type { ResponseSummaryDocument } from '../utils/responseSummaryDocument';
-import { downloadMarkdownFile } from '../utils/responseSummaryDocument';
+import { buildDownloadMarkdown, downloadMarkdownFile } from '../utils/responseSummaryDocument';
 import MarkdownContent from './MarkdownContent';
 import { Button } from './ui/Button';
 import Icon from './ui/Icon';
@@ -33,7 +33,8 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
     if (!document) return;
     const safeName = document.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 60);
     const filename = `${safeName}_${Date.now()}.md`;
-    downloadMarkdownFile(filename, document.markdown);
+    // 按 responses 现场重建，确保含全部平台原文，而不仅是 LLM 结论
+    downloadMarkdownFile(filename, buildDownloadMarkdown(document));
   }, [document]);
 
   const isBusy = isBusyProp ?? (isCollecting || isSummarizing);
@@ -126,7 +127,7 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
       <div className={styles.content}>
         {!document && !isBusy && (
           <p className={styles.placeholder}>
-            向各 AI 发送问题并等待回复后，点击「收集各平台回复」生成 LLM 智能汇总文档。
+            向各 AI 发送问题并等待回复后，点击「收集各平台回复」生成精炼结论与推荐方案。
           </p>
         )}
 
@@ -138,7 +139,7 @@ const ResponseSummaryPanel: React.FC<ResponseSummaryPanelProps> = memo(({
           <>
             {document.llmSummarized && (
               <section className={styles.section}>
-                <h3 className={styles.sectionTitle}>AI 智能汇总</h3>
+                <h3 className={styles.sectionTitle}>结论与结果</h3>
                 <div className={styles.markdownBox}>
                   <MarkdownContent content={document.llmMarkdown ?? document.markdown} />
                 </div>

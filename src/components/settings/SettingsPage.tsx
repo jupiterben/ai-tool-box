@@ -21,7 +21,7 @@ const SETTINGS_TABS: { value: SettingsTab; label: string }[] = [
 ];
 
 const TAB_DESCRIPTIONS: Record<SettingsTab, string> = {
-  llm: '配置 LLM API，收集各平台回复时自动调用 AI 生成结构化 Markdown 汇总。',
+  llm: '配置 LLM API，收集各平台回复时自动提炼结论与可执行方案。',
   api: '控制本机生图 API 服务的启用状态、监听端口和实际访问地址。',
   'chat-tools': '管理对话类网站的启用状态、网络代理与 GPS 定位。',
   'image-tools': '管理生图类网站的启用状态、网络代理与 GPS 定位。',

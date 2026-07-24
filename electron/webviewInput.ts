@@ -33,6 +33,79 @@ export interface WebviewSendReadyPayload {
   webContentsId?: number;
 }
 
+function buildSendReadyCheckScript(handler: BaseSiteHandler): string {
+  const preferNear = handler.config.preferNearInputSendButton === true;
+  return `(function() {
+    ${handler.buildBrowserRuntimeScript()}
+
+    function normalizeText(value) {
+      return String(value || '').replace(/\\s+/g, ' ').trim();
+    }
+
+    function getInputText(input) {
+      if (!input) return '';
+      var tag = input.tagName;
+      if (tag === 'TEXTAREA' || tag === 'INPUT') return normalizeText(input.value);
+      return normalizeText(input.innerText || input.textContent || '');
+    }
+
+    function isVisibleEl(el) {
+      if (!el) return false;
+      if (el.getAttribute('aria-hidden') === 'true') return false;
+      if (el.closest('[aria-hidden="true"]')) return false;
+      var rect = el.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return false;
+      var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+      if (style && (style.visibility === 'hidden' || style.display === 'none' || style.pointerEvents === 'none')) return false;
+      return true;
+    }
+
+    function isGenerating() {
+      var selectors = [
+        'button[aria-label*="Stop" i]',
+        'button[aria-label*="Cancel" i]',
+        '[data-testid*="stop" i]',
+        '[aria-busy="true"]'
+      ];
+      for (var i = 0; i < selectors.length; i++) {
+        try {
+          var nodes = document.querySelectorAll(selectors[i]);
+          for (var j = 0; j < nodes.length; j++) {
+            if (isVisibleEl(nodes[j])) return true;
+          }
+        } catch (e) {}
+      }
+      return false;
+    }
+
+    var input = __findInputElement();
+    if (!input) return { ready: false, reason: 'no-input' };
+    if (input.disabled || input.readOnly) return { ready: false, reason: 'input-disabled' };
+    if (input.getAttribute('aria-disabled') === 'true') return { ready: false, reason: 'input-aria-disabled' };
+    if (isGenerating()) return { ready: false, reason: 'generating' };
+
+    var inputText = getInputText(input);
+    var preferNear = ${preferNear ? 'true' : 'false'};
+
+    if (preferNear) {
+      var nearBtn = __findSendButtonNearInput(input);
+      if (nearBtn) {
+        if (__isSendReady(nearBtn)) return { ready: true };
+        return { ready: false, reason: 'send-disabled' };
+      }
+      // 输入框附近无发送按钮：生成完成后按钮会隐藏；残留文字由下一轮 send 清空
+      return { ready: true };
+    }
+
+    var btn = __findSendButton(input);
+    if (btn) {
+      if (__isSendReady(btn)) return { ready: true };
+      return { ready: false, reason: 'send-disabled' };
+    }
+    return { ready: true };
+  })()`;
+}
+
 /** 等待输入框可用且发送按钮就绪（上一轮生图完成后才能发下一条） */
 export async function waitForWebviewSendReady(
   payload: WebviewSendReadyPayload,
@@ -57,21 +130,7 @@ export async function waitForWebviewSendReady(
     return { success: false, error: injectError.error || '脚本注入失败' };
   }
 
-  const checkScript = `(function() {
-    ${handler.buildBrowserRuntimeScript()}
-    var input = __findInputElement();
-    if (!input) return { ready: false, reason: 'no-input' };
-    if (input.disabled || input.readOnly) return { ready: false, reason: 'input-disabled' };
-    if (input.getAttribute('aria-disabled') === 'true') return { ready: false, reason: 'input-aria-disabled' };
-    var btn = __findSendButton(input);
-    if (btn) {
-      // 找到了发送按钮：必须可用才算就绪（上一轮可能还在生成中）
-      if (__isSendReady(btn)) return { ready: true };
-      return { ready: false, reason: 'send-disabled' };
-    }
-    // 没找到发送按钮：可能是输入为空所以按钮隐藏，视为可输入状态
-    return { ready: true };
-  })()`;
+  const checkScript = buildSendReadyCheckScript(handler);
 
   const deadline = Date.now() + timeoutMs;
   let lastReason = 'unknown';
