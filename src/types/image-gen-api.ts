@@ -39,6 +39,17 @@ export interface GeminiImageOptions {
   mode?: 'auto' | 'web-api' | 'dom';
 }
 
+/** Google AI Studio 生图选项（toolId=aistudio-image 时生效） */
+export interface AiStudioImageOptions {
+  preferWebApi?: boolean;
+  mode?: 'auto' | 'web-api' | 'dom';
+  /**
+   * 模型 id。默认 `gemini-2.5-flash-image`（免费 Chat 图像模型）。
+   * `imagen-*` 会打开 new_image 页（通常需付费）。
+   */
+  model?: string;
+}
+
 export interface GenImageRequest {
   toolId?: string;
   prompt?: string;
@@ -54,6 +65,8 @@ export interface GenImageRequest {
   bing?: BingImageOptions;
   /** Gemini 专用选项（toolId=gemini-image 时生效） */
   gemini?: GeminiImageOptions;
+  /** AI Studio 专用选项（toolId=aistudio-image 时生效） */
+  aistudio?: AiStudioImageOptions;
 }
 
 export interface GenImageResult {

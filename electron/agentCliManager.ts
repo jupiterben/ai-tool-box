@@ -17,6 +17,7 @@ const CATALOG = {
   codex: { name: 'Codex CLI', description: 'OpenAI 的本地命令行编码 Agent', command: 'codex', packageName: '@openai/codex' },
   opencode: { name: 'OpenCode', description: '开源、模型无关的终端编码 Agent', command: 'opencode', packageName: 'opencode-ai' },
   hermes: { name: 'Hermes Agent', description: 'Nous Research 的持久记忆个人 Agent', command: 'hermes', installerUrl: 'https://hermes-agent.nousresearch.com/install.sh' },
+  deepseek: { name: 'DeepSeek TUI', description: 'DeepSeek 终端编码 Agent（1M 上下文）', command: 'deepseek', packageName: 'deepseek-tui' },
 } as const;
 
 const DEFAULT_CONFIG: AgentCliConfig = { model: '', apiKey: '', baseUrl: '', defaultArgs: '', permissionMode: 'default', enabled: true };

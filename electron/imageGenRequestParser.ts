@@ -1,5 +1,10 @@
 import type { IncomingMessage } from 'node:http';
-import type { GenImageRequest, BingImageOptions, GeminiImageOptions } from '../src/types/image-gen-api.js';
+import type {
+  GenImageRequest,
+  BingImageOptions,
+  GeminiImageOptions,
+  AiStudioImageOptions,
+} from '../src/types/image-gen-api.js';
 import type { ReferenceImage } from '../src/types/reference-image.js';
 import { REFERENCE_IMAGE_MAX_BYTES } from '../src/types/reference-image.js';
 
@@ -196,6 +201,27 @@ function parseGeminiOptions(input: unknown): GeminiImageOptions | undefined {
   return Object.keys(gemini).length ? gemini : undefined;
 }
 
+function parseAiStudioOptions(input: unknown): AiStudioImageOptions | undefined {
+  if (!input || typeof input !== 'object') {
+    return undefined;
+  }
+
+  const value = input as Record<string, unknown>;
+  const aistudio: AiStudioImageOptions = {};
+
+  if (typeof value.preferWebApi === 'boolean') {
+    aistudio.preferWebApi = value.preferWebApi;
+  }
+  if (value.mode === 'auto' || value.mode === 'web-api' || value.mode === 'dom') {
+    aistudio.mode = value.mode;
+  }
+  if (typeof value.model === 'string' && value.model.trim()) {
+    aistudio.model = value.model.trim();
+  }
+
+  return Object.keys(aistudio).length ? aistudio : undefined;
+}
+
 function buildRequestFromParts(parts: {
   prompt?: string;
   toolId?: string;
@@ -207,6 +233,7 @@ function buildRequestFromParts(parts: {
   referenceImageName?: string;
   bing?: BingImageOptions;
   gemini?: GeminiImageOptions;
+  aistudio?: AiStudioImageOptions;
 }): GenImageRequest {
   const prompt = parts.prompt?.trim() || '';
   let referenceImage = parts.referenceImage ?? null;
@@ -231,6 +258,7 @@ function buildRequestFromParts(parts: {
     referenceImage,
     bing: parts.bing,
     gemini: parts.gemini,
+    aistudio: parts.aistudio,
   };
 }
 
@@ -259,6 +287,7 @@ function parseJsonRequest(body: string): GenImageRequest {
     referenceImage,
     bing: parseBingOptions(parsed.bing),
     gemini: parseGeminiOptions(parsed.gemini),
+    aistudio: parseAiStudioOptions(parsed.aistudio),
     referenceImageBase64:
       typeof parsed.referenceImageBase64 === 'string' ? parsed.referenceImageBase64 : undefined,
     referenceImageMimeType:
@@ -323,6 +352,24 @@ function parseMultipartRequest(body: Buffer, boundary: string): GenImageRequest 
       preferWebApi: parsed.fields.geminiPreferWebApi === 'true',
     });
   }
+  let aistudio: AiStudioImageOptions | undefined;
+  if (parsed.fields.aistudio) {
+    try {
+      aistudio = parseAiStudioOptions(JSON.parse(parsed.fields.aistudio));
+    } catch {
+      throw new Error('aistudio field must be valid JSON');
+    }
+  } else if (
+    parsed.fields.aistudioMode ||
+    parsed.fields.aistudioPreferWebApi ||
+    parsed.fields.aistudioModel
+  ) {
+    aistudio = parseAiStudioOptions({
+      mode: parsed.fields.aistudioMode,
+      preferWebApi: parsed.fields.aistudioPreferWebApi === 'true',
+      model: parsed.fields.aistudioModel,
+    });
+  }
 
   return buildRequestFromParts({
     prompt: parsed.fields.prompt,
@@ -332,6 +379,7 @@ function parseMultipartRequest(body: Buffer, boundary: string): GenImageRequest 
     referenceImage,
     bing,
     gemini,
+    aistudio,
   });
 }
 

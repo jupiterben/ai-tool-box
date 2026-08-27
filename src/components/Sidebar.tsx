@@ -19,7 +19,8 @@ export interface ToolPage {
     | 'MapPin'
     | 'Image'
     | 'Video'
-    | 'Workflow';
+    | 'Workflow'
+    | 'TerminalSquare';
 }
 
 interface SidebarProps {

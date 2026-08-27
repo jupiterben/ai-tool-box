@@ -69,7 +69,7 @@ The CLI prints the saved file paths on stdout, one per line.
 
 ## Supported sources (run `--list-tools` for the canonical list)
 
-`gemini-image` · `jimeng` · `wanxiang` · `kling` · `liblib` · `yige` ·
+`gemini-image` · `aistudio-image` · `jimeng` · `wanxiang` · `kling` · `liblib` · `yige` ·
 `miaohua` · `doubao-image` · `midjourney` · `leonardo` · `ideogram` ·
 `firefly` · `bing-create` · `stability` · `recraft`
 

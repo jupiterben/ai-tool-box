@@ -7,12 +7,10 @@ import ApiSettingsPanel from '../ApiSettings/ApiSettingsPanel';
 import SettingsPageLayout from './SettingsPageLayout';
 import { Icon, type IconName } from '../ui/Icon';
 import styles from './SettingsPage.module.css';
-import AgentCliSettingsPanel from '../AgentCliSettings/AgentCliSettingsPanel';
 import PresetSettingsPanel from '../PresetSettings/PresetSettingsPanel';
 
 type SettingsTab =
   | 'presets'
-  | 'agents'
   | 'llm'
   | 'api'
   | 'chat-tools'
@@ -35,7 +33,6 @@ const SETTINGS_GROUPS: { label: string; items: SettingsNavItem[] }[] = [
   {
     label: '智能能力',
     items: [
-      { value: 'agents', label: 'Agent CLI', icon: 'TerminalSquare' },
       { value: 'llm', label: 'LLM 汇总', icon: 'Sparkles' },
       { value: 'api', label: 'API 服务', icon: 'ServerCog' },
     ],
@@ -59,7 +56,6 @@ const SETTINGS_GROUPS: { label: string; items: SettingsNavItem[] }[] = [
 
 const TAB_DESCRIPTIONS: Record<SettingsTab, string> = {
   presets: '管理命名工作区：新建、重命名、删除；切换时新开窗口并隔离登录态。',
-  agents: '统一安装、升级和配置 Cursor、Claude、Gemini 等本机 Agent CLI。',
   llm: '配置 LLM API，收集各平台回复时自动调用 AI 生成结构化 Markdown 汇总。',
   api: '控制本机生图 API 服务的启用状态、监听端口和实际访问地址。',
   'chat-tools': '管理对话类网站的启用状态。',
@@ -131,11 +127,6 @@ const SettingsPage: React.FC = () => {
           {visitedTabs.has('presets') && (
             <div className={activeTab === 'presets' ? undefined : styles.panelHidden}>
               <PresetSettingsPanel />
-            </div>
-          )}
-          {visitedTabs.has('agents') && (
-            <div className={activeTab === 'agents' ? undefined : styles.panelHidden}>
-              <AgentCliSettingsPanel />
             </div>
           )}
           {visitedTabs.has('llm') && (

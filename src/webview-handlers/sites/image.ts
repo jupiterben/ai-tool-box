@@ -326,6 +326,75 @@ export const geminiImageHandler = createImageHandler({
   },
 });
 
+export const aistudioImageHandler = createImageHandler({
+  toolId: 'aistudio-image',
+  urlHint: 'aistudio.google.com',
+  urlHints: [
+    'aistudio.google.com/prompts/new_chat',
+    'aistudio.google.com/prompts/new_image',
+    'aistudio.google.com',
+  ],
+  newChatAction: {
+    url: 'https://aistudio.google.com/prompts/new_chat?model=gemini-2.5-flash-image',
+  },
+  inputRootSelectors: ['main', '[role="main"]', 'body'],
+  inputType: 'textarea',
+  inputSelectors: [
+    'textarea[aria-label*="prompt" i]',
+    'textarea[placeholder*="prompt" i]',
+    'textarea[placeholder*="Describe" i]',
+    'textarea[placeholder*="Enter a prompt" i]',
+    'textarea[placeholder*="Start typing" i]',
+    'textarea[aria-label*="Type something" i]',
+    'div[contenteditable="true"][aria-label*="prompt" i]',
+    'div[role="textbox"][contenteditable="true"]',
+    'div[contenteditable="true"]',
+    'textarea',
+    ...DEFAULT_IMAGE_PROMPT_SELECTORS,
+  ],
+  sendButtonSelectors: [
+    'button[aria-label*="Run" i]',
+    'button[aria-label="Run"]',
+    'run-button button',
+    'button[aria-label*="Generate" i]',
+    'button[aria-label*="Create" i]',
+    'button[aria-label*="Send" i]',
+    ...DEFAULT_IMAGE_SEND_SELECTORS,
+  ],
+  nearInputSendSelectors: [
+    'button[aria-label*="Run" i]',
+    'button[aria-label="Run"]',
+    'run-button button',
+    'button[aria-label*="Generate" i]',
+    'button[type="submit"]',
+  ],
+  preferNearInputSendButton: true,
+  sendButtonWaitMs: 10_000,
+  imageResultSelectors: [
+    'img[src*="googleusercontent"]',
+    'img[src*="ggpht"]',
+    'img[src*="generativelanguage"]',
+    'img[src^="blob:"]',
+    'img[src^="data:image"]',
+    '[data-testid*="image"] img',
+    'model-response img[src]',
+    'main img[src]',
+  ],
+  imageResultRootSelectors: ['main', '[role="main"]', 'body'],
+  imageResultMinSize: 128,
+  referenceImage: {
+    ...DEFAULT_REFERENCE_IMAGE,
+    triggerSelectors: [
+      'button[aria-label*="Upload" i]',
+      'button[aria-label*="Add" i]',
+      'button[aria-label*="Attach" i]',
+      'button[aria-label*="Image" i]',
+      ...DEFAULT_REFERENCE_IMAGE.triggerSelectors!,
+    ],
+    waitAfterUploadMs: 1200,
+  },
+});
+
 export const chatgptImageHandler = createImageHandler({
   toolId: 'chatgpt-image',
   urlHint: 'chatgpt.com',
@@ -526,6 +595,7 @@ export const IMAGE_HANDLERS: Record<string, BaseSiteHandler> = {
   miaohua: miaohuaHandler,
   'doubao-image': doubaoImageHandler,
   'gemini-image': geminiImageHandler,
+  'aistudio-image': aistudioImageHandler,
   'chatgpt-image': chatgptImageHandler,
   'grok-image': grokImageHandler,
   midjourney: midjourneyHandler,

@@ -25,6 +25,9 @@ const VideoWebviewTool = lazyPage(
 const ApiWebviewPage = lazyPage(
   () => import('./components/ApiWebviewPage') as Promise<{ default: ComponentType }>,
 );
+const AgentCliPage = lazyPage(
+  () => import('./components/AgentCliSettings/AgentCliPage') as Promise<{ default: ComponentType }>,
+);
 const SettingsPage = lazyPage(
   () => import('./components/settings/SettingsPage') as Promise<{ default: ComponentType }>,
 );
@@ -49,6 +52,11 @@ const TOOL_PAGES: ToolPage[] = [
     id: 'api-webview',
     name: 'API',
     iconName: 'Workflow',
+  },
+  {
+    id: 'agent-cli',
+    name: 'Agent CLI',
+    iconName: 'TerminalSquare',
   },
   {
     id: 'settings',
@@ -137,6 +145,13 @@ const App: React.FC = () => {
         <KeepAlivePage id="api-webview" active={activePageId === 'api-webview'}>
           <Suspense fallback={<LoadingPlaceholder />}>
             <ApiWebviewPage />
+          </Suspense>
+        </KeepAlivePage>
+      )}
+      {visitedPageIds.has('agent-cli') && (
+        <KeepAlivePage id="agent-cli" active={activePageId === 'agent-cli'}>
+          <Suspense fallback={<LoadingPlaceholder />}>
+            <AgentCliPage />
           </Suspense>
         </KeepAlivePage>
       )}

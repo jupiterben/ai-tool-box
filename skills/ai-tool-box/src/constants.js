@@ -1,5 +1,6 @@
 export const KNOWN_TOOLS = [
   { id: "gemini-image", label: "Gemini", note: "Google Gemini (default)" },
+  { id: "aistudio-image", label: "Google AI Studio", note: "AI Studio Gemini Flash Image" },
   { id: "jimeng", label: "即梦 AI", note: "字节跳动即梦" },
   { id: "wanxiang", label: "通义万相", note: "阿里通义万相" },
   { id: "kling", label: "可灵 AI", note: "快手可灵" },

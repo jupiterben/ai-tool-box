@@ -113,6 +113,7 @@ curl -X POST http://192.168.1.100:3920/api/gen_image \
 | `referenceImageMimeType` | string | 否 | 简写时的 MIME，默认 `image/png` |
 | `referenceImageName` | string | 否 | 简写时的文件名，默认 `reference.png` |
 | `bing` | object | 否 | Bing 专用选项（`toolId=bing-create` 时生效） |
+| `aistudio` | object | 否 | AI Studio 专用选项（`toolId=aistudio-image` 时生效） |
 
 **bing 对象（`toolId=bing-create`）：**
 
@@ -142,6 +143,25 @@ curl -X POST http://192.168.1.100:3920/api/gen_image \
 
 multipart 也可使用平铺字段：`bingModel=dalle`、`bingAspectRatio=7:4`，或 `bing={"model":"dalle","aspectRatio":"7:4"}`。
 
+**aistudio 对象（`toolId=aistudio-image`）：**
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `mode` | string | `auto` | `auto` / `web-api` 优先抓包取图；`dom` 强制页面模拟 |
+| `model` | string | `gemini-2.5-flash-image` | 写入落地页；`gemini-*-image*` → Chat 页，`imagen-*` → Imagen 页（常需付费） |
+| `preferWebApi` | boolean | — | 与 `mode` 配合；`false` 时走 DOM |
+
+```json
+{
+  "toolId": "aistudio-image",
+  "prompt": "一只橘猫坐在窗台上",
+  "aistudio": {
+    "model": "gemini-2.5-flash-image",
+    "mode": "web-api"
+  }
+}
+```
+
 **referenceImage 对象：**
 
 ```json
@@ -159,6 +179,7 @@ multipart 也可使用平铺字段：`bingModel=dalle`、`bingAspectRatio=7:4`�
 | toolId | 说明 |
 |---|---|
 | `gemini-image` | Gemini 生图（默认） |
+| `aistudio-image` | Google AI Studio（默认 Gemini Flash Image） |
 | `jimeng` | 即梦 AI |
 | `wanxiang` | 通义万相 |
 | `kling` | 可灵 AI |

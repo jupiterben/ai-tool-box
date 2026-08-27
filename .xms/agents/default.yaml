@@ -1,0 +1,10 @@
+id: default
+model: openai-compat/gpt-4.1
+plugins:
+  - hello
+skills:
+  - review
+mcp: []
+subscribe:
+  topics:
+    - chat

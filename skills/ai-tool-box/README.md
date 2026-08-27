@@ -91,7 +91,7 @@ Options:
 
 ## Supported sources
 
-`gemini-image` · `jimeng` · `wanxiang` · `kling` · `liblib` · `yige` ·
+`gemini-image` · `aistudio-image` · `jimeng` · `wanxiang` · `kling` · `liblib` · `yige` ·
 `miaohua` · `doubao-image` · `midjourney` · `leonardo` · `ideogram` ·
 `firefly` · `bing-create` · `stability` · `recraft`
 

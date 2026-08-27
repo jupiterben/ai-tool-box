@@ -82,7 +82,8 @@ async function waitForInputReady(
 /** 每次 API 生图请求前，将 webview 重置到工具默认生图页（新对话/干净状态） */
 export async function resetImageWebviewForApi(
   toolId: string,
-  webContentsId: number | undefined
+  webContentsId: number | undefined,
+  options?: { url?: string }
 ): Promise<{ success: boolean; error?: string }> {
   const handler = getSiteHandler(toolId);
   if (!handler) {
@@ -99,7 +100,8 @@ export async function resetImageWebviewForApi(
     return { success: false, error: '未找到 webview' };
   }
 
-  const resetUrl = handler.config.newChatAction?.url || IMAGE_RESET_URLS[toolId];
+  const resetUrl =
+    options?.url || handler.config.newChatAction?.url || IMAGE_RESET_URLS[toolId];
   if (!resetUrl) {
     return { success: true };
   }

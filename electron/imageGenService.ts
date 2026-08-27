@@ -19,6 +19,8 @@ import { requestEnsureImageWebview } from './imageGenBridge.js';
 import { normalizeReferenceImageInput } from './imageGenRequestParser.js';
 import { generateBingImagesViaWebviewFetch, resolveBingApiParams } from './bingImageCreator.js';
 import { generateGeminiImagesViaPageFetch } from './geminiImageCreator.js';
+import { generateAiStudioImagesViaPageFetch } from './aistudioImageCreator.js';
+import { buildAiStudioImageUrl } from './aistudioImageParse.js';
 import { findToolWebContents, getUrlHints } from './webviewLocate.js';
 import { resetImageWebviewForApi } from './webviewReset.js';
 
@@ -45,7 +47,10 @@ export type ImageGenProgressEvent =
         | 'bing_api_fallback'
         | 'gemini_web_api_start'
         | 'gemini_web_api_done'
-        | 'gemini_web_api_fallback';
+        | 'gemini_web_api_fallback'
+        | 'aistudio_web_api_start'
+        | 'aistudio_web_api_done'
+        | 'aistudio_web_api_fallback';
       toolId: string;
       prompt?: string;
       round?: number;
@@ -64,6 +69,10 @@ export interface GenerateImageOptions {
 }
 
 type GeminiPageFetchGenImageResult = GenImageResult & {
+  didSendPrompt?: boolean;
+};
+
+type AiStudioPageFetchGenImageResult = GenImageResult & {
   didSendPrompt?: boolean;
 };
 
@@ -413,6 +422,84 @@ function shouldUseGeminiPageFetch(gemini?: GenImageRequest['gemini']): boolean {
   return process.env.AI_TOOLBOX_GEMINI_WEB_API !== '0';
 }
 
+function shouldUseAiStudioPageFetch(aistudio?: GenImageRequest['aistudio']): boolean {
+  if (aistudio?.mode === 'dom' || aistudio?.preferWebApi === false) {
+    return false;
+  }
+  if (aistudio?.mode === 'web-api' || aistudio?.preferWebApi) {
+    return true;
+  }
+  return process.env.AI_TOOLBOX_AISTUDIO_WEB_API !== '0';
+}
+
+async function generateAiStudioViaPageFetch(
+  prompt: string,
+  webContentsId: number | undefined,
+  timeoutMs: number,
+  count: number,
+  options?: GenerateImageOptions
+): Promise<AiStudioPageFetchGenImageResult> {
+  const handler = getSiteHandler('aistudio-image');
+  if (!handler) {
+    return { success: false, error: 'aistudio-image handler not found' };
+  }
+
+  const wc = findToolWebContents(
+    getActivePresetPartition(),
+    webContentsId,
+    getUrlHints(handler.config)
+  );
+
+  if (!wc) {
+    return { success: false, error: 'AI Studio webview not found' };
+  }
+
+  emitProgress(options, {
+    type: 'aistudio_web_api_start',
+    toolId: 'aistudio-image',
+    prompt,
+    webContentsId,
+    via: 'web-api',
+    message: 'Capturing AI Studio Imagen request and extracting images',
+  });
+
+  const apiResult = await generateAiStudioImagesViaPageFetch(wc, {
+    prompt,
+    timeoutMs,
+    count,
+    webContentsId,
+  });
+
+  if (!apiResult.success || !apiResult.images?.length) {
+    return {
+      success: false,
+      toolId: 'aistudio-image',
+      prompt,
+      images: apiResult.images,
+      via: 'web-api',
+      error: apiResult.error || 'AI Studio page fetch failed',
+      didSendPrompt: apiResult.didSendPrompt,
+    };
+  }
+
+  emitProgress(options, {
+    type: 'aistudio_web_api_done',
+    toolId: 'aistudio-image',
+    prompt,
+    via: 'web-api',
+    message: 'AI Studio page fetch completed',
+  });
+
+  return {
+    success: true,
+    toolId: 'aistudio-image',
+    prompt,
+    images: apiResult.images,
+    via: 'web-api',
+    didSendPrompt: apiResult.didSendPrompt,
+  };
+}
+
 async function generateGeminiViaPageFetch(
   prompt: string,
   webContentsId: number | undefined,
@@ -556,7 +643,13 @@ export async function generateImageViaWebview(
     webContentsId,
     message: 'Resetting image webview',
   });
-  const resetResult = await resetImageWebviewForApi(toolId, webContentsId);
+  const resetResult = await resetImageWebviewForApi(
+    toolId,
+    webContentsId,
+    toolId === 'aistudio-image'
+      ? { url: buildAiStudioImageUrl(request.aistudio?.model) }
+      : undefined
+  );
   if (!resetResult.success) {
     return {
       success: false,
@@ -655,6 +748,52 @@ export async function generateImageViaWebview(
       apiError: apiResult.error,
       via: 'webview-dom',
       message: 'Gemini page fetch failed, falling back to webview DOM',
+    });
+    const domResult = await generateViaWebviewDom(
+      toolId,
+      prompt,
+      webContentsId,
+      referenceImage,
+      timeoutMs,
+      count,
+      options
+    );
+    return { ...domResult, apiError: apiResult.error };
+  }
+
+  if (toolId === 'aistudio-image' && !referenceImage && shouldUseAiStudioPageFetch(request.aistudio)) {
+    const apiResult = await generateAiStudioViaPageFetch(prompt, webContentsId, timeoutMs, count, options);
+    if (apiResult.success) {
+      for (const [index, image] of (apiResult.images ?? []).entries()) {
+        emitProgress(options, {
+          type: 'image',
+          toolId,
+          round: index + 1,
+          totalRounds: apiResult.images?.length,
+          image,
+          via: 'web-api',
+          message: 'Image generated',
+        });
+      }
+      return apiResult;
+    }
+
+    if (apiResult.images?.length) {
+      return apiResult;
+    }
+
+    if (apiResult.didSendPrompt) {
+      return apiResult;
+    }
+
+    console.warn('[imageGenService] AI Studio page fetch failed, falling back to webview DOM:', apiResult.error);
+    emitProgress(options, {
+      type: 'aistudio_web_api_fallback',
+      toolId,
+      prompt,
+      apiError: apiResult.error,
+      via: 'webview-dom',
+      message: 'AI Studio page fetch failed, falling back to webview DOM',
     });
     const domResult = await generateViaWebviewDom(
       toolId,
