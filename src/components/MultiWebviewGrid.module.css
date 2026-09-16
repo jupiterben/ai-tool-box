@@ -107,6 +107,7 @@
 }
 
 .tabPaneHidden {
+  display: none;
   pointer-events: none;
   z-index: 0;
   opacity: 0;

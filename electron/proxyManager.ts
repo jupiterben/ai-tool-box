@@ -161,7 +161,7 @@ export async function applyToolProxy(
   }
 }
 
-function mergeWithDefaults(settings?: Partial<ProxySettings>): ProxySettings {
+function mergeWithDefaults(settings?: Partial<ProxySettings> | LegacyProxySettings): ProxySettings {
   const migrated = migrateLegacySettings((settings ?? {}) as LegacyProxySettings);
   const toolIds = getWebviewToolIds();
   const tools: Record<string, ToolProxyConfig> = {};

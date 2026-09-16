@@ -3,6 +3,9 @@ allowBuilds:
   electron-winstaller: true
   esbuild: true
   sharp: true
+minimumReleaseAgeExclude:
+  - electron@44.4.1
+  - '@types/node@22.20.3'
 onlyBuiltDependencies:
   - electron
   - electron-winstaller

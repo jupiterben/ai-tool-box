@@ -1,5 +1,5 @@
 import { getToolPartitionFromSettings } from '../utils/toolPartition';
-import { getSessionSettingsSnapshot } from '../hooks/useSessionSettings';
+import { getSessionSettingsSnapshot } from '../hooks/useSessionSettings.svelte';
 import type { ReferenceImage, WebviewInputPayload } from '../types/reference-image';
 import {
   buildInjectCheckScriptForSite,

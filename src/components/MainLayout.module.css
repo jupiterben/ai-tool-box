@@ -1,7 +1,7 @@
 .layout {
   display: flex;
   width: 100%;
-  min-width: 800px; /* 最小宽度 */
+  min-width: 0;
   height: 100vh;
   overflow: hidden;
   background-color: var(--color-background);

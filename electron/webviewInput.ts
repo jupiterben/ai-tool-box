@@ -63,9 +63,9 @@ async function clickAt(wc: WebContents, x: number, y: number): Promise<void> {
 }
 
 async function pressEnter(wc: WebContents): Promise<void> {
-  wc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter', key: 'Enter' });
+  wc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
   await sleep(50);
-  wc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter', key: 'Enter' });
+  wc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
 }
 
 async function clearFocusedInput(wc: WebContents): Promise<void> {

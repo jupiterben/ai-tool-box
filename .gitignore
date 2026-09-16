@@ -49,6 +49,9 @@ Thumbs.db
 # Testing
 coverage/
 .nyc_output/
+test-results/
+playwright-report/
+.svelte-check/
 *.test.js.snap
 
 # Temporary files

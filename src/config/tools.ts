@@ -1,4 +1,4 @@
-import { AITool, ToolCategory, ToolRegion, ToolRegionGroup } from '../types/ai-tool';
+import type { AITool, ToolCategory, ToolRegion, ToolRegionGroup } from '../types/ai-tool';
 
 export const TOOL_CATEGORY_LABELS: Record<ToolCategory, string> = {
   chat: '对话',

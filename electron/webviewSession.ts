@@ -13,7 +13,6 @@ const ALL_STORAGE_TYPES = [
   'indexdb',
   'localstorage',
   'shadercache',
-  'websql',
   'serviceworkers',
   'cachestorage',
 ] as const;

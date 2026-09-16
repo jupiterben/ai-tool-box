@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8"><title>Local AI Fixture</title></head>
+  <body>
+    <form>
+      <textarea id="chat-input" placeholder="Message DeepSeek"></textarea>
+      <button type="submit" aria-label="Send message">Send</button>
+    </form>
+    <article data-message-author-role="assistant">Local response</article>
+    <script>
+      document.querySelector('form').addEventListener('submit', event => {
+        event.preventDefault();
+        window.lastSubmitted = document.querySelector('textarea').value;
+        document.querySelector('textarea').value = '';
+      });
+    </script>
+  </body>
+</html>

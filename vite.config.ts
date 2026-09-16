@@ -1,25 +1,22 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   // Electron loadFile(file://) 下必须用相对资源路径
   base: './',
-  plugins: [react()],
+  plugins: [svelte()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'react-vendor';
+          if (id.includes('node_modules/svelte')) {
+            return 'svelte-vendor';
           }
-          if (id.includes('node_modules/lucide-react')) {
+          if (id.includes('node_modules/@lucide/svelte')) {
             return 'icons';
-          }
-          if (id.includes('node_modules/react-transition-group')) {
-            return 'transitions';
           }
           if (id.includes('node_modules')) {
             return 'vendor';
@@ -36,8 +33,16 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5173,
     strictPort: true,
+    watch: {
+      ignored: [
+        '**/.cache/**',
+        '**/.svelte-check/**',
+        '**/test-results/**',
+        '**/dist-electron/**',
+      ],
+    },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: ['svelte', '@lucide/svelte'],
   },
 });
