@@ -14,10 +14,17 @@ export interface ToolGeolocationConfig {
   profileId?: string;
 }
 
+/** Preset 级 GPS（同 session 一份） */
+export interface SessionGeolocationConfig {
+  mode: GeolocationMode;
+  profileId?: string;
+}
+
 export interface GeolocationSettings {
   version: string;
   profiles: Record<string, GeolocationProfile>;
   tools: Record<string, ToolGeolocationConfig>;
+  session?: SessionGeolocationConfig;
 }
 
 export interface ResolvedGeolocation {
@@ -99,4 +106,48 @@ export function isValidLongitude(value: number): boolean {
 
 export function isValidAccuracy(value: number): boolean {
   return Number.isFinite(value) && value >= 0;
+}
+
+export function createDefaultSessionGeolocationConfig(): SessionGeolocationConfig {
+  return { mode: 'system' };
+}
+
+export function deriveSessionGeolocationFromTools(
+  tools: Record<string, ToolGeolocationConfig>
+): SessionGeolocationConfig {
+  const entries = Object.values(tools);
+  if (entries.length === 0) {
+    return createDefaultSessionGeolocationConfig();
+  }
+
+  const counts = new Map<string, { config: SessionGeolocationConfig; count: number }>();
+  for (const tool of entries) {
+    const key = `${tool.mode}|${tool.profileId ?? ''}`;
+    const existing = counts.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      counts.set(key, {
+        config: { mode: tool.mode, profileId: tool.profileId },
+        count: 1,
+      });
+    }
+  }
+
+  let best: { config: SessionGeolocationConfig; count: number } | null = null;
+  for (const item of counts.values()) {
+    if (!best || item.count > best.count) {
+      best = item;
+    }
+  }
+  return best?.config ?? createDefaultSessionGeolocationConfig();
+}
+
+export function resolveSessionGeolocation(
+  settings: GeolocationSettings,
+  sessionConfig?: SessionGeolocationConfig
+): ResolvedGeolocation | null {
+  const config =
+    sessionConfig ?? settings.session ?? deriveSessionGeolocationFromTools(settings.tools);
+  return resolveToolGeolocation(settings, { toolId: '__session__', ...config });
 }

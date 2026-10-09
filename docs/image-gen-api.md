@@ -1,0 +1,627 @@
+# 生图 API 文档
+
+AI Tool Box 启动后，主进程会在本机自动开启 HTTP 服务，通过内嵌 webview 调用各 AI 生图站点（如 Gemini）完成生图，并返回 **base64** 图片。
+
+## 基本信息
+
+| 项 | 值 |
+|---|---|
+| 地址 | `http://<本机IP>:3920`（默认监听局域网） |
+| 本机 | `http://127.0.0.1:3920` |
+| 协议 | HTTP |
+| 启动条件 | 应用运行中（`pnpm dev` 或安装包启动） |
+| 默认工具 | `gemini-image` |
+| 默认超时 | 120 秒 |
+| 参考图上限 | 10 MB |
+
+## 鉴权（可选）
+
+设置环境变量 `AI_TOOLBOX_API_TOKEN` 后，请求需携带以下任一 Header：
+
+```
+X-Api-Token: <your-token>
+Authorization: Bearer <your-token>
+```
+
+未设置该环境变量时，无需鉴权。默认开启局域网访问，**建议配置 token**。
+
+### 局域网访问
+
+**默认已开启**，监听 `0.0.0.0:3920`，局域网内设备可通过 `http://<本机IP>:3920` 访问。启动后控制台会打印可用地址：
+
+```
+[imageGenApi]   → http://127.0.0.1:3920
+[imageGenApi]   → http://192.168.1.100:3920
+```
+
+若只需本机访问，启动前设置：
+
+```bash
+# Windows PowerShell
+$env:AI_TOOLBOX_API_LAN="0"
+pnpm dev
+
+# Linux / macOS
+AI_TOOLBOX_API_LAN=0 pnpm dev
+```
+
+或显式指定：
+
+```bash
+AI_TOOLBOX_API_HOST=127.0.0.1 pnpm dev
+```
+
+局域网内其他设备调用示例：
+
+```bash
+curl http://192.168.1.100:3920/api/health
+
+curl -X POST http://192.168.1.100:3920/api/gen_image \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Token: your-secret-token" \
+  -d '{"prompt":"一只猫在太空"}'
+```
+
+> 局域网环境下**强烈建议**配置 `AI_TOOLBOX_API_TOKEN`。
+
+---
+
+## GET /api/health
+
+健康检查。
+
+**响应示例：**
+
+```json
+{
+  "success": true,
+  "service": "ai-tool-box-image-gen",
+  "port": 3920,
+  "host": "0.0.0.0",
+  "lanEnabled": true,
+  "accessUrls": [
+    "http://127.0.0.1:3920",
+    "http://192.168.1.100:3920"
+  ],
+        "features": ["prompt", "referenceImage", "multipart-upload", "debug"]
+      }
+```
+
+---
+
+## POST /api/gen_image
+
+提交生图任务，同步等待结果（通常 30–120 秒）。
+
+### 请求方式
+
+支持两种 Content-Type：
+
+1. `application/json`
+2. `multipart/form-data`（上传参考图文件）
+
+### 参数
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `prompt` | string | 条件必填 | 生图提示词；与参考图至少填一个 |
+| `toolId` | string | 否 | 生图工具 ID，默认 `gemini-image` |
+| `timeoutMs` | number | 否 | 等待超时（毫秒），默认 `120000` |
+| `count` | number | 否 | 期望生成张数，默认 `1`，最大 `8`；在同一 webview 对话内连续生成 |
+| `referenceImage` | object | 否 | 参考图（JSON 完整格式） |
+| `referenceImageBase64` | string | 否 | 参考图纯 base64（JSON 简写） |
+| `referenceImageMimeType` | string | 否 | 简写时的 MIME，默认 `image/png` |
+| `referenceImageName` | string | 否 | 简写时的文件名，默认 `reference.png` |
+| `bing` | object | 否 | Bing 专用选项（`toolId=bing-create` 时生效） |
+| `aistudio` | object | 否 | AI Studio 专用选项（`toolId=aistudio-image` 时生效） |
+
+**bing 对象（`toolId=bing-create`）：**
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `model` | string | `gpt4o` | 模型：`gpt4o`（多功能表达，1 张）\| `dalle`（DALL-E 3，4 张）\| `maiimage2`（生动叙事，2 张） |
+| `aspectRatio` | string | `1:1` | 纵横比：`1:1` \| `7:4` \| `4:7` \| `3:2` \| `2:3`（各模型支持的比例不同） |
+
+各模型支持的纵横比：
+
+| model | aspectRatio |
+|---|---|
+| `gpt4o` | `1:1`, `3:2`, `2:3` |
+| `dalle` | `1:1`, `7:4`, `4:7` |
+| `maiimage2` | `1:1`, `3:2`, `2:3` |
+
+```json
+{
+  "toolId": "bing-create",
+  "prompt": "一只橘猫坐在窗台上",
+  "bing": {
+    "model": "dalle",
+    "aspectRatio": "7:4"
+  }
+}
+```
+
+multipart 也可使用平铺字段：`bingModel=dalle`、`bingAspectRatio=7:4`，或 `bing={"model":"dalle","aspectRatio":"7:4"}`。
+
+**aistudio 对象（`toolId=aistudio-image`）：**
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `mode` | string | `auto` | `auto` / `web-api` 优先抓包取图；`dom` 强制页面模拟 |
+| `model` | string | `gemini-2.5-flash-image` | 写入落地页；`gemini-*-image*` → Chat 页，`imagen-*` → Imagen 页（常需付费） |
+| `preferWebApi` | boolean | — | 与 `mode` 配合；`false` 时走 DOM |
+
+```json
+{
+  "toolId": "aistudio-image",
+  "prompt": "一只橘猫坐在窗台上",
+  "aistudio": {
+    "model": "gemini-2.5-flash-image",
+    "mode": "web-api"
+  }
+}
+```
+
+**referenceImage 对象：**
+
+```json
+{
+  "name": "ref.png",
+  "mimeType": "image/png",
+  "dataUrl": "data:image/png;base64,iVBORw0KG..."
+}
+```
+
+仅提供参考图、无 `prompt` 时，内部默认使用提示词：`基于参考图生成`。
+
+### 支持的 toolId
+
+| toolId | 说明 |
+|---|---|
+| `gemini-image` | Gemini 生图（默认） |
+| `aistudio-image` | Google AI Studio（默认 Gemini Flash Image） |
+| `jimeng` | 即梦 AI |
+| `wanxiang` | 通义万相 |
+| `kling` | 可灵 AI |
+| `liblib` | LiblibAI |
+| `yige` | 文心一格 |
+| `miaohua` | 秒画 |
+| `doubao-image` | 豆包绘图 |
+| `midjourney` | Midjourney |
+| `leonardo` | Leonardo.ai |
+| `ideogram` | Ideogram |
+| `firefly` | Adobe Firefly |
+| `bing-create` | Bing 创建 |
+| `stability` | Stability AI |
+| `recraft` | Recraft |
+
+> 需在对应 webview 中已登录账号，否则生图会失败。
+
+---
+
+## 请求示例
+
+### 1. 纯文本 prompt（JSON）
+
+```bash
+curl -X POST http://127.0.0.1:3920/api/gen_image \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toolId": "gemini-image",
+    "prompt": "一只猫在太空漫步，赛博朋克风格",
+    "timeoutMs": 120000
+  }'
+```
+
+### 2. 指定生成数量（同一对话）
+
+```bash
+curl -X POST http://127.0.0.1:3920/api/gen_image \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toolId": "gemini-image",
+    "prompt": "赛博朋克风格的城市夜景",
+    "count": 4,
+    "timeoutMs": 240000
+  }'
+```
+
+> `count` 会在**同一 API 请求、同一对话**内循环发送（Gemini 每次只出 1 张）。**每次新的 API 请求**会先重置 webview 到工具默认生图页，再开始生成。
+
+### 3. JSON + 参考图（dataUrl）
+
+```bash
+curl -X POST http://127.0.0.1:3920/api/gen_image \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "把这张图变成水彩风格",
+    "referenceImage": {
+      "name": "photo.png",
+      "mimeType": "image/png",
+      "dataUrl": "data:image/png;base64,iVBORw0KG..."
+    }
+  }'
+```
+
+### 3. JSON + 参考图（base64 简写）
+
+```json
+{
+  "prompt": "把这张图变成水彩风格",
+  "referenceImageBase64": "iVBORw0KG...",
+  "referenceImageMimeType": "image/png",
+  "referenceImageName": "photo.png"
+}
+```
+
+### 4. Bing 生图（指定模型与纵横比）
+
+```bash
+curl -X POST http://127.0.0.1:3920/api/gen_image \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toolId": "bing-create",
+    "prompt": "一只橘猫坐在窗台上，阳光明媚",
+    "bing": {
+      "model": "dalle",
+      "aspectRatio": "7:4"
+    }
+  }'
+```
+
+### 5. multipart 上传参考图
+
+```bash
+curl -X POST http://127.0.0.1:3920/api/gen_image \
+  -F "prompt=把这张图变成水彩风格" \
+  -F "toolId=gemini-image" \
+  -F "referenceImage=@/path/to/photo.png"
+```
+
+文件字段名也支持：`file`、`image`。
+
+### 6. PowerShell
+
+```powershell
+$body = @{
+  toolId = "gemini-image"
+  prompt = "a cute panda eating bamboo"
+  timeoutMs = 120000
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://127.0.0.1:3920/api/gen_image" `
+  -Method POST -ContentType "application/json" -Body $body -TimeoutSec 180
+```
+
+---
+
+## 响应
+
+### 成功（HTTP 200）
+
+```json
+{
+  "success": true,
+  "toolId": "gemini-image",
+  "prompt": "一只猫在太空漫步，赛博朋克风格",
+  "images": [
+    {
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "mimeType": "image/png",
+      "dataUrl": "data:image/png;base64,iVBORw0KGgo...",
+      "width": 1024,
+      "height": 559,
+      "alt": ", AI generated"
+    }
+  ]
+}
+```
+
+| 字段 | 说明 |
+|---|---|
+| `base64` | 纯 base64 字符串（不含 `data:` 前缀） |
+| `mimeType` | 图片 MIME 类型 |
+| `dataUrl` | 完整 data URL，可直接用于 `<img src>` |
+| `width` / `height` | 图片尺寸（像素） |
+
+### 失败
+
+| HTTP | 场景 |
+|---|---|
+| 400 | 请求格式错误、缺少必填字段、参考图过大 |
+| 401 | 鉴权失败 |
+| 500 | 生图失败（webview 未就绪、发送失败、超时等） |
+
+```json
+{
+  "success": false,
+  "toolId": "gemini-image",
+  "prompt": "...",
+  "error": "生图超时，未检测到新图片"
+}
+```
+
+---
+
+## 工作流程
+
+```
+POST /api/gen_image
+    │
+    ├─ 自动切换到「生图」页，挂载对应 webview
+    ├─ 注入 prompt（+ 上传参考图，如有）
+    ├─ 轮询 webview DOM，等待新图片出现
+    └─ 转换为 base64 并返回 JSON
+```
+
+首次调用可能需要数秒挂载 webview；Gemini 等站点需提前在应用内登录。
+
+---
+
+## 注意事项
+
+1. **默认监听局域网**（`0.0.0.0`）；仅需本机时设置 `AI_TOOLBOX_API_LAN=0` 或 `AI_TOOLBOX_API_HOST=127.0.0.1`。
+2. **同步接口**：生图耗时较长，客户端请设置足够超时（建议 ≥ 180 秒）。
+3. **登录态**：依赖 webview 内站点登录，API 无法代填账号密码。
+4. **并发**：同一 webview 不建议并发请求，建议串行调用。
+5. **参考图格式**：支持 PNG / JPEG / WebP / GIF，单张 ≤ 10 MB。
+
+---
+
+## 调试接口
+
+用于查看 webview 状态、抓取页面内容和测试页面脚本，便于排查生图失败。
+
+### 公共参数
+
+所有调试接口都通过 URL query 参数传入：
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `toolId` | string | 是 | 生图工具 ID，如 `bing-create`、`gemini-image` |
+| `webContentsId` | number | 否 | 指定 webview ID，不传则自动按 `toolId` 查找 |
+
+### GET /api/debug/webview
+
+返回 webview 基本信息。
+
+**响应示例：**
+
+```json
+{
+  "success": true,
+  "toolId": "bing-create",
+  "url": "https://www.bing.com/images/create",
+  "title": "Bing Image Creator",
+  "readyState": "complete",
+  "webContentsId": 123,
+  "type": "webview"
+}
+```
+
+---
+
+### GET /api/debug/snapshot
+
+返回当前页面 HTML 快照。
+
+**响应示例：**
+
+```json
+{
+  "success": true,
+  "toolId": "bing-create",
+  "url": "https://www.bing.com/images/create",
+  "html": "<!DOCTYPE html>...",
+  "length": 152300
+}
+```
+
+---
+
+### GET /api/debug/screenshot
+
+对 webview 当前页面截图，返回 PNG base64。
+
+**响应示例：**
+
+```json
+{
+  "success": true,
+  "toolId": "bing-create",
+  "url": "https://www.bing.com/images/create",
+  "image": {
+    "base64": "iVBORw0KG...",
+    "mimeType": "image/png",
+    "dataUrl": "data:image/png;base64,iVBORw0KG...",
+    "width": 1280,
+    "height": 720
+  }
+}
+```
+
+---
+
+### POST /api/debug/eval
+
+在指定 webview 页面执行 JavaScript 并返回结果。请求体为纯 JS 字符串。
+
+**请求示例：**
+
+```bash
+curl -X POST "http://127.0.0.1:3920/api/debug/eval?toolId=bing-create" \
+  -H "Content-Type: text/plain" \
+  -d 'document.querySelector("textarea").placeholder'
+```
+
+**响应示例：**
+
+```json
+{
+  "success": true,
+  "toolId": "bing-create",
+  "url": "https://www.bing.com/images/create",
+  "result": "Describe what you'd like to see"
+}
+```
+
+> 调试接口同样受 `AI_TOOLBOX_API_TOKEN` 鉴权控制。
+---
+
+### GET /api/debug/fetch_page
+
+抓取任意 HTTP/HTTPS URL，并返回响应状态、响应头、最终 URL 和网页文本内容，方便外部 AI 调试页面。
+这个接口不需要 `toolId`。
+
+Query 参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `url` | string | 是 | 目标 URL；如果 URL 自身带 query，需要先 URL encode |
+| `method` | string | 否 | HTTP 方法，默认 `GET`；拒绝 `CONNECT` 和 `TRACE` |
+| `timeoutMs` | number | 否 | 超时时间，默认 `15000`，最大 `60000` |
+| `maxBytes` | number | 否 | 最多读取的响应字节数，默认 `1048576`，最大 `5242880` |
+
+示例：
+
+```bash
+curl "http://127.0.0.1:3920/api/debug/fetch_page?url=https%3A%2F%2Fexample.com&maxBytes=200000"
+```
+
+响应示例：
+
+```json
+{
+  "success": true,
+  "url": "https://example.com/",
+  "finalUrl": "https://example.com/",
+  "status": 200,
+  "statusText": "OK",
+  "ok": true,
+  "redirected": false,
+  "headers": {
+    "content-type": "text/html; charset=UTF-8"
+  },
+  "contentType": "text/html; charset=UTF-8",
+  "content": "<!doctype html>...",
+  "contentLength": 513,
+  "truncated": false,
+  "maxBytes": 1048576
+}
+```
+
+### POST /api/debug/fetch_page
+
+需要传自定义 headers、body 或使用非 GET 方法时，用 JSON 请求体：
+
+```bash
+curl -X POST "http://127.0.0.1:3920/api/debug/fetch_page" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com",
+    "headers": {
+      "User-Agent": "AI-Tool-Box-Debug/1.0"
+    },
+    "timeoutMs": 15000,
+    "maxBytes": 1048576
+  }'
+```
+
+注意：
+
+- 仅支持 `http:` 和 `https:` URL。
+- 响应正文按 UTF-8 解码，超过 `maxBytes` 会截断，并返回 `truncated: true`。
+- 该接口同样受可选的 `AI_TOOLBOX_API_TOKEN` 鉴权控制；如果 API 暴露到局域网，建议开启 token。
+
+## POST /api/gen_image/stream
+
+SSE streaming version of `/api/gen_image`. Request body is the same as `/api/gen_image`.
+
+Response headers:
+
+```http
+Content-Type: text/event-stream; charset=utf-8
+Cache-Control: no-cache, no-transform
+```
+
+Events:
+
+| event | Description |
+|---|---|
+| `accepted` | Request parsed and stream opened |
+| `start` | Generation task started |
+| `webview_ready` | Target webview is available |
+| `reset_start` / `reset_done` | Webview reset progress |
+| `round_start` | A generation round started |
+| `send_ready` | Input is ready for the next round |
+| `send_retry` | Retrying prompt send |
+| `send_done` | Prompt sent to the web page |
+| `wait_image` | Waiting for a new generated image |
+| `image` | One image is available; `data.image` contains base64/dataUrl |
+| `done` | Final result; `data.result` matches `/api/gen_image` response |
+| `error` | Generation failed |
+
+Example:
+
+```bash
+curl -N -X POST http://127.0.0.1:3920/api/gen_image/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toolId": "gemini-image",
+    "prompt": "Create an image of a simple blue square icon on a plain white background.",
+    "count": 2,
+    "timeoutMs": 300000
+  }'
+```
+
+Example event:
+
+```text
+event: image
+data: {"type":"image","toolId":"gemini-image","round":1,"totalRounds":2,"image":{"base64":"...","mimeType":"image/png","dataUrl":"data:image/png;base64,..."}}
+
+event: done
+data: {"type":"done","result":{"success":true,"toolId":"gemini-image","images":[...]}}
+```
+
+## Web API Mode Options
+
+`gemini-image` now defaults to the stable web-api path. It captures each real Gemini `StreamGenerate`
+request/response from the logged-in webview and downloads the returned image through the same session.
+
+Force Gemini DOM/native-input mode:
+
+```json
+{
+  "toolId": "gemini-image",
+  "prompt": "Create a simple icon.",
+  "count": 2,
+  "gemini": {
+    "mode": "dom"
+  }
+}
+```
+
+`bing-create` also supports the same mode switch. Bing already defaults to its internal web API path;
+use `mode: "dom"` only when you need to force page simulation.
+
+```json
+{
+  "toolId": "bing-create",
+  "prompt": "Create a simple icon.",
+  "bing": {
+    "mode": "web-api",
+    "model": "gpt4o",
+    "aspectRatio": "1:1"
+  }
+}
+```
+
+Multipart flat fields:
+
+```text
+geminiMode=dom
+geminiPreferWebApi=false
+bingMode=dom
+bingPreferWebApi=false
+```

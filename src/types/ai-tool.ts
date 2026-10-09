@@ -1,5 +1,5 @@
 export type ToolRegion = 'domestic' | 'international';
-export type ToolCategory = 'chat' | 'image';
+export type ToolCategory = 'chat' | 'image' | 'video';
 
 export interface AITool {
   id: string;

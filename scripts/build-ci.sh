@@ -41,20 +41,35 @@ pnpm run electron:compile
 echo "📦 electron-builder ($PLATFORM)..."
 case "$PLATFORM" in
 win)
-  npx electron-builder --win --x64 --config.directories.output="$RELEASE_DIR"
-  bash "$ROOT/scripts/generate-latest-yml.sh" "$RELEASE_DIR" "$VERSION"
+  npx electron-builder --win --x64 --publish never --config.directories.output="$RELEASE_DIR"
+  # Windows 差分更新基于 NSIS .exe.blockmap，统一用脚本生成 latest.yml
+  bash "$ROOT/scripts/generate-latest-yml.sh" win "$RELEASE_DIR" "$VERSION"
   ;;
 mac)
-  npx electron-builder --mac --config.directories.output="$RELEASE_DIR"
+  # 与 electron-builder.yml 一致：仅 arm64（Apple Silicon）
+  npx electron-builder --mac --arm64 --publish never --config.directories.output="$RELEASE_DIR"
+  if [[ -f "$RELEASE_DIR/latest-mac.yml" ]]; then
+    echo "📝 使用 electron-builder 生成的 latest-mac.yml（差分更新）"
+  else
+    bash "$ROOT/scripts/generate-latest-yml.sh" mac "$RELEASE_DIR" "$VERSION"
+  fi
   ;;
 linux)
-  npx electron-builder --linux --x64 --config.directories.output="$RELEASE_DIR"
+  npx electron-builder --linux --x64 --publish never --config.directories.output="$RELEASE_DIR"
+  if [[ -f "$RELEASE_DIR/latest-linux.yml" ]]; then
+    echo "📝 使用 electron-builder 生成的 latest-linux.yml（差分更新）"
+  else
+    bash "$ROOT/scripts/generate-latest-yml.sh" linux "$RELEASE_DIR" "$VERSION"
+  fi
   ;;
 *)
   echo "未知平台: $PLATFORM（支持 win / mac / linux）" >&2
   exit 1
   ;;
 esac
+
+bash "$ROOT/scripts/collect-release-artifacts.sh" "$RELEASE_DIR"
+bash "$ROOT/scripts/verify-release-artifacts.sh" "$PLATFORM" "$RELEASE_DIR"
 
 echo "✅ 产物目录: $RELEASE_DIR"
 ls -la "$RELEASE_DIR"

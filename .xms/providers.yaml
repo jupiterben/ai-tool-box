@@ -1,0 +1,6 @@
+providers:
+  - id: openai-compat
+    baseUrl: https://api.openai.com/v1
+    apiKeyEnv: OPENAI_API_KEY
+    models:
+      - id: gpt-4.1

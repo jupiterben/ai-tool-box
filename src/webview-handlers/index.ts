@@ -17,6 +17,7 @@ import { perplexityHandler } from './sites/perplexity';
 import { qianwenHandler } from './sites/qianwen';
 import { volcengineHandler } from './sites/volcengine';
 import { IMAGE_HANDLERS } from './sites/image';
+import { bingCreateHandler } from './sites/bing';
 import type { WebviewInputSelector } from './types';
 
 export { HANDLER_VERSION } from './BaseSiteHandler';
@@ -41,6 +42,7 @@ const HANDLERS: Record<string, BaseSiteHandler> = {
   copilot: copilotHandler,
   hunyuan: hunyuanHandler,
   ...IMAGE_HANDLERS,
+  'bing-create': bingCreateHandler,
 };
 
 export function getSiteHandler(toolId: string): BaseSiteHandler | undefined {

@@ -1,8 +1,16 @@
 import type { GeolocationSettings } from './geolocation-settings';
 import type { LlmSettings, LlmSettingsInput, SummarizeResponsesPayload, SummarizeResponsesResult } from './llm-settings';
 import type { ProxySettings } from './proxy-settings';
-import type { SessionSettings } from './session-settings';
+import type { UpdateStatus } from './update-status';
+import type {
+  EnsureImageWebviewRequest,
+  EnsureImageWebviewResult,
+} from './image-gen-api';
+import type { ImageGenApiSettings, ImageGenApiSettingsResult } from './image-gen-api-settings';
 import type { ReferenceImage } from './reference-image';
+import type { AgentCliConfig, AgentCliId, AgentCliResult } from './agent-cli';
+import type { PresetMeta } from './preset';
+import type { ToolSettings } from './tool-settings';
 
 export interface WebviewSendInputPayload {
   toolId: string;
@@ -38,6 +46,38 @@ export interface ExtractWebviewResponsesResult {
 }
 
 export interface ElectronAPI {
+  getPresetId: () => string;
+  listPresets: () => Promise<{
+    success: boolean;
+    presets?: PresetMeta[];
+    openIds?: string[];
+    error?: string;
+  }>;
+  createPreset: (name: string) => Promise<{
+    success: boolean;
+    preset?: PresetMeta;
+    error?: string;
+  }>;
+  renamePreset: (
+    id: string,
+    name: string
+  ) => Promise<{ success: boolean; preset?: PresetMeta; error?: string }>;
+  deletePreset: (id: string) => Promise<{ success: boolean; error?: string }>;
+  openPreset: (id: string) => Promise<{ success: boolean; error?: string }>;
+  listOpenPresets: () => Promise<{ success: boolean; openIds?: string[]; error?: string }>;
+  getToolSettings?: () => Promise<{
+    success: boolean;
+    settings?: ToolSettings;
+    error?: string;
+  }>;
+  saveToolSettings?: (settings: ToolSettings) => Promise<{
+    success: boolean;
+    settings?: ToolSettings;
+    error?: string;
+  }>;
+  listAgentClis: () => Promise<AgentCliResult>;
+  installAgentCli: (id: AgentCliId) => Promise<AgentCliResult>;
+  saveAgentCliConfig: (id: AgentCliId, config: AgentCliConfig) => Promise<AgentCliResult>;
   getGeolocationSettings: () => Promise<{
     success: boolean;
     settings?: GeolocationSettings;
@@ -62,26 +102,11 @@ export interface ElectronAPI {
     settings?: ProxySettings;
     error?: string;
   }>;
-  getSessionSettings: () => Promise<{
-    success: boolean;
-    settings?: SessionSettings;
-    error?: string;
-  }>;
-  saveSessionSettings: (settings: SessionSettings) => Promise<{
-    success: boolean;
-    settings?: SessionSettings;
-    error?: string;
-  }>;
-  prepareToolSessionMode: (
-    toolId: string,
-    incognito: boolean
-  ) => Promise<{ success: boolean; error?: string }>;
-  clearIncognitoPartition: (toolId: string) => Promise<{ success: boolean; error?: string }>;
   sendWebviewInput: (payload: WebviewSendInputPayload) => Promise<WebviewSendInputResult>;
   extractWebviewResponses: (
     payload: ExtractWebviewResponsesPayload
   ) => Promise<ExtractWebviewResponsesResult>;
-  clearToolWebviewData: (toolId: string) => Promise<{ success: boolean; error?: string }>;
+  clearToolWebviewData: (toolId?: string) => Promise<{ success: boolean; error?: string }>;
   getLlmSettings: () => Promise<{
     success: boolean;
     settings?: LlmSettings;
@@ -93,6 +118,17 @@ export interface ElectronAPI {
     error?: string;
   }>;
   summarizeResponses: (payload: SummarizeResponsesPayload) => Promise<SummarizeResponsesResult>;
+  onEnsureImageWebview?: (
+    callback: (payload: EnsureImageWebviewRequest) => void
+  ) => () => void;
+  reportEnsureImageWebview?: (result: EnsureImageWebviewResult) => void;
+  onUpdateStatus?: (callback: (status: UpdateStatus) => void) => () => void;
+  checkForUpdates?: () => Promise<{ success: boolean }>;
+  installUpdate?: () => Promise<{ success: boolean }>;
+  getImageGenApiSettings?: () => Promise<ImageGenApiSettingsResult>;
+  saveImageGenApiSettings?: (
+    settings: Partial<ImageGenApiSettings>
+  ) => Promise<ImageGenApiSettingsResult>;
 }
 
 declare global {

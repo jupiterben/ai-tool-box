@@ -15,7 +15,7 @@ const base = {
   platform: 'node',
   target: 'node20',
   sourcemap,
-  external: ['electron'],
+  external: ['electron', 'electron-updater'],
   logLevel: 'warning',
 };
 

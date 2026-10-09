@@ -1,21 +1,30 @@
 import type { GeolocationSettings } from '../types/geolocation-settings';
 import type { LlmSettings } from '../types/llm-settings';
 import type { ProxySettings } from '../types/proxy-settings';
-import type { SessionSettings } from '../types/session-settings';
 import type { ToolSettings } from '../types/tool-settings';
 import { withAppEnvSuffix } from './appEnvironment';
 
 export const LLM_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-llm-settings');
 export const PROXY_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-proxy-settings');
 export const GEOLOCATION_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-geolocation-settings');
-export const SESSION_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-session-settings');
 export const TOOL_SETTINGS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-tool-settings');
 export const THEME_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-theme');
 export const SELECTED_TOOLS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-selected-tools');
 export const SELECTED_IMAGE_TOOLS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-selected-image-tools');
+export const SELECTED_VIDEO_TOOLS_STORAGE_KEY = withAppEnvSuffix('ai-tool-box-selected-video-tools');
 export const SUMMARY_PANEL_WIDTH_STORAGE_KEY = withAppEnvSuffix('response-summary-panel-width');
 export const SUMMARY_PANEL_OPEN_STORAGE_KEY = withAppEnvSuffix('response-summary-panel-open');
 
+/** Preset 隔离的 localStorage 键（同 origin 多窗共享 localStorage） */
+export function presetStorageKey(base: string, presetId: string): string {
+  return `${base}::${presetId}`;
+}
+
+function readScopedOrLegacy(scopedKey: string, legacyKey: string): string | null {
+  const scoped = localStorage.getItem(scopedKey);
+  if (scoped != null) return scoped;
+  return localStorage.getItem(legacyKey);
+}
 export function loadLlmSettingsFromStorage(
   defaults: LlmSettings
 ): LlmSettings | null {
@@ -41,10 +50,16 @@ export function saveLlmSettingsToStorage(settings: LlmSettings): void {
 }
 
 export function loadProxySettingsFromStorage(
-  defaults: ProxySettings
+  defaults: ProxySettings,
+  presetId?: string
 ): ProxySettings | null {
   try {
-    const raw = localStorage.getItem(PROXY_SETTINGS_STORAGE_KEY);
+    const key = presetId
+      ? presetStorageKey(PROXY_SETTINGS_STORAGE_KEY, presetId)
+      : PROXY_SETTINGS_STORAGE_KEY;
+    const raw = presetId
+      ? readScopedOrLegacy(key, PROXY_SETTINGS_STORAGE_KEY)
+      : localStorage.getItem(key);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as Partial<ProxySettings>;
@@ -54,21 +69,31 @@ export function loadProxySettingsFromStorage(
       version: defaults.version,
       profiles: parsed.profiles,
       tools: { ...defaults.tools, ...parsed.tools },
+      session: parsed.session ?? defaults.session,
     };
   } catch {
     return null;
   }
 }
 
-export function saveProxySettingsToStorage(settings: ProxySettings): void {
-  localStorage.setItem(PROXY_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+export function saveProxySettingsToStorage(settings: ProxySettings, presetId?: string): void {
+  const key = presetId
+    ? presetStorageKey(PROXY_SETTINGS_STORAGE_KEY, presetId)
+    : PROXY_SETTINGS_STORAGE_KEY;
+  localStorage.setItem(key, JSON.stringify(settings));
 }
 
 export function loadGeolocationSettingsFromStorage(
-  defaults: GeolocationSettings
+  defaults: GeolocationSettings,
+  presetId?: string
 ): GeolocationSettings | null {
   try {
-    const raw = localStorage.getItem(GEOLOCATION_SETTINGS_STORAGE_KEY);
+    const key = presetId
+      ? presetStorageKey(GEOLOCATION_SETTINGS_STORAGE_KEY, presetId)
+      : GEOLOCATION_SETTINGS_STORAGE_KEY;
+    const raw = presetId
+      ? readScopedOrLegacy(key, GEOLOCATION_SETTINGS_STORAGE_KEY)
+      : localStorage.getItem(key);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as Partial<GeolocationSettings>;
@@ -78,42 +103,34 @@ export function loadGeolocationSettingsFromStorage(
       version: defaults.version,
       profiles: parsed.profiles,
       tools: { ...defaults.tools, ...parsed.tools },
+      session: parsed.session ?? defaults.session,
     };
   } catch {
     return null;
   }
 }
 
-export function saveGeolocationSettingsToStorage(settings: GeolocationSettings): void {
-  localStorage.setItem(GEOLOCATION_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+export function saveGeolocationSettingsToStorage(
+  settings: GeolocationSettings,
+  presetId?: string
+): void {
+  const key = presetId
+    ? presetStorageKey(GEOLOCATION_SETTINGS_STORAGE_KEY, presetId)
+    : GEOLOCATION_SETTINGS_STORAGE_KEY;
+  localStorage.setItem(key, JSON.stringify(settings));
 }
 
-export function loadSessionSettingsFromStorage(
-  defaults: SessionSettings
-): SessionSettings | null {
+export function loadToolSettingsFromStorage(
+  defaults: ToolSettings,
+  presetId?: string
+): ToolSettings | null {
   try {
-    const raw = localStorage.getItem(SESSION_SETTINGS_STORAGE_KEY);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw) as Partial<SessionSettings>;
-    if (!parsed.tools) return null;
-
-    return {
-      version: defaults.version,
-      tools: { ...defaults.tools, ...parsed.tools },
-    };
-  } catch {
-    return null;
-  }
-}
-
-export function saveSessionSettingsToStorage(settings: SessionSettings): void {
-  localStorage.setItem(SESSION_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-}
-
-export function loadToolSettingsFromStorage(defaults: ToolSettings): ToolSettings | null {
-  try {
-    const raw = localStorage.getItem(TOOL_SETTINGS_STORAGE_KEY);
+    const key = presetId
+      ? presetStorageKey(TOOL_SETTINGS_STORAGE_KEY, presetId)
+      : TOOL_SETTINGS_STORAGE_KEY;
+    const raw = presetId
+      ? readScopedOrLegacy(key, TOOL_SETTINGS_STORAGE_KEY)
+      : localStorage.getItem(key);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as Partial<ToolSettings>;
@@ -128,6 +145,9 @@ export function loadToolSettingsFromStorage(defaults: ToolSettings): ToolSetting
   }
 }
 
-export function saveToolSettingsToStorage(settings: ToolSettings): void {
-  localStorage.setItem(TOOL_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+export function saveToolSettingsToStorage(settings: ToolSettings, presetId?: string): void {
+  const key = presetId
+    ? presetStorageKey(TOOL_SETTINGS_STORAGE_KEY, presetId)
+    : TOOL_SETTINGS_STORAGE_KEY;
+  localStorage.setItem(key, JSON.stringify(settings));
 }

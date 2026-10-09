@@ -35,7 +35,9 @@ mac:
   target:
     - target: dmg
       arch:
-        - x64
+        - arm64
+    - target: zip
+      arch:
         - arm64
   icon: icon_1024.png
 
@@ -51,6 +53,9 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  differentialPackage: false
+  differentialPackage: true
 
-publish: null
+publish:
+  provider: github
+  owner: jupiterben
+  repo: ai-tool-box

@@ -135,6 +135,7 @@ export function buildBrowserRuntime(
 ): string {
   const disabledClasses = json(config.sendDisabledClasses ?? ['ant-sender-actions-btn-disabled']);
   const inputSelectors = json(config.inputSelectors);
+  const inputRootSelectors = json(config.inputRootSelectors ?? []);
   const sendSelectorStr = json(sendButtonSelectorString(config));
   const preferNear = config.preferNearInputSendButton === true;
   const findSendButtonBody = preferNear
@@ -143,14 +144,35 @@ export function buildBrowserRuntime(
 
   return `
     var __SITE_INPUT_SELECTORS__ = ${inputSelectors};
+    var __SITE_INPUT_ROOT_SELECTORS__ = ${inputRootSelectors};
     var __SITE_SEND_SELECTOR__ = ${sendSelectorStr};
     var __SITE_SEND_DISABLED_CLASSES__ = ${disabledClasses};
 
+    function __findInputSearchRoot() {
+      if (!__SITE_INPUT_ROOT_SELECTORS__.length) return document;
+      for (var i = 0; i < __SITE_INPUT_ROOT_SELECTORS__.length; i++) {
+        try {
+          var root = document.querySelector(__SITE_INPUT_ROOT_SELECTORS__[i]);
+          if (root) return root;
+        } catch (e) {}
+      }
+      return document;
+    }
+
+    function __isVisibleInput(el) {
+      if (!el || el.disabled || el.readOnly) return false;
+      if (el.getAttribute('aria-hidden') === 'true') return false;
+      if (el.closest('[aria-hidden="true"]')) return false;
+      var rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    }
+
     function __findInputElement() {
+      var searchRoot = __findInputSearchRoot();
       for (var i = 0; i < __SITE_INPUT_SELECTORS__.length; i++) {
         try {
-          var el = document.querySelector(__SITE_INPUT_SELECTORS__[i]);
-          if (el && el.offsetParent !== null && !el.disabled && !el.readOnly) return el;
+          var el = searchRoot.querySelector(__SITE_INPUT_SELECTORS__[i]);
+          if (el && __isVisibleInput(el)) return el;
         } catch (e) {}
       }
       return null;
@@ -158,11 +180,17 @@ export function buildBrowserRuntime(
 
     function __isSendReady(btn) {
       if (!btn) return false;
+      if (btn.getAttribute('aria-hidden') === 'true') return false;
+      if (btn.closest('[aria-hidden="true"]')) return false;
       if (btn.getAttribute('aria-disabled') === 'true') return false;
       if (btn.disabled) return false;
       for (var c = 0; c < __SITE_SEND_DISABLED_CLASSES__.length; c++) {
         if (btn.classList && btn.classList.contains(__SITE_SEND_DISABLED_CLASSES__[c])) return false;
       }
+      var rect = btn.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return false;
+      var style = window.getComputedStyle ? window.getComputedStyle(btn) : null;
+      if (style && (style.visibility === 'hidden' || style.display === 'none' || style.pointerEvents === 'none')) return false;
       return true;
     }
 
@@ -263,19 +291,32 @@ export function buildInjectScript(
           inputElement.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: content }));
           inputElement.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
         } else if (effectiveType === 'contenteditable') {
-          try {
-            inputElement.focus();
-            var selection = window.getSelection();
-            if (selection) {
-              var range = document.createRange();
-              range.selectNodeContents(inputElement);
-              selection.removeAllRanges();
-              selection.addRange(range);
-            }
-            document.execCommand('insertText', false, content);
-          } catch (e) {
-            inputElement.textContent = content;
+          inputElement.focus();
+          var selection = window.getSelection();
+          if (selection) {
+            var range = document.createRange();
+            range.selectNodeContents(inputElement);
+            selection.removeAllRanges();
+            selection.addRange(range);
           }
+          var beforeInserted = false;
+          // ProseMirror/tiptap 监听 beforeinput 事件来更新内部 state，
+          // 先 dispatch beforeinput 让框架自行处理插入（会 preventDefault）
+          try {
+            var biEvent = new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: content });
+            var biNotPrevented = inputElement.dispatchEvent(biEvent);
+            if (inputElement.textContent === content) { beforeInserted = true; }
+            // 如果 beforeinput 没被拦截，用 execCommand 实际插入（触发 trusted beforeinput）
+            if (!beforeInserted && biNotPrevented) {
+              document.execCommand('insertText', false, content);
+              if (inputElement.textContent === content) { beforeInserted = true; }
+            }
+          } catch (e) {}
+          // fallback：直接设 textContent 并触发 input 事件
+          if (!beforeInserted) {
+            try { inputElement.textContent = content; } catch (e) {}
+          }
+          inputElement.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: content }));
           inputElement.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: content }));
         }
       }`;
@@ -283,12 +324,17 @@ export function buildInjectScript(
   const defaultSendAfterFill = `
           var sendMethod = ${sendMethod};
           if (sendMethod === 'click') {
-            var sendButton = __findSendButton(inputElement);
-            sendButton = await __waitForSendButtonReady(sendButton, inputElement, ${sendButtonWaitMs});
+            var hadSendButton = !!__findSendButton(inputElement);
+            var sendButton = await __waitForSendButtonAppear(inputElement, ${sendButtonWaitMs});
+            if (!sendButton && !hadSendButton) {
+              sendButton = await __waitForSendButtonReady(__findSendButton(inputElement), inputElement, ${sendButtonWaitMs});
+            }
             if (sendButton) {
               __clickElement(sendButton);
-            } else {
+            } else if (!hadSendButton) {
               __triggerEnter(inputElement);
+            } else {
+              return { success: false, error: '发送按钮未就绪' };
             }
           } else if (sendMethod === 'enter') {
             __triggerEnter(inputElement);
@@ -400,6 +446,16 @@ export function buildInjectScript(
           current = __findSendButton(inputEl) || current;
         }
         return __isSendReady(current) ? current : null;
+      }
+
+      async function __waitForSendButtonAppear(inputEl, maxMs) {
+        var start = Date.now();
+        while (Date.now() - start < maxMs) {
+          var btn = __findSendButton(inputEl);
+          if (btn && __isSendReady(btn)) return btn;
+          await new Promise(function(r) { setTimeout(r, 100); });
+        }
+        return null;
       }
 
       ${fillInputBlock}
