@@ -32,11 +32,11 @@ VERSION="$(read_version)"
 echo "📌 构建版本: $VERSION ($PLATFORM)"
 
 echo "🎨 生成应用图标..."
-pnpm run generate:icon
+node scripts/generate-icon.mjs
 
 echo "🔨 编译前端 + 主进程..."
-pnpm run build
-pnpm run electron:compile
+pnpm exec vite build
+node electron/esbuild.mjs
 
 echo "📦 electron-builder ($PLATFORM)..."
 case "$PLATFORM" in

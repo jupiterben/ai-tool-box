@@ -24,7 +24,7 @@ ai-tool-box/
 
 ## Commands
 
-pnpm dev; pnpm build; pnpm electron:dev; pnpm electron:build; pnpm lint; pnpm type-check
+pnpm dev; pnpm build
 
 ## Code Style
 

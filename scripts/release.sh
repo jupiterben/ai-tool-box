@@ -62,11 +62,11 @@ fi
 # ── 3. 编译 ───────────────────────────────────────────────────────
 
 echo "🎨 生成应用图标..."
-pnpm run generate:icon
+node scripts/generate-icon.mjs
 
 echo "🔨 编译前端 + 主进程..."
-pnpm run build
-pnpm run electron:compile
+pnpm exec vite build
+node electron/esbuild.mjs
 
 echo "📦 打包 Windows 安装包 + zip..."
 npx electron-builder --win --x64

@@ -45,6 +45,6 @@ jobs:
 
       - name: Build frontend & electron main
         run: |
-          pnpm run generate:icon
-          pnpm run build
-          pnpm run electron:compile
+          node scripts/generate-icon.mjs
+          pnpm exec vite build
+          node electron/esbuild.mjs
