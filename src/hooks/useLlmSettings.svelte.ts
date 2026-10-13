@@ -98,7 +98,7 @@ export function useLlmSettings() {
     }
 
     try {
-      if (!window.electronAPI?.saveLlmSettings) {
+      if (!window.desktopAPI?.saveLlmSettings) {
         saveLlmSettingsToStorage(currentSettings);
         if (!options?.silent) {
           setSaveMessage('已保存（浏览器预览模式）');
@@ -108,7 +108,7 @@ export function useLlmSettings() {
         return true;
       }
 
-      const response = await window.electronAPI.saveLlmSettings(input);
+      const response = await window.desktopAPI.saveLlmSettings(input);
       if (!response.success || !response.settings) {
         throw new Error(response.error || '保存 LLM 设置失败');
       }
@@ -138,12 +138,12 @@ export function useLlmSettings() {
     const defaults = createDefaultLlmSettings();
 
     try {
-      if (!window.electronAPI?.getLlmSettings) {
+      if (!window.desktopAPI?.getLlmSettings) {
         setSettings(loadLlmSettingsFromStorage(defaults) ?? defaults);
         return;
       }
 
-      const response = await window.electronAPI.getLlmSettings();
+      const response = await window.desktopAPI.getLlmSettings();
       if (!response.success || !response.settings) {
         throw new Error(response.error || '读取 LLM 设置失败');
       }

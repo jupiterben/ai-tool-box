@@ -1,11 +1,21 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
+const root = path.dirname(fileURLToPath(import.meta.url));
+
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Electron loadFile(file://) 下必须用相对资源路径
   base: './',
-  plugins: [svelte()],
+  clearScreen: false,
+  plugins: [tailwindcss(), svelte()],
+  resolve: {
+    alias: {
+      $lib: path.resolve(root, 'src/lib'),
+    },
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -31,14 +41,14 @@ export default defineConfig({
   },
   server: {
     host: '127.0.0.1',
-    port: 5173,
+    port: 5175,
     strictPort: true,
     watch: {
       ignored: [
         '**/.cache/**',
         '**/.svelte-check/**',
         '**/test-results/**',
-        '**/dist-electron/**',
+        '**/src-tauri/**',
       ],
     },
   },

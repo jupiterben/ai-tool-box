@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Only the local application UI may manage guest views and desktop settings.",
+  "webviews": ["main"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-desktop-request",
+    "allow-create-guest",
+    "allow-update-guest-bounds",
+    "allow-guest-action",
+    "allow-evaluate-guest",
+    "allow-close-guest"
+  ]
+}

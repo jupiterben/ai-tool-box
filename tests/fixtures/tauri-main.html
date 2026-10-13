@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>Tauri Native Test</title></head>
+  <body>
+    <main id="guest-anchor" style="position:fixed;left:40px;top:40px;width:800px;height:600px"></main>
+    <script type="module">
+      import { initializeDesktopBridge } from '/src/desktop/bridge.ts';
+      await initializeDesktopBridge();
+      window.testReady = true;
+    </script>
+  </body>
+</html>

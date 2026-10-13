@@ -19,6 +19,7 @@ export function useTheme(): ThemeState {
   );
   $effect(() => {
     document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.toggle('dark', theme === 'dark');
   });
   $effect(() => {
     const change = (event: MediaQueryListEvent) => {

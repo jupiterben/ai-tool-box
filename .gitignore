@@ -1,7 +1,6 @@
 # Dependencies
 node_modules/
 .npmrc
-pnpm-lock.yaml
 package-lock.json
 yarn.lock
 
@@ -13,8 +12,10 @@ out/
 ../ai-tool-box-release/
 *.tsbuildinfo
 
-# Electron
-dist-electron/
+# Tauri
+/src-tauri/target/
+/src-tauri/gen/
+/src-tauri/icons/
 /resources/icon.*
 *.exe
 *.dmg

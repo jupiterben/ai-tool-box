@@ -61,8 +61,8 @@ export async function ensureSessionSettingsLoaded(): Promise<SessionSettings> {
     const defaults = buildDefaultSettings();
 
     try {
-      if (window.electronAPI?.getSessionSettings) {
-        const response = await window.electronAPI.getSessionSettings();
+      if (window.desktopAPI?.getSessionSettings) {
+        const response = await window.desktopAPI.getSessionSettings();
         if (response.success && response.settings) {
           syncSessionSettingsCache(response.settings);
           return response.settings;
@@ -160,7 +160,7 @@ function createSessionSettings() {
     try {
       syncSessionSettingsCache(currentSettings);
 
-      if (!window.electronAPI?.saveSessionSettings) {
+      if (!window.desktopAPI?.saveSessionSettings) {
         lastPersistedRef.current = serialized;
         skipAutoSaveRef.current = true;
         if (!options?.silent) {
@@ -173,7 +173,7 @@ function createSessionSettings() {
       }
 
       const response =
-        await window.electronAPI.saveSessionSettings(currentSettings);
+        await window.desktopAPI.saveSessionSettings(currentSettings);
       if (!response.success || !response.settings) {
         throw new Error(response.error || '保存会话设置失败');
       }
@@ -245,8 +245,8 @@ function createSessionSettings() {
   });
   const setToolIncognito = (toolId: string, incognito: boolean) => {
     void (async () => {
-      if (window.electronAPI?.prepareToolSessionMode) {
-        const result = await window.electronAPI.prepareToolSessionMode(
+      if (window.desktopAPI?.prepareToolSessionMode) {
+        const result = await window.desktopAPI.prepareToolSessionMode(
           toolId,
           incognito,
         );

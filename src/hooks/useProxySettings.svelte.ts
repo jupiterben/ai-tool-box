@@ -174,7 +174,7 @@ function createProxySettings() {
     }
 
     try {
-      if (!window.electronAPI) {
+      if (!window.desktopAPI) {
         saveProxySettingsToStorage(currentSettings);
         lastPersistedRef.current = serialized;
         skipAutoSaveRef.current = true;
@@ -191,7 +191,7 @@ function createProxySettings() {
       }
 
       const response =
-        await window.electronAPI.saveProxySettings(currentSettings);
+        await window.desktopAPI.saveProxySettings(currentSettings);
       if (!response.success || !response.settings) {
         throw new Error(response.error || '保存代理设置失败');
       }
@@ -227,7 +227,7 @@ function createProxySettings() {
     const defaults = buildDefaultSettings();
 
     try {
-      if (!window.electronAPI) {
+      if (!window.desktopAPI) {
         const loaded = loadProxySettingsFromStorage(defaults) ?? defaults;
         setSettings(loaded);
         lastPersistedRef.current = JSON.stringify(
@@ -236,7 +236,7 @@ function createProxySettings() {
         return;
       }
 
-      const response = await window.electronAPI.getProxySettings();
+      const response = await window.desktopAPI.getProxySettings();
       if (!response.success || !response.settings) {
         throw new Error(response.error || '读取代理设置失败');
       }

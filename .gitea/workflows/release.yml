@@ -9,7 +9,7 @@
 #   - 需注册三类 runner 标签：windows-latest / macos-latest / ubuntu-latest
 #   - Windows runner 需安装 Git Bash（build-ci.sh 依赖 bash）
 #   - macOS 构建必须在 macOS runner 上执行（无法交叉编译，且仅 arm64）
-#   - runner 需能访问 .npmrc 中的内网 npm / electron 镜像
+#   - runner 需能访问 .npmrc 中的内网 npm 镜像
 #
 # 发布流程：
 #   1. 确保 package.json version 与 tag 一致（如 tag v1.0.2 → version 1.0.2）

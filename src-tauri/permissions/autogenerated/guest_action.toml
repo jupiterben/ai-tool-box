@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-guest-action"
+description = "Enables the guest_action command without any pre-configured scope."
+commands.allow = ["guest_action"]
+
+[[permission]]
+identifier = "deny-guest-action"
+description = "Denies the guest_action command without any pre-configured scope."
+commands.deny = ["guest_action"]

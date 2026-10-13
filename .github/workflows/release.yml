@@ -1,23 +1,7 @@
-# GitHub Actions：推送 v* tag 时构建并发布 Windows / macOS / Linux 生产包
-#
-# 平台矩阵：
-#   - Windows (windows-latest): NSIS .exe + .zip + latest.yml（x64）
-#   - macOS   (macos-latest):   DMG + .zip + latest-mac.yml（arm64）
-#   - Linux   (ubuntu-latest):  AppImage + latest-linux.yml（x64）
-#
-# 发布流程：
-#   1. 确保 package.json version 与 tag 一致（如 tag v1.0.3 → version 1.0.3）
-#   2. git tag v1.0.3 && git push origin v1.0.3
-#   3. 工作流自动构建 win / mac / linux 并创建 GitHub Release
-#
-# 手动触发：Actions → Release → Run workflow（跳过 tag 版本校验）
-
 name: Release
-
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
   workflow_dispatch:
 
 concurrency:
@@ -27,13 +11,8 @@ concurrency:
 permissions:
   contents: write
 
-env:
-  CSC_IDENTITY_AUTO_DISCOVERY: false
-
 jobs:
   build:
-    name: Build (${{ matrix.platform }})
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -44,91 +23,51 @@ jobs:
             platform: mac
           - os: ubuntu-latest
             platform: linux
-
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
         with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
+          version: 12.5.1
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: pnpm
-
-      - name: Configure public npm registry
-        shell: bash
-        run: |
-          cat > .npmrc <<'EOF'
-          enable-pre-post-scripts=true
-          ignore-scripts=false
-          registry=https://registry.npmjs.org/
-          EOF
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Verify tag matches package.json version
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Install Linux native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev librsvg2-dev libayatana-appindicator3-dev libdbus-1-dev patchelf
+      - run: pnpm install --frozen-lockfile
+      - name: Verify release version
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME#v}"
-          PKG="$(node -p "require('./package.json').version")"
-          if [[ "$TAG" != "$PKG" ]]; then
-            echo "::error::tag v$TAG 与 package.json version ($PKG) 不一致"
-            exit 1
-          fi
-          echo "版本校验通过: $PKG"
-
-      - name: Build release artifacts
+          node --input-type=module -e 'import fs from "node:fs"; const p = JSON.parse(fs.readFileSync("package.json")); if (`v${p.version}` !== process.env.GITHUB_REF_NAME) throw new Error("Tag must match package.json version")'
+      - run: pnpm check
+      - name: Build installers
         shell: bash
         run: bash scripts/build-ci.sh ${{ matrix.platform }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v5
         with:
           name: release-${{ matrix.platform }}
           path: release/
           if-no-files-found: error
 
   publish:
-    name: Publish GitHub Release
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v5
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
         with:
-          name: release-win
-          path: dist
-
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v5
-        with:
-          name: release-mac
-          path: dist
-
-      - name: Download Linux artifacts
-        uses: actions/download-artifact@v5
-        with:
-          name: release-linux
-          path: dist
-
-      - name: List release files
-        run: find dist -type f | sort
-
-      - name: Create GitHub Release
+          pattern: release-*
+          merge-multiple: true
+          path: release
+      - name: Publish installers
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: bash scripts/publish-github-release.sh "${{ github.ref_name }}" dist
+        run: bash scripts/publish-github-release.sh "${{ github.ref_name }}" release

@@ -194,7 +194,7 @@ test('small-screen navigation and input fit the viewport', async ({
   await page.getByRole('button', { name: '展开侧边栏' }).click();
   await page.getByRole('button', { name: '切换到 生图' }).click();
   await page.getByRole('button', { name: '折叠侧边栏' }).click();
-  await expect(page.locator('aside').first()).toHaveCSS('width', '60px');
+  await expect(page.locator('aside').first()).toHaveCSS('width', '64px');
   const input = page.getByRole('textbox', { name: '输入内容' });
   await expect(input).toBeVisible();
   const rect = await input.boundingBox();

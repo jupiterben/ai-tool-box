@@ -22,9 +22,11 @@
 
     /* Paths */
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "$lib": ["./src/lib"],
+      "$lib/*": ["./src/lib/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", "electron", "src/**/*.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.svelte", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

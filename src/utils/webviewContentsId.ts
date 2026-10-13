@@ -1,4 +1,4 @@
-/** 从 Electron webview 元素获取 guest webContentsId，供主进程 IPC 定位 */
+/** 从桌面 WebView 适配器获取稳定实例 ID，避免同站点多实例相互误寻址。 */
 export function getWebContentsIdMap(
   toolIds: string[],
   webviewElements: Record<string, HTMLElement>

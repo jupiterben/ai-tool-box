@@ -4,9 +4,9 @@
   import type { InputDeliveryState } from '../types/input-delivery';
   import { getSiteHandler } from '../webview-handlers';
   import { preInjectScript } from './WebviewInputHandler';
-  import ElectronWebView, {
-    type ElectronWebViewElement,
-  } from './ElectronWebView.svelte';
+  import TauriWebView, {
+    type DesktopWebViewElement,
+  } from './TauriWebView.svelte';
   import { getToolPartitionFromSettings } from '../utils/toolPartition';
   import { getSessionSettingsSnapshot } from '../hooks/useSessionSettings.svelte';
   import { isToolIncognito } from '../types/session-settings';
@@ -34,7 +34,7 @@
     onRetry?: (id: string) => void;
     onWebviewRef?: (id: string, element: HTMLElement | null) => void;
   } = $props();
-  const webviews: Record<string, ElectronWebViewElement> = {};
+  const webviews: Record<string, DesktopWebViewElement> = {};
   const ready: Record<string, boolean> = {};
   const cleanups: Record<string, () => void> = {};
   let activeTabId = $state('');
@@ -76,7 +76,7 @@
   function attach(
     tool: AITool,
     incognito: boolean,
-    view: ElectronWebViewElement,
+    view: DesktopWebViewElement,
   ) {
     cleanups[tool.id]?.();
     delete cleanups[tool.id];
@@ -100,7 +100,7 @@
       }
       if (disposed) return;
       try {
-        await window.electronAPI?.applyToolGeolocation(tool.id);
+        await window.desktopAPI?.applyToolGeolocation(tool.id);
       } catch (error) {
         console.warn(`[${tool.name}] 应用 GPS 设置失败:`, error);
       }
@@ -130,7 +130,7 @@
         onWebviewRef?.(tool.id, null);
       }
       if (incognito)
-        void window.electronAPI?.clearIncognitoPartition?.(tool.id);
+        void window.desktopAPI?.clearIncognitoPartition?.(tool.id);
     };
     return cleanups[tool.id];
   }
@@ -155,17 +155,17 @@
     if (
       !tool ||
       !window.confirm(
-        `确定清理「${tool.name}」的所有缓存数据吗？\n\n将清除 Cookie、本地存储与网络缓存，可能需要重新登录。`,
+        `确定清理「${tool.name}」所在会话的所有缓存数据吗？\n\n共享该会话的网站也会清除 Cookie、本地存储与网络缓存，可能需要重新登录。`,
       )
     )
       return;
-    if (!window.electronAPI?.clearToolWebviewData) {
+    if (!window.desktopAPI?.clearToolWebviewData) {
       window.alert('当前环境不支持清理缓存');
       return;
     }
     isClearingData = true;
     try {
-      const result = await window.electronAPI.clearToolWebviewData(tool.id);
+      const result = await window.desktopAPI.clearToolWebviewData(tool.id);
       if (!result.success) {
         window.alert(result.error ?? '清理缓存失败');
         return;
@@ -326,7 +326,7 @@
             aria-label={`${tool.name} 内容区域`}
           >
             {#key `${tool.id}-${proxyRevision}-${partition}`}
-              <ElectronWebView
+              <TauriWebView
                 src={tool.url}
                 {partition}
                 toolId={tool.id}

@@ -138,6 +138,11 @@ export function useToolSettings() {
     setSaveMessage('已保存');
     notifyToolSettingsChanged();
     window.setTimeout(() => setSaveMessage(null), 2000);
+    if (window.desktopAPI?.saveToolSettings) {
+      void window.desktopAPI.saveToolSettings(sanitized).then((result) => {
+        if (!result.success) setSaveMessage(result.error || '保存网站设置失败');
+      }).catch((error) => setSaveMessage(String(error)));
+    }
   };
   const setToolEnabled = (toolId: string, enabled: boolean) => {
     let nextToPersist: ToolSettings | null = null;

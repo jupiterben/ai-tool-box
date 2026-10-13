@@ -68,7 +68,7 @@ async function tryNativeWebviewSendViaIpc(
   referenceImage: ReferenceImage | null | undefined,
   webviewElement: WebviewInputHandlerConfig['webviewElement']
 ): Promise<WebviewInputHandlerResult | null> {
-  if (!window.electronAPI?.sendWebviewInput) {
+  if (!window.desktopAPI?.sendWebviewInput) {
     console.log(`[WebviewInputHandler] ${handler.toolId} IPC sendWebviewInput 不可用`);
     return null;
   }
@@ -89,7 +89,7 @@ async function tryNativeWebviewSendViaIpc(
   }
 
   console.log(`[WebviewInputHandler] ${handler.toolId} 通过主进程 IPC 发送`);
-  return window.electronAPI.sendWebviewInput({
+  return window.desktopAPI.sendWebviewInput({
     toolId: handler.toolId,
     partition: getToolPartitionFromSettings(handler.toolId, getSessionSettingsSnapshot()),
     content: inputContent,

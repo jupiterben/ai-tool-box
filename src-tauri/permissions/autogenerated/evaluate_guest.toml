@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-evaluate-guest"
+description = "Enables the evaluate_guest command without any pre-configured scope."
+commands.allow = ["evaluate_guest"]
+
+[[permission]]
+identifier = "deny-evaluate-guest"
+description = "Denies the evaluate_guest command without any pre-configured scope."
+commands.deny = ["evaluate_guest"]

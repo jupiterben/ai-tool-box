@@ -78,11 +78,11 @@ async function summarizeWithLlm(
   question: string,
   items: ToolResponseItem[],
 ): Promise<{ markdown?: string; error?: string; skipped?: boolean }> {
-  if (!window.electronAPI?.summarizeResponses) {
+  if (!window.desktopAPI?.summarizeResponses) {
     return { skipped: true };
   }
 
-  const settingsResult = await window.electronAPI.getLlmSettings?.();
+  const settingsResult = await window.desktopAPI.getLlmSettings?.();
   if (!settingsResult?.success || !settingsResult.settings?.enabled) {
     return { skipped: true };
   }
@@ -92,7 +92,7 @@ async function summarizeWithLlm(
     return {};
   }
 
-  const result = await window.electronAPI.summarizeResponses({
+  const result = await window.desktopAPI.summarizeResponses({
     question,
     responses: successful.map((item) => ({
       toolName: item.toolName,
@@ -179,8 +179,8 @@ export function useResponseCollection() {
       let items: ToolResponseItem[] = [];
       const webContentsIds = getWebContentsIdMap(toolIds, webviewElements);
 
-      if (window.electronAPI?.extractWebviewResponses) {
-        const result = await window.electronAPI.extractWebviewResponses({
+      if (window.desktopAPI?.extractWebviewResponses) {
+        const result = await window.desktopAPI.extractWebviewResponses({
           toolIds,
           webContentsIds,
         });

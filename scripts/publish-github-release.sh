@@ -9,18 +9,18 @@ DIST_DIR="${2:-dist}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-6}"
 
 mapfile -t FILES < <(find "$DIST_DIR" -maxdepth 1 -type f \( \
-  -name '*.exe' -o -name '*.zip' -o -name '*.dmg' -o -name '*.AppImage' \
-  -o -name 'latest.yml' -o -name 'latest-mac.yml' -o -name 'latest-linux.yml' \
-  -o -name '*.blockmap' \) | sort)
+  -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.AppImage' \
+  -o -name '*.deb' -o -name '*.rpm' \) | sort)
 if [ ${#FILES[@]} -eq 0 ]; then
   echo "未找到发布文件: $DIST_DIR" >&2
   exit 1
 fi
 
 BINARY_COUNT="$(find "$DIST_DIR" -maxdepth 1 -type f \( \
-  -name '*.exe' -o -name '*.zip' -o -name '*.dmg' -o -name '*.AppImage' \) | wc -l | tr -d ' ')"
+  -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.AppImage' \
+  -o -name '*.deb' -o -name '*.rpm' \) | wc -l | tr -d ' ')"
 if [ "$BINARY_COUNT" -eq 0 ]; then
-  echo "❌ dist 目录缺少安装包（仅有 yml 无法发布）" >&2
+  echo "dist 目录缺少安装包" >&2
   ls -la "$DIST_DIR" >&2 || true
   exit 1
 fi
@@ -35,9 +35,11 @@ cat > "$BODY_FILE" <<EOF
 
 | 平台 | 产物 |
 |------|------|
-| Windows | NSIS (.exe + .exe.blockmap 差分更新) + 便携 (.zip) + latest.yml |
-| macOS | DMG (.dmg) + 差分更新 (.zip + .blockmap) + latest-mac.yml（arm64） |
-| Linux | AppImage（内嵌 blockmap）+ latest-linux.yml |
+| Windows | Tauri NSIS (.exe) |
+| macOS | DMG (.dmg) |
+| Linux | AppImage + Debian (.deb) |
+
+Electron 更新元数据不再适用。请安装对应平台的新安装包，网站需要重新登录。
 EOF
 
 for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
