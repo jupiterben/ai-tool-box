@@ -9,9 +9,8 @@ DIST_DIR="${2:-dist}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-6}"
 
 mapfile -t FILES < <(find "$DIST_DIR" -maxdepth 1 -type f \( \
-  -name '*.exe' -o -name '*.zip' -o -name '*.dmg' -o -name '*.AppImage' \
-  -o -name 'latest.yml' -o -name 'latest-mac.yml' -o -name 'latest-linux.yml' \
-  -o -name '*.blockmap' \) | sort)
+  -name '*.exe' -o -name '*.tar.gz' -o -name '*.dmg' -o -name '*.AppImage' \
+  -o -name '*.deb' -o -name '*.rpm' -o -name 'latest.json' -o -name '*.sig' \) | sort)
 if [ ${#FILES[@]} -eq 0 ]; then
   echo "未找到发布文件: $DIST_DIR" >&2
   exit 1
@@ -35,9 +34,12 @@ cat > "$BODY_FILE" <<EOF
 
 | 平台 | 产物 |
 |------|------|
-| Windows | NSIS (.exe + .exe.blockmap 差分更新) + 便携 (.zip) + latest.yml |
-| macOS | DMG (.dmg) + 差分更新 (.zip + .blockmap) + latest-mac.yml（arm64） |
-| Linux | AppImage（内嵌 blockmap）+ latest-linux.yml |
+| Windows | Tauri NSIS (.exe)，内含 Node 后台 |
+| macOS | DMG (.dmg) |
+| Linux | AppImage + Debian (.deb) |
+
+配置发布签名后，附带 Tauri 签名更新文件及 latest.json。
+Electron 安装版需要手动升级，网站需要重新登录。
 EOF
 
 for attempt in $(seq 1 "$MAX_ATTEMPTS"); do

@@ -13,11 +13,11 @@ function sleep(ms: number): Promise<void> {
 
 const ImageGenBridge: React.FC = () => {
   useEffect(() => {
-    if (!window.electronAPI?.onEnsureImageWebview) {
+    if (!window.desktopAPI?.onEnsureImageWebview) {
       return;
     }
 
-    const unsubscribe = window.electronAPI.onEnsureImageWebview(async ({ requestId, toolId, threadId }) => {
+    const unsubscribe = window.desktopAPI.onEnsureImageWebview(async ({ requestId, toolId, threadId }) => {
       try {
         const pageId = threadId ? 'api-webview' : 'image-webview';
         ensurePageVisited(pageId);
@@ -25,7 +25,7 @@ const ImageGenBridge: React.FC = () => {
 
         const handlerReady = await waitForImageGenEnsureHandler(30_000, threadId ? 'api' : 'default');
         if (!handlerReady) {
-          window.electronAPI?.reportEnsureImageWebview?.({
+          window.desktopAPI?.reportEnsureImageWebview?.({
             requestId,
             success: false,
             error: '生图页面未就绪',
@@ -44,14 +44,14 @@ const ImageGenBridge: React.FC = () => {
           }
         }
 
-        window.electronAPI?.reportEnsureImageWebview?.({
+        window.desktopAPI?.reportEnsureImageWebview?.({
           requestId,
           success: result.success,
           webContentsId: result.webContentsId,
           error: result.error,
         });
       } catch (error) {
-        window.electronAPI?.reportEnsureImageWebview?.({
+        window.desktopAPI?.reportEnsureImageWebview?.({
           requestId,
           success: false,
           error: error instanceof Error ? error.message : 'ensure webview 失败',

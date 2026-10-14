@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ElectronWebView } from './ElectronWebView';
+import { TauriWebView } from './TauriWebView';
 
 interface AIFrameProps {
   url: string;
@@ -117,7 +117,7 @@ const AIFrame: React.FC<AIFrameProps> = ({ url, toolName, onLoad, onError }) => 
 
   // 使用 webview 标签（Electron 特有，可以绕过 X-Frame-Options）
   return (
-    <ElectronWebView
+    <TauriWebView
       ref={webviewRef}
       src={url}
       style={{

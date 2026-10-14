@@ -21,7 +21,7 @@ const ApiSettingsPanel: React.FC = () => {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const loadSettings = useCallback(async () => {
-    if (!window.electronAPI?.getImageGenApiSettings) {
+    if (!window.desktopAPI?.getImageGenApiSettings) {
       setError('当前环境不支持 API 设置');
       setIsLoading(false);
       return;
@@ -30,7 +30,7 @@ const ApiSettingsPanel: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await window.electronAPI.getImageGenApiSettings();
+      const result = await window.desktopAPI.getImageGenApiSettings();
       if (!result.success || !result.settings) {
         setError(result.error || '读取 API 设置失败');
         return;
@@ -54,7 +54,7 @@ const ApiSettingsPanel: React.FC = () => {
   }, []);
 
   const saveSettings = useCallback(async () => {
-    if (!window.electronAPI?.saveImageGenApiSettings) {
+    if (!window.desktopAPI?.saveImageGenApiSettings) {
       setError('当前环境不支持 API 设置');
       return;
     }
@@ -63,7 +63,7 @@ const ApiSettingsPanel: React.FC = () => {
     setError(null);
     setSaveMessage(null);
     try {
-      const result = await window.electronAPI.saveImageGenApiSettings(settings);
+      const result = await window.desktopAPI.saveImageGenApiSettings(settings);
       if (!result.success || !result.settings) {
         setError(result.error || '保存 API 设置失败');
         if (result.status) setStatus(result.status);

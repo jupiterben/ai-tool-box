@@ -2,15 +2,10 @@ packages:
   - '.'
 
 allowBuilds:
-  electron: true
-  electron-winstaller: true
   esbuild: true
   sharp: true
 minimumReleaseAgeExclude:
   - vite@8.1.3
-  - electron@44.7.0
 onlyBuiltDependencies:
-  - electron
-  - electron-winstaller
   - esbuild
   - sharp

@@ -5,7 +5,7 @@ import {
   buildAiStudioImageUrl,
   extractImagesFromAiStudioText,
   shouldCaptureAiStudioRequest,
-} from '../electron/aistudioImageParse.ts';
+} from '../desktop-backend/aistudioImageParse.ts';
 
 describe('buildAiStudioImageUrl', () => {
   it('uses the default free Gemini Flash Image chat model', () => {

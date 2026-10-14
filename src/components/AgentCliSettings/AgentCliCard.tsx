@@ -41,7 +41,7 @@ const AgentCliCard: React.FC<AgentCliCardProps> = ({
   const installOrUpgrade = async () => {
     setBusy(true);
     setMessage(`${agent.installed ? '正在升级' : '正在安装'} ${agent.name}…`);
-    const result = await window.electronAPI?.installAgentCli(agent.id);
+    const result = await window.desktopAPI?.installAgentCli(agent.id);
     if (result?.success && result.agents) {
       onAgentsChange(result.agents);
       setMessage(`${agent.name} 已更新到最新版本`);
@@ -53,7 +53,7 @@ const AgentCliCard: React.FC<AgentCliCardProps> = ({
 
   const save = async () => {
     setBusy(true);
-    const result = await window.electronAPI?.saveAgentCliConfig(agent.id, draft);
+    const result = await window.desktopAPI?.saveAgentCliConfig(agent.id, draft);
     if (result?.success) {
       if (result.agents) onAgentsChange(result.agents);
       else onAgentConfigSaved(agent.id, draft);

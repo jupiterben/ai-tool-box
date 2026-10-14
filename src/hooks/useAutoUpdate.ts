@@ -12,7 +12,7 @@ export function useAutoUpdate() {
   const [status, setStatus] = useState<UpdateStatus | null>(null);
 
   useEffect(() => {
-    const unsubscribe = window.electronAPI?.onUpdateStatus?.((nextStatus) => {
+    const unsubscribe = window.desktopAPI?.onUpdateStatus?.((nextStatus) => {
       if (nextStatus.state === 'not-available' || nextStatus.state === 'checking') {
         return;
       }
@@ -25,7 +25,7 @@ export function useAutoUpdate() {
   }, []);
 
   const installUpdate = useCallback(async () => {
-    await window.electronAPI?.installUpdate?.();
+    await window.desktopAPI?.installUpdate?.();
   }, []);
 
   const dismiss = useCallback(() => {

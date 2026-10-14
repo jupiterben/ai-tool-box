@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Electron loadFile(file://) 下必须用相对资源路径
   base: './',
+  clearScreen: false,
   plugins: [react()],
   build: {
     outDir: 'dist',
@@ -36,6 +36,7 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5173,
     strictPort: true,
+    watch: { ignored: ['**/src-tauri/**', '**/.cache/**', '**/test-results/**'] },
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],

@@ -9,6 +9,10 @@ export default tseslint.config(
     ignores: [
       'dist',
       'dist-electron',
+      'src-tauri',
+      '.svelte-check',
+      '.cache',
+      'test-results',
       'node_modules',
       'release',
       'docs',
@@ -16,7 +20,6 @@ export default tseslint.config(
       '*.config.{js,ts,mjs}',
       'next-env.d.ts',
       'hook-doubao.js',
-      'electron/esbuild.mjs',
     ],
   },
   {

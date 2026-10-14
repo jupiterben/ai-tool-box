@@ -211,7 +211,7 @@ done             # generation function returned a structured result
 改动 Gemini 发送或图片提取后，建议至少跑：
 
 ```bash
-pnpm run electron:compile
+pnpm run desktop:compile
 ```
 
 同步接口：
@@ -244,7 +244,7 @@ curl -N -X POST http://127.0.0.1:3920/api/gen_image/stream \
 - `electron/imageGenRequestParser.ts` 中 `Buffer.endsWith` 类型问题。
 - `electron/proxyManager.ts` 中 legacy proxy 类型不匹配。
 
-这些不是 Gemini 发送修复或 stream API 引入的问题。当前相关改动至少应保证 `pnpm run electron:compile` 通过。
+这些不是 Gemini 发送修复或 stream API 引入的问题。当前相关改动至少应保证 `pnpm run desktop:compile` 通过。
 
 ## Experimental Gemini Page Fetch
 

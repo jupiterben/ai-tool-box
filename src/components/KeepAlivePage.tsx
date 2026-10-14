@@ -10,7 +10,7 @@ interface KeepAlivePageProps {
 /** Electron webview 是原生层，CSS 盖不住，只能直接 display:none */
 function setWebviewsDisplay(container: HTMLElement | null, visible: boolean): void {
   if (!container) return;
-  container.querySelectorAll('webview').forEach((node) => {
+  container.querySelectorAll('[data-native-webview]').forEach((node) => {
     (node as HTMLElement).style.display = visible ? 'inline-flex' : 'none';
   });
 }

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-create-guest"
+description = "Enables the create_guest command without any pre-configured scope."
+commands.allow = ["create_guest"]
+
+[[permission]]
+identifier = "deny-create-guest"
+description = "Denies the create_guest command without any pre-configured scope."
+commands.deny = ["create_guest"]

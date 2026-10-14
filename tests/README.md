@@ -1,12 +1,23 @@
 # Image generation API tests
 
+## Tauri release branch regression
+
+- `pnpm test`: existing provider/partition/registry tests plus authenticated proxy relay isolation.
+- `pnpm test:ui`: all six React pages, setting categories, draft preservation and layout.
+- `pnpm test:desktop`: Windows native WebView2, private Node service, Preset lifecycle/isolation,
+  native trusted input, screenshots, credentials/LLM/GPS, concurrent HTTP generation, SSE,
+  network capture and the real React API worker page.
+
+For native tests, first run `pnpm desktop:compile`, `cargo build --manifest-path src-tauri/Cargo.toml`,
+and keep `pnpm dev:web` running. These tests use local fixtures and a separate `.cache` profile.
+They do not install Agent CLIs or call real AI providers.
+
 ## Fast Bing unit tests
 
 These tests do not access the network:
 
 ```bash
 pnpm test
-pnpm test:coverage
 ```
 
 ## Real end-to-end tests

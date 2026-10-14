@@ -18,11 +18,11 @@ const PresetSettingsPanel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!window.electronAPI?.listPresets) {
+    if (!window.desktopAPI?.listPresets) {
       setError('Preset API 不可用，请重启应用');
       return;
     }
-    const result = await window.electronAPI.listPresets();
+    const result = await window.desktopAPI.listPresets();
     if (result?.success && result.presets) {
       setPresets(result.presets);
       setOpenIds(result.openIds ?? []);
@@ -43,13 +43,13 @@ const PresetSettingsPanel: React.FC = () => {
       setError('请输入 Preset 名称');
       return;
     }
-    if (!window.electronAPI?.createPreset) {
+    if (!window.desktopAPI?.createPreset) {
       setError('创建 API 不可用，请重启应用');
       return;
     }
     setBusy(true);
     try {
-      const result = await window.electronAPI.createPreset(name);
+      const result = await window.desktopAPI.createPreset(name);
       if (!result?.success || !result.preset) {
         setError(result?.error ?? '创建失败');
         return;
@@ -57,7 +57,7 @@ const PresetSettingsPanel: React.FC = () => {
       setNewName('');
       setMessage(`已创建「${result.preset.name}」`);
       await refresh();
-      const opened = await window.electronAPI.openPreset?.(result.preset.id);
+      const opened = await window.desktopAPI.openPreset?.(result.preset.id);
       if (opened && !opened.success) {
         setError(opened.error ?? '创建成功，但打开窗口失败');
       }
@@ -78,7 +78,7 @@ const PresetSettingsPanel: React.FC = () => {
     setBusy(true);
     setError(null);
     try {
-      const result = await window.electronAPI?.renamePreset(renameId, next);
+      const result = await window.desktopAPI?.renamePreset(renameId, next);
       if (!result?.success) {
         setError(result?.error ?? '重命名失败');
         return;
@@ -98,7 +98,7 @@ const PresetSettingsPanel: React.FC = () => {
     setBusy(true);
     setError(null);
     try {
-      const result = await window.electronAPI?.deletePreset(id);
+      const result = await window.desktopAPI?.deletePreset(id);
       if (!result?.success) {
         setError(result?.error ?? '删除失败');
         return;
@@ -114,7 +114,7 @@ const PresetSettingsPanel: React.FC = () => {
     setBusy(true);
     setError(null);
     try {
-      const result = await window.electronAPI?.openPreset(id);
+      const result = await window.desktopAPI?.openPreset(id);
       if (!result?.success) {
         setError(result?.error ?? '打开失败');
       }

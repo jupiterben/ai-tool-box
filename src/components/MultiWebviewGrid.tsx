@@ -3,7 +3,7 @@ import { AITool } from '../types/ai-tool';
 import { InputDeliveryState } from '../types/input-delivery';
 import { getSiteHandler } from '../webview-handlers';
 import { preInjectScript } from './WebviewInputHandler';
-import { ElectronWebView, type ElectronWebViewElement } from './ElectronWebView';
+import { TauriWebView, type TauriWebViewElement } from './TauriWebView';
 import { getPresetPartition } from '../utils/toolPartition';
 import { usePresetId } from '../hooks/usePresetContext';
 import { getFaviconFallbackUrl, getLoadableFaviconUrl } from '../utils/favicon';
@@ -13,7 +13,7 @@ import styles from './MultiWebviewGrid.module.css';
 
 type PageFaviconUpdatedEvent = Event & { favicons?: string[] };
 
-type WebviewElement = ElectronWebViewElement;
+type WebviewElement = TauriWebViewElement;
 
 interface MultiWebviewGridProps {
   tools: AITool[];
@@ -157,7 +157,7 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
         }
 
         try {
-          await window.electronAPI?.applyToolGeolocation(toolId);
+          await window.desktopAPI?.applyToolGeolocation(toolId);
         } catch (error) {
           console.warn(`[MultiWebviewGrid] ${toolName} 应用 GPS 设置失败:`, error);
         }
@@ -250,14 +250,14 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
         return;
       }
 
-      if (!window.electronAPI?.clearToolWebviewData) {
+      if (!window.desktopAPI?.clearToolWebviewData) {
         window.alert('当前环境不支持清理缓存');
         return;
       }
 
       setIsClearingData(true);
       try {
-        const result = await window.electronAPI.clearToolWebviewData();
+        const result = await window.desktopAPI.clearToolWebviewData();
         if (!result.success) {
           window.alert(result.error ?? '清理缓存失败');
           return;
@@ -391,7 +391,7 @@ const MultiWebviewGrid: React.FC<MultiWebviewGridProps> = memo(({
               aria-hidden={!isActive}
             >
               <div className={styles.webviewContainer} aria-label={`${tool.name} 内容区域`}>
-                <ElectronWebView
+                <TauriWebView
                   key={`${tool.id}-${proxyRevision}`}
                   ref={(el) => handleWebviewRef(tool.id, tool.name, el)}
                   partition={getPresetPartition(presetId)}

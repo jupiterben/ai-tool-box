@@ -14,7 +14,6 @@ import {
   loadToolSettingsFromStorage,
   saveToolSettingsToStorage,
 } from '../utils/settingsStorage';
-import { usePresetId } from './usePresetContext';
 
 const TOOL_SETTINGS_CHANGED_EVENT = 'tool-settings-changed';
 
@@ -23,8 +22,8 @@ let cachedToolSettings: ToolSettings | null = null;
 let cachedPresetId: string | null = null;
 
 function currentPresetId(): string {
-  if (typeof window !== 'undefined' && window.electronAPI?.getPresetId) {
-    return window.electronAPI.getPresetId();
+  if (typeof window !== 'undefined' && window.desktopAPI?.getPresetId) {
+    return window.desktopAPI.getPresetId();
   }
   return 'default';
 }
@@ -116,7 +115,6 @@ export function useToolSettingsRevision(): number {
 }
 
 export function useToolSettings() {
-  const presetId = usePresetId();
   const [settings, setSettings] = useState<ToolSettings>(() => getCachedToolSettings());
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -130,7 +128,7 @@ export function useToolSettings() {
     cachedPresetId = currentPresetId();
     setSettings(sanitized);
     setIsLoading(false);
-  }, [presetId]);
+  }, []);
 
   useEffect(() => {
     loadSettings();
@@ -141,7 +139,9 @@ export function useToolSettings() {
     cachedToolSettings = sanitized;
     cachedPresetId = currentPresetId();
     saveToolSettingsToStorage(sanitized, cachedPresetId);
-    void window.electronAPI?.saveToolSettings?.(sanitized);
+    void window.desktopAPI?.saveToolSettings?.(sanitized).then((result) => {
+      if (!result.success) setSaveMessage(result.error || '保存网站设置失败');
+    }).catch((error) => setSaveMessage(String(error)));
     setSaveMessage('已保存');
     notifyToolSettingsChanged();
     window.setTimeout(() => setSaveMessage(null), 2000);

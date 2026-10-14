@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Local AI Fixture</title></head>
+<body>
+<form id="create_input_form"><textarea id="chat-input" class="b_searchbox gi_sb" placeholder="Message DeepSeek"></textarea>
+<button type="submit" aria-label="Send message">Send</button></form>
+<article data-message-author-role="assistant">Local fixture response</article>
+<script>
+document.querySelector('form').addEventListener('submit', event => {
+  event.preventDefault();
+  window.lastSubmitted = document.querySelector('textarea').value;
+  document.querySelector('textarea').value = '';
+  void fetch('/.cache/aisandbox.generateimages.json').then(response => response.json());
+});
+window.nativeEvents = [];
+document.addEventListener('keydown', event => window.nativeEvents.push({ key: event.key, trusted: event.isTrusted }));
+document.querySelector('textarea').addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    document.querySelector('form').requestSubmit();
+  }
+});
+const originalFetch = window.fetch.bind(window);
+window.fetch = async (url, options) => {
+  const value = String(url);
+  if (value.startsWith('https://www.bing.com/images/create')) {
+    const response = new Response(`<img src="${location.origin}/.cache/th/id/OIG.fixture.png" class="mimg">`, {
+      status: 200, headers: { 'content-type': 'text/html' }
+    });
+    Object.defineProperty(response, 'url', { value: 'https://www.bing.com/images/create/async/results/fixture?id=fixture' });
+    return response;
+  }
+  return originalFetch(url, options);
+};
+</script>
+</body>
+</html>

@@ -1,12 +1,12 @@
 # 生图 API 文档
 
-AI Tool Box 启动后，主进程会在本机自动开启 HTTP 服务，通过内嵌 webview 调用各 AI 生图站点（如 Gemini）完成生图，并返回 **base64** 图片。
+AI Tool Box 启动后，Tauri 管理的 Node 后台会在本机自动开启 HTTP 服务，通过内嵌 webview 调用各 AI 生图站点（如 Gemini）完成生图，并返回 **base64** 图片。
 
 ## 基本信息
 
 | 项 | 值 |
 |---|---|
-| 地址 | `http://<本机IP>:3920`（默认监听局域网） |
+| 地址 | `http://127.0.0.1:3920`（默认仅本机） |
 | 本机 | `http://127.0.0.1:3920` |
 | 协议 | HTTP |
 | 启动条件 | 应用运行中（`pnpm dev` 或安装包启动） |
@@ -14,7 +14,7 @@ AI Tool Box 启动后，主进程会在本机自动开启 HTTP 服务，通过�
 | 默认超时 | 120 秒 |
 | 参考图上限 | 10 MB |
 
-## 鉴权（可选）
+## 鉴权
 
 设置环境变量 `AI_TOOLBOX_API_TOKEN` 后，请求需携带以下任一 Header：
 
@@ -23,11 +23,20 @@ X-Api-Token: <your-token>
 Authorization: Bearer <your-token>
 ```
 
-未设置该环境变量时，无需鉴权。默认开启局域网访问，**建议配置 token**。
+仅本机 CLI 访问可不设置 token；未配置 token 时拒绝非同源浏览器调用。
+监听局域网或其他非回环地址时，**必须配置 token**，否则服务拒绝启动。
 
 ### 局域网访问
 
-**默认已开启**，监听 `0.0.0.0:3920`，局域网内设备可通过 `http://<本机IP>:3920` 访问。启动后控制台会打印可用地址：
+默认关闭。需要局域网访问时，显式开启并设置 token：
+
+```powershell
+$env:AI_TOOLBOX_API_LAN="1"
+$env:AI_TOOLBOX_API_TOKEN="replace-with-a-long-random-token"
+pnpm dev
+```
+
+此时监听 `0.0.0.0:3920`，启动后控制台打印可用地址：
 
 ```
 [imageGenApi]   → http://127.0.0.1:3920
@@ -360,7 +369,7 @@ POST /api/gen_image
 
 ## 注意事项
 
-1. **默认监听局域网**（`0.0.0.0`）；仅需本机时设置 `AI_TOOLBOX_API_LAN=0` 或 `AI_TOOLBOX_API_HOST=127.0.0.1`。
+1. **默认仅监听本机**（`127.0.0.1`）；局域网访问需显式启用，并配置 `AI_TOOLBOX_API_TOKEN`。
 2. **同步接口**：生图耗时较长，客户端请设置足够超时（建议 ≥ 180 秒）。
 3. **登录态**：依赖 webview 内站点登录，API 无法代填账号密码。
 4. **并发**：同一 webview 不建议并发请求，建议串行调用。
@@ -531,7 +540,7 @@ curl -X POST "http://127.0.0.1:3920/api/debug/fetch_page" \
 
 - 仅支持 `http:` 和 `https:` URL。
 - 响应正文按 UTF-8 解码，超过 `maxBytes` 会截断，并返回 `truncated: true`。
-- 该接口同样受可选的 `AI_TOOLBOX_API_TOKEN` 鉴权控制；如果 API 暴露到局域网，建议开启 token。
+- 该接口同样受 `AI_TOOLBOX_API_TOKEN` 鉴权控制；如果 API 暴露到局域网，必须配置 token。
 
 ## POST /api/gen_image/stream
 

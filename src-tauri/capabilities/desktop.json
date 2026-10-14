@@ -1,0 +1,14 @@
+{
+  "identifier": "desktop",
+  "description": "Only local preset interfaces can access desktop services. Guest websites have no native permissions.",
+  "webviews": ["preset-*"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-backend-call",
+    "allow-create-guest",
+    "allow-guest-bounds",
+    "allow-guest-call",
+    "allow-close-guest"
+  ]
+}

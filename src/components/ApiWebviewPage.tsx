@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ElectronWebView, type ElectronWebViewElement } from './ElectronWebView';
+import { TauriWebView, type TauriWebViewElement } from './TauriWebView';
 import { preInjectScript } from './WebviewInputHandler';
 import {
   ACTIVATE_IMAGE_TOOL_EVENT,
@@ -24,7 +24,7 @@ interface ApiWorkerView {
   error?: string;
 }
 
-type WebviewElement = ElectronWebViewElement & {
+type WebviewElement = TauriWebViewElement & {
   getWebContentsId?: () => number;
 };
 
@@ -131,7 +131,7 @@ const ApiWebviewPage: React.FC = () => {
   }, []);
 
   const handleWebviewRef = useCallback(
-    (worker: ApiWorkerView, element: ElectronWebViewElement | null) => {
+    (worker: ApiWorkerView, element: TauriWebViewElement | null) => {
       const { threadId, toolId } = worker;
       listenerCleanups.current[threadId]?.();
       delete listenerCleanups.current[threadId];
@@ -180,7 +180,7 @@ const ApiWebviewPage: React.FC = () => {
         }
 
         try {
-          await window.electronAPI?.applyToolGeolocation(toolId);
+          await window.desktopAPI?.applyToolGeolocation(toolId);
         } catch {
           // GPS settings are best-effort for API workers.
         }
@@ -261,7 +261,7 @@ const ApiWebviewPage: React.FC = () => {
               aria-hidden={!isActive}
             >
               <div className={styles.webviewWrap}>
-                <ElectronWebView
+                <TauriWebView
                   key={`${worker.threadId}-${worker.toolId}`}
                   ref={(el) => handleWebviewRef(worker, el)}
                   partition={getPresetPartition(presetId)}

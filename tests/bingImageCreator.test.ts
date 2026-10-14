@@ -3,7 +3,7 @@ import { after, before, describe, it } from 'node:test';
 import {
   generateBingImagesViaWebviewFetch,
   resolveBingApiParams,
-} from '../electron/bingImageCreator.ts';
+} from '../desktop-backend/bingImageCreator.ts';
 
 const originalConsoleLog = console.log;
 

@@ -132,7 +132,7 @@ export function useGeolocationSettings() {
     }
 
     try {
-      if (!window.electronAPI) {
+      if (!window.desktopAPI) {
         saveGeolocationSettingsToStorage(currentSettings);
         lastPersistedRef.current = serialized;
         skipAutoSaveRef.current = true;
@@ -147,7 +147,7 @@ export function useGeolocationSettings() {
         return true;
       }
 
-      const response = await window.electronAPI.saveGeolocationSettings(currentSettings);
+      const response = await window.desktopAPI.saveGeolocationSettings(currentSettings);
       if (!response.success || !response.settings) {
         throw new Error(response.error || '保存 GPS 设置失败');
       }
@@ -181,14 +181,14 @@ export function useGeolocationSettings() {
     const defaults = buildDefaultSettings();
 
     try {
-      if (!window.electronAPI) {
+      if (!window.desktopAPI) {
         const loaded = loadGeolocationSettingsFromStorage(defaults) ?? defaults;
         setSettings(loaded);
         lastPersistedRef.current = JSON.stringify(sanitizeGeolocationSettingsForSave(loaded));
         return;
       }
 
-      const response = await window.electronAPI.getGeolocationSettings();
+      const response = await window.desktopAPI.getGeolocationSettings();
       if (!response.success || !response.settings) {
         throw new Error(response.error || '读取 GPS 设置失败');
       }

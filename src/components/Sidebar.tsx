@@ -42,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
   const navPages = pages.filter((page) => page.id !== 'settings');
 
   const refreshPresets = useCallback(async () => {
-    const result = await window.electronAPI?.listPresets?.();
+    const result = await window.desktopAPI?.listPresets?.();
     if (result?.success && result.presets) {
       setPresets(result.presets);
       setOpenIds(result.openIds ?? []);
@@ -99,13 +99,13 @@ const Sidebar: React.FC<SidebarProps> = memo(({ pages, activePageId, onPageChang
       setMenuOpen(false);
       return;
     }
-    if (!window.electronAPI?.openPreset) {
+    if (!window.desktopAPI?.openPreset) {
       setError('切换不可用，请重启应用');
       return;
     }
     setBusy(true);
     try {
-      const result = await window.electronAPI.openPreset(id);
+      const result = await window.desktopAPI.openPreset(id);
       if (!result.success) {
         setError(result.error ?? '切换失败');
         return;

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Native Integration Fixture</title></head>
+<body>
+<div id="guest-host" style="position:fixed;left:20px;top:20px;width:800px;height:600px"></div>
+<script type="module">
+import { initializeDesktopBridge } from '/src/desktop/bridge.ts';
+import { mountGuest } from '/src/desktop/webview.ts';
+await initializeDesktopBridge();
+window.guestDisposers = [];
+window.ensureRequests = [];
+window.makeGuest = async (toolId = 'deepseek', threadId) => {
+  const host = document.createElement('div');
+  host.style.cssText = 'position:fixed;left:20px;top:20px;width:800px;height:600px';
+  document.body.append(host);
+  let resolve, reject, element;
+  const ready = new Promise((yes, no) => { resolve = yes; reject = no; });
+  const timer = setTimeout(() => reject(new Error('Native guest load timed out')), 30000);
+  const dispose = mountGuest(host, {
+    src: `${location.origin}/tests/fixtures/guest.html`,
+    toolId, threadId, partition: `persist:preset-${window.desktopAPI.getPresetId()}`,
+  }, (view) => {
+    if (!view) return;
+    element = view;
+    view.addEventListener('dom-ready', () => { clearTimeout(timer); resolve(); }, { once: true });
+  }, reject);
+  window.guestDisposers.push(dispose);
+  await ready;
+  return element;
+};
+window.desktopAPI.onEnsureImageWebview(async (request) => {
+  window.ensureRequests.push({ request, state: 'received' });
+  try {
+    const view = await window.makeGuest(request.toolId, request.threadId);
+    window.desktopAPI.reportEnsureImageWebview({
+      requestId: request.requestId, toolId: request.toolId, success: true,
+      webContentsId: view.getWebContentsId(),
+    });
+    window.ensureRequests.push({ request, state: 'reported', id: view.getWebContentsId() });
+  } catch (error) {
+    window.ensureRequests.push({ request, state: 'failed', error: String(error) });
+    window.desktopAPI.reportEnsureImageWebview({ requestId: request.requestId, success: false, error: String(error) });
+  }
+});
+window.testReady = true;
+</script>
+</body>
+</html>

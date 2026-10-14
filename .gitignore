@@ -5,6 +5,12 @@ package-lock.json
 yarn.lock
 
 # Build outputs
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/
+src-tauri/sidecar/
+.svelte-check/
+test-results/
 dist/
 build/
 out/

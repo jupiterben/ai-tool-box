@@ -14,7 +14,7 @@ const AgentCliPage: React.FC = () => {
   const refresh = useCallback(async () => {
     setLoading(true);
     setError('');
-    const result = await window.electronAPI?.listAgentClis();
+    const result = await window.desktopAPI?.listAgentClis();
     if (result?.success && result.agents) {
       setAgents(result.agents);
     } else {
