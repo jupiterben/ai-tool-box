@@ -192,6 +192,7 @@ test('small-screen navigation and input fit the viewport', async ({
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: '展开侧边栏' }).click();
+  await expect(page.locator('[data-tool-id="deepseek"]')).toBeHidden();
   await page.getByRole('button', { name: '切换到 生图' }).click();
   await page.getByRole('button', { name: '折叠侧边栏' }).click();
   await expect(page.locator('aside').first()).toHaveCSS('width', '64px');
@@ -203,4 +204,97 @@ test('small-screen navigation and input fit the viewport', async ({
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
   await page.screenshot({ path: testInfo.outputPath('mobile.png') });
+});
+
+test('collapsed navigation keeps every destination reachable and respects manual resizing', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: '折叠侧边栏' }).click();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.locator('aside').first()).toHaveCSS('width', '64px');
+  const navigation = page.getByRole('navigation', { name: '工具导航' });
+  await expect(navigation.getByRole('button')).toHaveCount(5);
+  await navigation.getByRole('button', { name: '切换到 LLM 设置' }).click();
+  await expect(page.getByRole('heading', { name: 'LLM 汇总设置' })).toBeVisible();
+  await expect(navigation.getByRole('button', { name: '切换到 LLM 设置' }))
+    .toHaveAttribute('aria-current', 'page');
+});
+
+test('platform disclosure is keyboard accessible and keeps selection and draft', async ({
+  page,
+}) => {
+  const disclosure = page.locator('#page-multi-webview details');
+  const summary = disclosure.locator('summary');
+  const input = page.getByRole('textbox', { name: '输入内容' });
+  await input.fill('平台收起后保留草稿');
+  await summary.focus();
+  await summary.press('Enter');
+  await expect(disclosure).not.toHaveAttribute('open');
+  await expect(input).toHaveValue('平台收起后保留草稿');
+  await expect(page.getByRole('button', { name: '发送', exact: true })).toBeEnabled();
+  await summary.press('Enter');
+  await expect(disclosure).toHaveAttribute('open');
+  const selected = await disclosure.getByRole('checkbox', { name: /^选择 /, checked: true }).count();
+  await expect(summary).toHaveText(`发送至 ${selected} 个平台`);
+});
+
+for (const theme of ['light', 'dark'] as const) {
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 768, height: 1024 },
+    { width: 375, height: 812 },
+    { width: 844, height: 390 },
+  ]) {
+    test(`${theme} UI fits ${viewport.width}x${viewport.height}`, async ({ page }, testInfo) => {
+      await page.setViewportSize(viewport);
+      await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: theme });
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      const assertFits = async () => {
+        expect(await page.evaluate(() => document.documentElement.scrollWidth))
+          .toBeLessThanOrEqual(viewport.width);
+      };
+      const input = page.getByRole('textbox', { name: '输入内容' });
+      await input.fill('检查输入与操作区');
+      await expect(input).toBeInViewport();
+      await expect(page.getByRole('button', { name: '发送', exact: true })).toBeInViewport();
+      await expect(page.getByRole('button', { name: '刷新 DeepSeek', exact: true })).toBeInViewport();
+      const content = await page.getByRole('region', { name: 'Webview 内容区域' }).boundingBox();
+      expect(content!.height).toBeGreaterThan(100);
+      await assertFits();
+      await page.screenshot({ path: testInfo.outputPath('workspace.png') });
+
+      await page.getByRole('button', { name: '切换到 网站管理' }).click();
+      await expect(page.getByRole('heading', { name: '网站管理' })).toBeVisible();
+      await assertFits();
+      await page.screenshot({ path: testInfo.outputPath('websites.png') });
+
+      await page.getByRole('button', { name: '切换到 LLM 设置' }).click();
+      const model = page.getByLabel('模型', { exact: true });
+      await expect(model).toBeVisible();
+      const bounds = await model.boundingBox();
+      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+      await assertFits();
+      await page.screenshot({ path: testInfo.outputPath('llm.png') });
+
+      await page.getByRole('button', { name: '切换到 网络与定位' }).click();
+      await page.getByRole('button', { name: '添加代理', exact: true }).click();
+      await expect(page.getByLabel('主机', { exact: true })).toBeVisible();
+      await assertFits();
+      await page.screenshot({ path: testInfo.outputPath('environment.png') });
+    });
+  }
+}
+
+test('narrow summary panel remains readable and can be closed', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.getByRole('button', { name: '汇总', exact: true }).click();
+  const summary = page.getByRole('complementary', { name: '回复汇总面板' });
+  await expect(summary).toBeVisible();
+  await expect(page.getByRole('textbox', { name: '输入内容' })).toBeHidden();
+  const bounds = await summary.boundingBox();
+  expect(bounds!.width).toBeGreaterThanOrEqual(300);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(375);
+  await page.getByRole('button', { name: '关闭汇总面板' }).click();
+  await expect(summary).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: '输入内容' })).toBeInViewport();
 });

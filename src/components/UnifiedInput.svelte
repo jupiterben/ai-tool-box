@@ -50,7 +50,7 @@
     referenceImageError = null,
     onReferenceImageError,
   }: UnifiedInputProps = $props();
-  const fileInputRef = { current: null as HTMLInputElement | null };
+  let fileInputRef = $state<HTMLInputElement | null>(null);
   const inputId = $props.id();
   let trimmedValue = $derived.by(() => value.trim());
   let canSend = $derived.by(
@@ -73,7 +73,7 @@
     }
   };
   const handlePickReferenceImage = () => {
-    fileInputRef.current?.click();
+    fileInputRef?.click();
   };
   const handleReferenceFileChange = async (
     event: Event & { currentTarget: HTMLInputElement },
@@ -126,6 +126,7 @@
             onclick={handleRemoveReferenceImage}
             disabled={isSending}
             aria-label="移除参考图"
+            title="移除参考图"
           >
             <Icon name="X" size={14}></Icon>
           </button>
@@ -150,7 +151,7 @@
     <div class={styles.footer}>
       <div class={styles.footerLeft}>
         {#if enableReferenceImage}<input
-            bind:this={fileInputRef.current}
+            bind:this={fileInputRef}
             type="file"
             accept={REFERENCE_IMAGE_ACCEPT}
             class={styles.hiddenFileInput}
@@ -166,7 +167,7 @@
             title="上传参考图"
             aria-label="上传参考图"
           >
-            <Icon name="ImagePlus" size={16}></Icon>参考图
+            <Icon name="ImagePlus" size={18}></Icon>
           </button>{/if}
         <span
           id={`${inputId}-counter`}
@@ -182,8 +183,9 @@
         disabled={!canSend}
         aria-label="发送"
         aria-disabled={!canSend}
+        title={isSending ? '发送中' : '发送'}
       >
-        {isSending ? '发送中...' : '发送'}
+        <Icon name={isSending ? 'LoaderCircle' : 'ArrowUp'} size={18} />
       </button>
     </div>
   </div>

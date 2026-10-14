@@ -2,19 +2,19 @@
   display: flex;
   align-items: center;
   width: 100%;
-  padding: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-2) 0 0;
   background: var(--color-surface);
   transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
 .inputWrapper {
-  max-width: 1200px;
+  max-width: none;
   margin: 0 auto;
   width: 100%;
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  background: var(--color-background);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
@@ -26,7 +26,7 @@
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .container {
-    padding: var(--spacing-3);
+    padding: var(--spacing-2) 0 0;
   }
   
   .inputWrapper {
@@ -36,7 +36,7 @@
 
 @media (max-width: 800px) {
   .container {
-    padding: var(--spacing-2);
+    padding: var(--spacing-2) 0 0;
   }
   
   .textarea {
@@ -45,13 +45,13 @@
   }
   
   .footer {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
     gap: var(--spacing-2);
   }
   
   .sendButton {
-    width: 100%;
+    width: 36px;
   }
 }
 
@@ -60,7 +60,7 @@
   padding: var(--spacing-2) var(--spacing-3);
   border: 0;
   border-radius: 0;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-family: var(--font-family-sans);
   line-height: var(--line-height-normal);
   color: var(--color-text-primary);
@@ -68,7 +68,6 @@
   resize: none;
   min-height: 48px;
   outline: none;
-  will-change: border-color, box-shadow;
 }
 
 .textarea::placeholder {
@@ -83,6 +82,10 @@
   box-shadow: none;
 }
 
+.textarea:focus-visible {
+  outline: none;
+}
+
 .textarea:disabled {
   background-color: var(--color-background-secondary);
   cursor: not-allowed;
@@ -94,7 +97,7 @@
   justify-content: space-between;
   align-items: center;
   margin-top: 0;
-  padding: 0 var(--spacing-2) var(--spacing-1) var(--spacing-3);
+  padding: 0 var(--spacing-2) var(--spacing-2) var(--spacing-3);
   gap: var(--spacing-2);
 }
 
@@ -114,7 +117,9 @@
   align-items: center;
   gap: var(--spacing-1);
   min-height: 36px;
-  padding: var(--spacing-1) var(--spacing-3);
+  width: 36px;
+  justify-content: center;
+  padding: 0;
   border: 0;
   border-radius: var(--radius-md);
   background: var(--color-background-secondary);
@@ -140,8 +145,7 @@
   gap: var(--spacing-3);
   margin: var(--spacing-3) var(--spacing-3) 0;
   padding: var(--spacing-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
 
@@ -194,9 +198,10 @@
 }
 
 .counter {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   line-height: var(--line-height-tight);
+  font-variant-numeric: tabular-nums;
 }
 
 .sendButton {
@@ -204,12 +209,15 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-2);
-  min-height: 40px;
-  padding: var(--spacing-2) var(--spacing-5);
+  min-height: var(--control-height-md);
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  flex-shrink: 0;
+  padding: 0;
   background-color: var(--color-primary-600);
   color: var(--color-text-inverse);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
@@ -219,8 +227,6 @@
 
 .sendButton:hover:not(:disabled) {
   background-color: var(--color-primary-700);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
 }
 
 .sendButton:focus-visible {
@@ -234,9 +240,9 @@
 }
 
 .sendButton:disabled {
-  background-color: var(--color-text-disabled);
+  background-color: var(--color-background-tertiary);
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .sendButton:disabled::after {
@@ -252,7 +258,9 @@
   .sendButton,
   .referenceRemove {
     min-height: 44px;
+    min-width: 44px;
   }
+  .textarea { font-size: var(--font-size-base); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -263,4 +271,8 @@
   .sendButton {
     transition: none;
   }
+}
+
+@media (max-height: 560px) {
+  .textarea { height: 64px; min-height: 48px; }
 }

@@ -27,6 +27,14 @@
     LoaderCircle,
     Check,
     CircleAlert,
+    Layers3,
+    PanelLeftOpen,
+    PanelLeftClose,
+    ArrowUp,
+    ChevronDown,
+    Plus,
+    Save,
+    Trash2,
   } from '@lucide/svelte';
   const icons = {
     Globe,
@@ -56,6 +64,14 @@
     LoaderCircle,
     Check,
     CircleAlert,
+    Layers3,
+    PanelLeftOpen,
+    PanelLeftClose,
+    ArrowUp,
+    ChevronDown,
+    Plus,
+    Save,
+    Trash2,
   };
   export type IconName = keyof typeof icons;
 </script>

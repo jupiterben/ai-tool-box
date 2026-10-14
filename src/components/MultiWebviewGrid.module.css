@@ -8,14 +8,23 @@
   transition: background-color var(--transition-base);
 }
 
+.tabStrip {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
 .tabBar {
   display: flex;
+  flex: 1;
+  min-width: 0;
   align-items: center;
   gap: var(--spacing-1);
   flex-shrink: 0;
   min-height: 48px;
-  padding: var(--spacing-2) var(--spacing-3);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--spacing-1) var(--spacing-3);
   background-color: var(--color-background-secondary);
   overflow-x: auto;
   overflow-y: hidden;
@@ -29,7 +38,7 @@
   min-height: 36px;
   padding: var(--spacing-2) var(--spacing-3);
   border: 1px solid transparent;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
@@ -46,8 +55,8 @@
 
 .tabActive {
   color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-background));
-  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--color-border));
+  background: var(--color-primary-50);
+  border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
 }
 
 .tabIcon {
@@ -83,9 +92,9 @@
 .tabBarActions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  margin-left: auto;
-  padding-left: var(--spacing-2);
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-left: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
@@ -162,12 +171,12 @@
   width: 36px;
   height: 36px;
   padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
-  background-color: var(--color-background);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background-color: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -198,8 +207,8 @@
 }
 
 .toolbarButtonDanger:hover:not(:disabled) {
-  border-color: #dc2626;
-  color: #dc2626;
+  border-color: var(--color-error);
+  color: var(--color-error);
 }
 
 .retryButton {
@@ -236,11 +245,32 @@
 
 @media (max-width: 800px) {
   .tabBar {
-    padding: var(--spacing-1) var(--spacing-2) 0;
+    padding: var(--spacing-1) var(--spacing-2);
   }
 
   .tab {
     padding: var(--spacing-2) var(--spacing-3);
     font-size: var(--font-size-xs, 12px);
+  }
+}
+
+.tabIncognitoBadge { display: inline-flex; color: var(--color-text-secondary); }
+.tabIncognito { border-style: dashed; }
+.incognitoBanner { display: flex; align-items: center; gap: var(--spacing-2); padding: var(--spacing-2) var(--spacing-3); background: var(--color-info-bg); color: var(--color-info); font-size: var(--font-size-xs); }
+
+@media (max-width: 640px), (pointer: coarse) {
+  .tab, .toolbarButton { min-height: 44px; }
+  .toolbarButton { min-width: 44px; }
+}
+
+@media (max-width: 560px) {
+  .tabStrip {
+    flex-direction: column;
+  }
+
+  .tabBarActions {
+    justify-content: flex-end;
+    border-left: 0;
+    border-top: 1px solid var(--color-border);
   }
 }

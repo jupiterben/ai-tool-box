@@ -1,105 +1,90 @@
 <script module lang="ts">
+  import type { IconName } from './ui/Icon.svelte';
+
   export interface ToolPage {
     id: string;
     name: string;
     icon?: string;
-    iconName?:
-      | 'Globe'
-      | 'Settings'
-      | 'Zap'
-      | 'Layout'
-      | 'Grid'
-      | 'Code'
-      | 'Sparkles'
-      | 'MapPin'
-      | 'Image';
+    iconName?: IconName;
   }
 </script>
 
 <script lang="ts">
-  import { untrack } from 'svelte';
-
+  import { onMount } from 'svelte';
   import Icon from './ui/Icon.svelte';
   import ThemeToggle from './ThemeToggle.svelte';
   import styles from './Sidebar.module.css';
-  interface SidebarProps {
+
+  let { pages, activePageId, onPageChange }: {
     pages: ToolPage[];
     activePageId: string;
     onPageChange: (pageId: string) => void;
-  }
-  let { pages, activePageId, onPageChange }: SidebarProps = $props();
-  let isCollapsed = $state.raw(false);
-  function setIsCollapsed(
-    value:
-      typeof isCollapsed | ((prev: typeof isCollapsed) => typeof isCollapsed),
-  ) {
-    isCollapsed = typeof value === 'function' ? value(isCollapsed) : value;
-  }
-  $effect(() => {
-    return untrack(() => {
-      const handleResize = () => {
-        setIsCollapsed(window.innerWidth < 1024);
-      };
+  } = $props();
+  let isCollapsed = $state(false);
+  const groups = $derived([
+    { label: '工作区', pages: pages.filter((page) => !page.id.endsWith('settings')) },
+    { label: '设置', pages: pages.filter((page) => page.id.endsWith('settings')) },
+  ]);
 
-      // 初始检查
-      handleResize();
-
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    });
+  onMount(() => {
+    const media = window.matchMedia('(max-width: 1023px)');
+    isCollapsed = media.matches;
+    const update = (event: MediaQueryListEvent) => { isCollapsed = event.matches; };
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
   });
 </script>
 
-<aside class={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
+<svelte:window onkeydown={(event) => {
+  if (event.key === 'Escape' && window.innerWidth < 1024) isCollapsed = true;
+}} />
+
+<aside
+  class={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}
+  data-collapsed={isCollapsed}
+>
   <div class={styles.header}>
-    {#if !isCollapsed}<div class={styles.brand}>
-        <div class={styles.logo} aria-hidden="true">
-          <Icon name="Sparkles" size={18}></Icon>
-        </div>
-        <div class={styles.brandText}>
-          <h2 class={styles.title}>AI Tool Box</h2>
-          <span class={styles.subtitle}>工具集</span>
-        </div>
-      </div>{/if}
+    {#if !isCollapsed}
+      <div class={styles.brand}>
+        <div class={styles.logo}><Icon name="Layers3" size={20} /></div>
+        <span class={styles.title}>AI Tool Box</span>
+      </div>
+    {/if}
     <button
+      type="button"
       class={styles.toggleButton}
-      onclick={() => setIsCollapsed(!isCollapsed)}
+      onclick={() => (isCollapsed = !isCollapsed)}
       aria-label={isCollapsed ? '展开侧边栏' : '折叠侧边栏'}
+      title={isCollapsed ? '展开侧边栏' : '折叠侧边栏'}
       aria-expanded={!isCollapsed}
       aria-controls="sidebar-navigation"
     >
-      <Icon name={isCollapsed ? 'Menu' : 'X'} size={20} aria-hidden="true"
-      ></Icon>
+      <Icon name={isCollapsed ? 'PanelLeftOpen' : 'PanelLeftClose'} size={18} />
     </button>
   </div>
-  {#if !isCollapsed}<nav
-      id="sidebar-navigation"
-      class={styles.nav}
-      aria-label="工具导航"
-    >
-      {#each pages as page (page.id)}<button
-          class={`${styles.navItem} ${activePageId === page.id ? styles.active : ''}`}
-          onclick={() => onPageChange(page.id)}
-          aria-label={`切换到 ${page.name}`}
-          aria-current={activePageId === page.id ? 'page' : undefined}
-        >
-          {#if page.iconName}<Icon
-              name={page.iconName}
-              size={20}
-              class={styles.icon}
-              aria-hidden="true"
-            ></Icon>{:else}{#if page.icon}<span
-                class={styles.icon}
-                aria-hidden="true"
-              >
-                {page.icon}
-              </span>{:else}{/if}{/if}
-          <span class={styles.name}>{page.name}</span>
-        </button>{/each}
-    </nav>
-    <div class={styles.footer}>
-      <ThemeToggle></ThemeToggle>
-    </div>{/if}{#if isCollapsed}<div class={styles.footer}>
-      <ThemeToggle></ThemeToggle>
-    </div>{/if}
+  <nav id="sidebar-navigation" class={styles.nav} aria-label="工具导航">
+    {#each groups as group (group.label)}
+      <div class={styles.navGroup} role="group" aria-label={group.label}>
+        {#if !isCollapsed}<span class={styles.groupLabel}>{group.label}</span>{/if}
+        {#each group.pages as page (page.id)}
+          <button
+            type="button"
+            class={`${styles.navItem} ${activePageId === page.id ? styles.active : ''}`}
+            onclick={() => onPageChange(page.id)}
+            aria-label={`切换到 ${page.name}`}
+            aria-current={activePageId === page.id ? 'page' : undefined}
+            title={page.name}
+          >
+            {#if page.iconName}<Icon name={page.iconName} size={18} />
+            {:else if page.icon}<span aria-hidden="true">{page.icon}</span>{/if}
+            {#if !isCollapsed}<span class={styles.name}>{page.name}</span>{/if}
+          </button>
+        {/each}
+      </div>
+    {/each}
+  </nav>
+  <div class={styles.footer}>
+    {#if !isCollapsed}<span class={styles.footerLabel}>外观</span>{/if}
+    <ThemeToggle />
+  </div>
 </aside>

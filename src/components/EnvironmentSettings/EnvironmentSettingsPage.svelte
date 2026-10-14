@@ -10,6 +10,7 @@
   import Select from '../ui/Select.svelte';
   import SegmentControl from '../ui/SegmentControl.svelte';
   import Alert from '../ui/Alert.svelte';
+  import Icon from '../ui/Icon.svelte';
   import styles from './EnvironmentSettingsPage.module.css';
   type EnvTab = 'proxy' | 'geo';
   const ENV_TABS: { value: EnvTab; label: string }[] = [
@@ -48,7 +49,6 @@
 {#if isLoading}<SettingsLoading message="加载环境设置..."
   ></SettingsLoading>{:else}<SettingsPageLayout
     title="网络与定位"
-    description="定义代理与 GPS 预设，在「网站管理」中为各站分配。"
     ariaLabel="网络与定位设置"
     class={styles.pageCompact}
   >
@@ -67,6 +67,7 @@
             }}
             disabled={isSaving}
           >
+            <Icon name="Check" size={16} />
             {isSaving ? '保存中...' : '立即应用'}
           </Button><Button
             size="sm"
@@ -77,6 +78,7 @@
             }}
             disabled={isSaving}
           >
+            <Icon name="RefreshCw" size={16} />
             重新加载
           </Button>
         </div>
@@ -93,6 +95,7 @@
           onclick={proxy.addProfile}
           disabled={isSaving}
         >
+          <Icon name="Plus" size={16} />
           添加代理
         </Button>{:else}<Button
           size="sm"
@@ -100,6 +103,7 @@
           onclick={geo.addProfile}
           disabled={isSaving}
         >
+          <Icon name="Plus" size={16} />
           添加位置
         </Button>{/if}
     </div>
@@ -108,7 +112,7 @@
         aria-label="代理库"
       >
         {#if proxyProfileList.length === 0}<p class={styles.emptyHint}>
-            暂无代理，点击「添加代理」创建。
+            暂无代理
           </p>{:else}<div class={styles.profileList}>
             {#each proxyProfileList as profile (profile.id)}<article
                 class={styles.profileCard}
@@ -128,8 +132,10 @@
                     variant="outline"
                     onclick={() => proxy.removeProfile(profile.id)}
                     disabled={isSaving}
+                    aria-label={`删除代理 ${profile.name || '未命名'}`}
+                    title="删除代理"
                   >
-                    删除
+                    <Icon name="Trash2" size={16} />
                   </Button>
                 </div>
                 <div class={styles.proxyFields}>
@@ -199,7 +205,7 @@
           </div>{/if}
       </section>{:else}<section class={styles.section} aria-label="位置库">
         {#if geoProfileList.length === 0}<p class={styles.emptyHint}>
-            暂无位置，点击「添加位置」创建。
+            暂无位置
           </p>{:else}<div class={styles.profileList}>
             {#each geoProfileList as profile (profile.id)}<article
                 class={styles.profileCard}
@@ -219,8 +225,10 @@
                     variant="outline"
                     onclick={() => geo.removeProfile(profile.id)}
                     disabled={isSaving}
+                    aria-label={`删除位置 ${profile.name || '未命名'}`}
+                    title="删除位置"
                   >
-                    删除
+                    <Icon name="Trash2" size={16} />
                   </Button>
                 </div>
                 <div class={styles.coordFields}>

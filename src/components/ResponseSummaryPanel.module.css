@@ -70,8 +70,8 @@
   margin: 8px 14px 0;
   padding: 8px 10px;
   border-radius: 6px;
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
   font-size: 12px;
 }
 
@@ -79,8 +79,8 @@
   margin: 8px 14px 0;
   padding: 8px 10px;
   border-radius: 6px;
-  background-color: rgba(245, 158, 11, 0.12);
-  color: #d97706;
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
   font-size: 12px;
 }
 
@@ -108,7 +108,7 @@
   font-weight: 600;
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 
 .question {
@@ -140,5 +140,10 @@
 .responseError {
   margin: 0;
   font-size: 12px;
-  color: #ef4444;
+  color: var(--color-error);
+}
+
+@media (max-width: 640px) {
+  .iconButton { width: 44px; height: 44px; min-width: 44px; }
+  .header { flex-wrap: wrap; }
 }

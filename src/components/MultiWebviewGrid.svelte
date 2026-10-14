@@ -200,6 +200,7 @@
   <div class={styles.emptyState}><p>请至少选择一个 AI 工具</p></div>
 {:else}
   <div class={styles.tabsRoot}>
+    <div class={styles.tabStrip}>
     <div class={styles.tabBar} role="tablist" aria-label="AI 工具标签页">
       {#each selectedTools as tool, index (tool.id)}
         {@const status = deliveryStates[tool.id]?.status}
@@ -251,6 +252,7 @@
           {/if}
         </button>
       {/each}
+    </div>
       {#if activeTool}
         <div class={styles.tabBarActions}>
           {#if deliveryStates[activeTool.id]?.status === 'error' && onRetry}

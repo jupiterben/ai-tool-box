@@ -2,63 +2,63 @@
 
 [data-theme='light'],
 :root {
-  /* 主色 - Indigo */
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-300: #a5b4fc;
-  --color-primary-400: #818cf8;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
-  --color-primary-950: #1e1b4b;
+  /* 主色 */
+  --color-primary-50: #f0fdfa;
+  --color-primary-100: #ccfbf1;
+  --color-primary-200: #99f6e4;
+  --color-primary-300: #5eead4;
+  --color-primary-400: #2dd4bf;
+  --color-primary-500: #14b8a6;
+  --color-primary-600: #0f766e;
+  --color-primary-700: #115e59;
+  --color-primary-800: #134e4a;
+  --color-primary-900: #13413e;
+  --color-primary-950: #042f2e;
 
   /* 内容区背景 - Content Area (浅色) */
-  --color-background: #f0f0f3;
-  --color-content-bg: #f0f0f3;
+  --color-background: #fafafa;
+  --color-content-bg: #fafafa;
   --color-background-secondary: #ffffff;
-  --color-background-tertiary: #e8e8ed;
-  --color-background-hover: #e8e8ed;
-  --color-background-active: #dcdce3;
+  --color-background-tertiary: #f4f4f5;
+  --color-background-hover: #f0f0f2;
+  --color-background-active: #e4e4e7;
 
   /* 内容区文本 */
   --color-text-primary: #18181b;
   --color-text-secondary: #52525b;
-  --color-text-tertiary: #a1a1aa;
-  --color-text-disabled: #d4d4d8;
+  --color-text-tertiary: #71717a;
+  --color-text-disabled: #a1a1aa;
   --color-text-inverse: #ffffff;
 
   /* 内容区边框 */
-  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border: #dedee3;
   --color-border-hover: rgba(0, 0, 0, 0.14);
-  --color-border-focus: #6366f1;
-  --color-border-error: #ef4444;
+  --color-border-focus: #0f766e;
+  --color-border-error: #b91c1c;
 
   /* 状态色 */
-  --color-success: #10b981;
+  --color-success: #047857;
   --color-success-bg: #d1fae5;
-  --color-warning: #f59e0b;
+  --color-warning: #92400e;
   --color-warning-bg: #fef3c7;
-  --color-error: #ef4444;
+  --color-error: #b91c1c;
   --color-error-bg: #fee2e2;
-  --color-info: #6366f1;
-  --color-info-bg: #eef2ff;
+  --color-info: #1d4ed8;
+  --color-info-bg: #eff6ff;
 
   /* 侧栏 - 浅色 */
-  --color-sidebar-bg: #fafafa;
+  --color-sidebar-bg: #f4f4f5;
   --color-sidebar-border: rgba(0, 0, 0, 0.08);
-  --color-sidebar-text: #71717a;
+  --color-sidebar-text: #52525b;
   --color-sidebar-text-hover: #3f3f46;
   --color-sidebar-hover: rgba(0, 0, 0, 0.04);
-  --color-sidebar-active: rgba(99, 102, 241, 0.1);
-  --color-sidebar-active-text: #4f46e5;
-  --color-sidebar-accent: #6366f1;
+  --color-sidebar-active: #e1f1ed;
+  --color-sidebar-active-text: #115e59;
+  --color-sidebar-accent: #0f766e;
   --color-sidebar-surface: rgba(0, 0, 0, 0.03);
   --color-sidebar-surface-hover: rgba(0, 0, 0, 0.06);
   --color-sidebar-brand-text: #18181b;
-  --color-sidebar-brand-sub: #a1a1aa;
+  --color-sidebar-brand-sub: #71717a;
 
   /* 语义别名 */
   --color-primary: var(--color-primary-600);

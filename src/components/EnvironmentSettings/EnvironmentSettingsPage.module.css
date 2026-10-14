@@ -1,3 +1,7 @@
+.pageCompact {
+  max-width: var(--settings-width);
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -15,14 +19,14 @@
 .profileList {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
+  gap: var(--spacing-4);
 }
 
 .profileCard {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
-  padding: var(--spacing-3);
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -37,14 +41,14 @@
 
 .proxyFields {
   display: grid;
-  grid-template-columns: 88px 1fr 88px;
-  gap: var(--spacing-2);
+  grid-template-columns: 120px minmax(0, 1fr) 120px;
+  gap: var(--spacing-3);
 }
 
 .proxyAuthFields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-2);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-3);
 }
 
 .coordFields {
@@ -55,8 +59,8 @@
 
 .emptyHint {
   margin: 0;
-  padding: var(--spacing-3);
-  font-size: var(--font-size-xs);
+  padding: var(--spacing-8) var(--spacing-4);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   text-align: center;
   border: 1px dashed var(--color-border);
@@ -78,7 +82,7 @@
 
 @media (max-width: 640px) {
   .proxyFields {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .proxyFields > :first-child {

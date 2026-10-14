@@ -1,15 +1,23 @@
 .segment {
   display: inline-flex;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-background-tertiary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  flex-shrink: 0;
+  flex-shrink: 1;
 }
 
 .button {
-  padding: var(--spacing-1) var(--spacing-2);
+  min-height: 26px;
+  min-width: 0;
+  padding: var(--spacing-1) var(--spacing-3);
   border: none;
-  border-right: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
   background: transparent;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
@@ -41,9 +49,14 @@
 }
 
 .active {
-  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
-  color: var(--color-primary);
-  font-weight: var(--font-weight-medium);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (pointer: coarse) {
+  .button { min-height: 38px; }
 }
 
 @media (max-width: 520px) {
@@ -52,7 +65,7 @@
   }
 
   .button {
-    flex: 1;
+    flex: 1 0 auto;
     text-align: center;
     padding: var(--spacing-2) var(--spacing-1);
   }

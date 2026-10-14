@@ -85,7 +85,6 @@
 {#if isLoading}<SettingsLoading message="加载网站设置..."
   ></SettingsLoading>{:else}<SettingsPageLayout
     title="网站管理"
-    description="按对话与生图分类管理各网站的启用状态、无痕模式、网络代理与 GPS 定位。代理与位置预设请在「网络与定位」页面定义。"
     ariaLabel="网站管理"
     class={styles.pageWide}
   >

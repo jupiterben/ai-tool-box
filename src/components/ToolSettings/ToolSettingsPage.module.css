@@ -1,11 +1,15 @@
+.pageWide { max-width: 1280px; }
+.categoryTabs { display: flex; align-items: center; }
+
 .siteGroupTitleBar {
-  padding: var(--spacing-2) var(--spacing-3);
-  background: var(--color-background-secondary);
+  padding: var(--spacing-3);
+  background: var(--color-background-tertiary);
   border-bottom: 1px solid var(--color-border);
 }
 
 .tableWrap {
   overflow-x: auto;
+  min-width: 0;
 }
 
 .siteTable {
@@ -15,7 +19,7 @@
 }
 
 .colToggle {
-  width: 72px;
+  width: 64px;
 }
 
 .colEnv {
@@ -24,7 +28,7 @@
 
 .siteTable th,
 .siteTable td {
-  padding: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-3);
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
 }
@@ -37,7 +41,7 @@
   background: var(--color-background-secondary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-normal);
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   text-align: center;
 }
 
@@ -68,7 +72,7 @@
 .envControlGroup {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: var(--spacing-2);
   flex-wrap: wrap;
   min-width: 0;
@@ -81,11 +85,6 @@
 }
 
 @media (max-width: 820px) {
-  .tableWrap {
-    margin: 0 calc(-1 * var(--spacing-3));
-    padding: 0 var(--spacing-3);
-  }
-
   .siteTable {
     min-width: 720px;
   }

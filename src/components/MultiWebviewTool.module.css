@@ -1,238 +1,70 @@
-.splitter {
-  display: flex;
-  min-width: 0;
-  width: 100%;
-  height: 100%;
-  background-color: var(--color-background);
-}
-
-.resizeHandle { flex: 0 0 5px; background: var(--color-border); cursor: col-resize; touch-action: none; }
-.resizeHandle:hover, .resizeHandle:focus-visible { background: var(--color-primary); }
-.workspacePanel { flex: 1; min-width: 0; }
-.summaryPanel { flex-shrink: 0; min-width: 0; }
-
-.workspacePanel,
-.summaryPanel {
-  overflow: hidden;
-}
-
-.workspace {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.footer {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  padding: var(--spacing-2);
-  background: color-mix(in srgb, var(--color-background) 94%, transparent);
-  border-top: 1px solid var(--color-border);
-  transition: background-color var(--transition-base), border-color var(--transition-base);
-}
-
-.composerDock {
-  width: 100%;
-  max-width: none;
-  overflow: visible;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-md);
-  container-type: inline-size;
-}
-
-.composerBody {
-  display: grid;
-  grid-template-columns: minmax(260px, 36%) minmax(420px, 1fr);
-  align-items: stretch;
-  min-width: 0;
-  overflow: visible;
-}
-
-.composerBody > :first-child {
-  border-right: 1px solid var(--color-border);
-}
-
-.footerToolbar {
+.splitter { display: flex; position: relative; min-width: 0; width: 100%; height: 100%; background: var(--color-background); }
+.workspacePanel { flex: 1; min-width: 0; overflow: hidden; }
+.workspace { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.workspaceHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-3);
-  min-height: 44px;
-  padding: var(--spacing-1) var(--spacing-3);
+  gap: var(--spacing-2);
+  min-height: 64px;
+  flex-shrink: 0;
+  padding: var(--spacing-2) var(--spacing-5);
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  flex-wrap: wrap;
 }
-
-.composerTitle {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  min-width: max-content;
-}
-
-.composerTitle > span:last-child {
-  display: grid;
-  gap: 2px;
-}
-
-.composerTitle strong {
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-}
-
-.composerTitle small {
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-xs);
-}
-
-.composerIcon {
+.workspaceHeader h1 { margin: 0; font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); }
+.toolbarActions { display: flex; align-items: center; gap: var(--spacing-1); }
+.actionButton {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  flex: 0 0 auto;
-  border-radius: var(--radius-lg);
-  color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
-}
-
-.toolbarActions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-2);
-  min-width: 0;
-  flex-wrap: nowrap;
-}
-
-@container (max-width: 720px) {
-  .composerTitle {
-    flex: 1 0 100%;
-  }
-
-  .toolbarActions {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .collectToolbarButton,
-  .panelToggleButton {
-    justify-content: center;
-    min-width: 0;
-  }
-
-  .composerBody {
-    grid-template-columns: 1fr;
-  }
-
-  .composerBody > :first-child {
-    border-right: 0;
-    border-bottom: 1px solid var(--color-border);
-  }
-}
-
-@container (max-width: 440px) {
-  .toolbarActions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.collectToolbarButton,
-.panelToggleButton {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  min-height: 36px;
-  padding: var(--spacing-2) var(--spacing-3);
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-xs);
-  font-family: var(--font-family-sans);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: background-color var(--transition-base), border-color var(--transition-base), color var(--transition-base);
-  white-space: nowrap;
-  outline: none;
-}
-
-.collectToolbarButton {
-  border: 1px solid var(--color-border);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-}
-
-.collectToolbarButton:hover:not(:disabled) {
-  background-color: var(--color-surface-hover);
-  border-color: var(--color-border-hover);
-}
-
-.collectToolbarButton:focus-visible {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
-}
-
-.collectToolbarButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.panelToggleButton {
-  border: 1px solid var(--color-border);
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
-
-@media (max-width: 640px) {
-  .footer {
-    padding: var(--spacing-2);
-  }
-
-  .composerDock {
-    border-radius: var(--radius-lg);
-  }
-
-  .composerTitle small {
-    display: none;
-  }
-
-  .collectToolbarButton,
-  .panelToggleButton {
-    min-height: 44px;
-  }
+.actionButton:hover:not(:disabled) { background: var(--color-background-hover); color: var(--color-text-primary); }
+.actionButton:disabled { opacity: 0.45; cursor: not-allowed; }
+.actionActive { color: var(--color-primary); background: var(--color-primary-50); border-color: var(--color-border); }
+.actionButton:has(:global(.lucide-loader-circle)) :global(svg) { animation: spin 1s linear infinite; }
+.main { flex: 1; min-height: 0; overflow: hidden; }
+.footer { flex-shrink: 0; border-top: 1px solid var(--color-border); background: var(--color-surface); padding: var(--spacing-2) var(--spacing-4) var(--spacing-3); }
+.toolDisclosure { min-width: 0; }
+.toolDisclosure summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  min-height: var(--control-height-md);
+  padding: var(--spacing-1) var(--spacing-2);
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
 }
+.toolDisclosure summary::-webkit-details-marker { display: none; }
+.toolDisclosure summary:hover { background: var(--color-background-hover); }
+.toolDisclosure summary strong { color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.toolDisclosure[open] summary :global(svg) { transform: rotate(180deg); }
+.resizeHandle { flex: 0 0 5px; background: var(--color-border); cursor: col-resize; touch-action: none; }
+.resizeHandle:hover, .resizeHandle:focus-visible { background: var(--color-primary); }
+.summaryPanel { flex-shrink: 0; min-width: 0; overflow: hidden; }
 
-@media (prefers-reduced-motion: reduce) {
-  .footer,
-  .collectToolbarButton,
-  .panelToggleButton,
-  .main {
-    transition: none;
-  }
+@media (max-width: 760px) {
+  .workspaceHeader { padding-inline: var(--spacing-3); }
+  .footer { padding: var(--spacing-1) var(--spacing-2) var(--spacing-2); }
+  .summaryPanel { position: absolute; inset: 0; width: auto !important; z-index: var(--z-sticky); }
+  /* Native guest visibility follows the anchor, not CSS stacking order. */
+  .splitter:has(> .summaryPanel) .workspacePanel { visibility: hidden; }
+  .resizeHandle { display: none; }
 }
-
-.panelToggleButton:hover {
-  background-color: var(--color-surface-hover);
-  color: var(--color-text);
-}
-
-.panelToggleActive {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background-color: color-mix(in srgb, var(--color-primary) 8%, transparent);
-}
-
-.main {
-  flex: 1;
-  width: 100%;
-  overflow: hidden;
-  position: relative;
-  min-height: 0;
-  background-color: var(--color-background);
-  transition: background-color var(--transition-base);
+@media (max-width: 640px), (pointer: coarse) {
+  .actionButton { width: 44px; height: 44px; }
+  .toolDisclosure summary { min-height: 44px; }
 }

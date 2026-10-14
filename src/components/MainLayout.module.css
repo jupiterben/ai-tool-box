@@ -3,6 +3,7 @@
   width: 100%;
   min-width: 0;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background-color: var(--color-background);
   transition: background-color var(--transition-base);
@@ -23,6 +24,13 @@
 @media (max-width: 1024px) {
   .content {
     margin-left: 0;
+  }
+}
+
+@media (max-width: 1023px) {
+  /* Native guests must not cover an expanded navigation drawer. */
+  .layout:has(> aside[data-collapsed='false']) .content :global([data-tool-id]) {
+    visibility: hidden;
   }
 }
 

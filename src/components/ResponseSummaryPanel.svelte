@@ -113,8 +113,7 @@
     </div>{/if}
   <div class={styles.content}>
     {#if !document && !isBusy}<p class={styles.placeholder}>
-        向各 AI 发送问题并等待回复后，点击「收集各平台回复」生成 LLM
-        智能汇总文档。
+        暂无汇总内容
       </p>{/if}{#if statusText}<p class={styles.placeholder}>
         {statusText}
       </p>{/if}{#if document && !isBusy}{#if document.llmSummarized}<section

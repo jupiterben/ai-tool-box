@@ -11,6 +11,8 @@
   import Input from '../ui/Input.svelte';
   import SegmentControl from '../ui/SegmentControl.svelte';
   import Alert from '../ui/Alert.svelte';
+  import Icon from '../ui/Icon.svelte';
+  import Toggle from '../ui/Toggle.svelte';
   const PROVIDER_OPTIONS: { value: LlmProvider; label: string }[] = [
     ...(
       Object.entries(LLM_PROVIDER_PRESETS) as [
@@ -40,34 +42,24 @@
 {#if isLoading}<SettingsLoading message="加载 LLM 设置..."
   ></SettingsLoading>{:else}<SettingsPageLayout
     title="LLM 汇总设置"
-    description="配置 LLM API 后，收集各平台回复时将自动调用 AI 生成结构化 Markdown 汇总。修改后会自动保存。"
     ariaLabel="LLM 设置"
   >
     {#snippet footer()}<div class={settingsStyles.actions}>
         <Button onclick={() => void saveSettings()} disabled={isSaving}>
+          <Icon name="Save" size={16} />
           {isSaving ? '保存中…' : '立即保存'}
         </Button>
       </div>{/snippet}
     <section class={settingsStyles.card}>
-      <label
-        class={settingsStyles.label}
-        style:display={'flex'}
-        style:align-items={'center'}
-        style:gap={'var(--spacing-2)'}
-        style:cursor={'pointer'}
-      >
-        <input
-          type="checkbox"
+      <div class={settingsStyles.sectionHeader}>
+        <label class={settingsStyles.label} for="llm-enabled">启用 LLM 智能汇总</label>
+        <Toggle
+          id="llm-enabled"
+          label="启用 LLM 智能汇总"
           checked={settings.enabled}
           onchange={(e) => updateSettings({ enabled: e.currentTarget.checked })}
         />
-        <span
-          style:font-weight={'var(--font-weight-medium)'}
-          style:color={'var(--color-text-primary)'}
-        >
-          启用 LLM 智能汇总
-        </span>
-      </label>
+      </div>
       <div class={settingsStyles.fieldGroup}>
         <span class={settingsStyles.label}>API 提供商</span>
         <SegmentControl

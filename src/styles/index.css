@@ -9,6 +9,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  letter-spacing: 0;
 }
 
 body {
@@ -22,10 +23,41 @@ body {
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   transition: background-color var(--transition-base), color var(--transition-base);
-  /* 优化字体加载 */
-  font-display: swap;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+button, input, select, summary {
+  touch-action: manipulation;
+}
+
+button svg {
+  flex-shrink: 0;
+}
+
+input[type='checkbox'] {
+  accent-color: var(--color-primary);
+}
+
+html { color-scheme: light; }
+html[data-theme='dark'] { color-scheme: dark; }
+
+@media (max-width: 640px) {
+  :root { --page-gutter: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 #root {

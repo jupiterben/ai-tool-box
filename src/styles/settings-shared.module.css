@@ -5,9 +5,9 @@
   flex-direction: column;
   gap: var(--spacing-6);
   width: 100%;
-  max-width: 1240px;
+  max-width: var(--settings-width);
   margin: 0 auto;
-  padding: var(--spacing-8);
+  padding: var(--spacing-6) var(--page-gutter);
   height: 100%;
   overflow-y: auto;
   box-sizing: border-box;
@@ -15,19 +15,19 @@
 }
 
 .header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: baseline;
-  gap: var(--spacing-4);
-  padding-bottom: var(--spacing-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding-bottom: var(--spacing-5);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .title {
   margin: 0;
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .description {
@@ -40,7 +40,7 @@
 
 @media (max-width: 860px) {
   .page {
-    padding: var(--spacing-6);
+    padding: var(--spacing-6) var(--page-gutter);
   }
 
   .header {
@@ -56,7 +56,7 @@
   }
 
   .title {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-xl);
   }
 }
 
@@ -85,10 +85,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
-  padding: var(--spacing-5);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  min-width: 0;
 }
 
 .profileList {
@@ -99,6 +96,10 @@
 
 .profileCard {
   composes: card;
+  padding: var(--spacing-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .profileCardHeader {
@@ -122,8 +123,7 @@
 /* ── 站点分组列表 ── */
 
 .siteGroup {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-block: 1px solid var(--color-border);
   background: var(--color-surface);
   overflow: hidden;
 }
@@ -142,7 +142,7 @@
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -219,6 +219,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
+  min-width: 0;
 }
 
 .label {
@@ -231,12 +232,12 @@
   margin: 0;
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .inlineFields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--spacing-4);
 }
 

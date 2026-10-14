@@ -14,8 +14,9 @@
 </script>
 
 <div class={styles.layout}>
+  <a class="skip-link" href="#main-content">跳转到主内容</a>
   <Sidebar {pages} {activePageId} {onPageChange}></Sidebar>
-  <main class={styles.content}>
+  <main id="main-content" tabindex="-1" class={styles.content}>
     <div class={styles.pageContainer}>{@render children?.()}</div>
   </main>
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import UnifiedInput from './UnifiedInput.svelte';
   import ToolSelector from './ToolSelector.svelte';
   import MultiWebviewGrid from './MultiWebviewGrid.svelte';
@@ -45,9 +46,20 @@
   let splitter: HTMLDivElement;
   let dragging = $state(false);
   let containerWidth = $state(0);
+  let toolPickerOpen = $state(true);
   const width = $derived(
     Math.max(0, Math.min(panelSize.size, containerWidth * 0.7)),
   );
+
+  onMount(() => {
+    const compactHeight = window.matchMedia('(max-height: 560px)');
+    toolPickerOpen = !compactHeight.matches;
+    const update = (event: MediaQueryListEvent) => {
+      toolPickerOpen = !event.matches;
+    };
+    compactHeight.addEventListener('change', update);
+    return () => compactHeight.removeEventListener('change', update);
+  });
 
   async function send(content: string) {
     const trimmed = content.trim();
@@ -143,6 +155,41 @@
       class={styles.workspace}
       aria-label={category === 'chat' ? '多 Webview 工具' : '生图工具'}
     >
+      <header class={styles.workspaceHeader}>
+        <h1>{category === 'chat' ? '对话' : '生图'}</h1>
+        {#if category === 'chat'}
+          <div class={styles.toolbarActions} role="group" aria-label="对话操作">
+            <button
+              class={styles.actionButton}
+              onclick={() => conversation('recentChat')}
+              disabled={isConversationAction || !selection.selectedToolIds.length}
+              aria-label="最近对话"
+              title="最近对话"
+            ><Icon name="History" size={18} /></button>
+            <button
+              class={styles.actionButton}
+              onclick={() => conversation('newChat')}
+              disabled={isConversationAction || !selection.selectedToolIds.length}
+              aria-label="新建对话"
+              title="新建对话"
+            ><Icon name="MessageSquarePlus" size={18} /></button>
+            <button
+              class={styles.actionButton}
+              onclick={collect}
+              disabled={collection.isBusy || !selection.selectedToolIds.length}
+              aria-label={collection.isSummarizing ? 'LLM 汇总中' : collection.isCollecting ? '收集中' : '收集回复'}
+              title="收集回复"
+            ><Icon name={collection.isBusy ? 'LoaderCircle' : 'FileText'} size={18} /></button>
+            <button
+              class={`${styles.actionButton} ${collection.panelOpen ? styles.actionActive : ''}`}
+              onclick={togglePanel}
+              aria-label="汇总"
+              title={collection.panelOpen ? '隐藏汇总面板' : '显示汇总面板'}
+              aria-pressed={collection.panelOpen}
+            ><Icon name="PanelRight" size={18} /></button>
+          </div>
+        {/if}
+      </header>
       <div class={styles.main} role="region" aria-label="Webview 内容区域">
         <MultiWebviewGrid
           tools={tools.current}
@@ -155,55 +202,17 @@
         />
       </div>
       <div class={styles.footer} role="region" aria-label="输入和工具选择">
-        <div class={styles.footerToolbar}>
+        <details class={styles.toolDisclosure} bind:open={toolPickerOpen}>
+          <summary>
+            <span>发送至 <strong>{selection.selectedToolIds.length}</strong> 个平台</span>
+            <Icon name="ChevronDown" size={16} />
+          </summary>
           <ToolSelector
             tools={tools.current}
             selectedToolIds={selection.selectedToolIds}
             onSelectionChange={select}
           />
-          {#if category === 'chat'}
-            <button
-              class={styles.collectToolbarButton}
-              onclick={() => conversation('recentChat')}
-              disabled={isConversationAction ||
-                !selection.selectedToolIds.length}
-              title="在所有已选平台回到最近一次对话"
-            >
-              <Icon name="History" size={16} />{isConversationAction
-                ? '切换中…'
-                : '最近对话'}
-            </button>
-            <button
-              class={styles.collectToolbarButton}
-              onclick={() => conversation('newChat')}
-              disabled={isConversationAction ||
-                !selection.selectedToolIds.length}
-              title="在所有已选平台新建对话"
-            >
-              <Icon name="MessageSquarePlus" size={16} />新建对话
-            </button>
-            <button
-              class={styles.collectToolbarButton}
-              onclick={collect}
-              disabled={collection.isBusy || !selection.selectedToolIds.length}
-              title="收集各平台 AI 回复并生成汇总文档"
-            >
-              <Icon name="FileText" size={16} />{collection.isSummarizing
-                ? 'LLM 汇总中…'
-                : collection.isCollecting
-                  ? '收集中…'
-                  : '收集回复'}
-            </button>
-            <button
-              class={`${styles.panelToggleButton} ${collection.panelOpen ? styles.panelToggleActive : ''}`}
-              onclick={togglePanel}
-              title={collection.panelOpen ? '隐藏汇总面板' : '显示汇总面板'}
-              aria-pressed={collection.panelOpen}
-            >
-              <Icon name="PanelRight" size={16} />汇总
-            </button>
-          {/if}
-        </div>
+        </details>
         <UnifiedInput
           value={inputValue}
           onChange={(value) => (inputValue = value)}
