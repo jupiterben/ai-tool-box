@@ -198,21 +198,42 @@ try {
   expect(cleanup.presets.presets).toHaveLength(1);
   const registry = JSON.parse(await readFile(resolve(profile, 'preset-registry.json'), 'utf8'));
   expect(registry.presets).toHaveLength(1);
-  await main.goto('http://127.0.0.1:5173/');
+  await main.goto(process.env.AI_TOOLBOX_TEST_UI_URL || 'http://127.0.0.1:5173/');
   await expect(main.getByRole('button', { name: '切换到 生视频', exact: true })).toBeVisible();
   await main.getByRole('button', { name: '切换到 生视频', exact: true }).click();
   await main.getByRole('button', { name: '切换到 API', exact: true }).click();
   await expect(main.getByRole('main', { name: 'API webview workers' })).toBeVisible();
   const realUiApi = await fetch(`${base}/api/gen_image`, {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ toolId: 'bing-create', prompt: 'real React worker test', timeoutMs: 15000 }),
+    body: JSON.stringify({ toolId: 'bing-create', prompt: 'real Svelte worker test', timeoutMs: 15000 }),
   }).then(r => r.json());
+  if (!realUiApi.success) {
+    console.log('Svelte worker diagnostics:', await main.evaluate(() => ({
+      workers: document.querySelector('#page-api-webview')?.textContent,
+      views: [...document.querySelectorAll('[data-native-webview][data-thread-id]')].map(el => ({
+        thread: el.dataset.threadId, id: el.getWebContentsId?.(), text: el.textContent,
+      })),
+    })));
+  }
   expect(realUiApi.success, JSON.stringify(realUiApi)).toBe(true);
   await expect(main.getByRole('tab', { name: /bing-create-worker/ }).first()).toBeVisible();
-  await main.screenshot({ path: resolve(profile, 'native-react-api.png') });
+  const workerId = await main.evaluate(() =>
+    document.querySelector('#page-api-webview [data-thread-id]')?.getWebContentsId?.());
+  expect(workerId).toBeGreaterThan(0);
+  await main.getByRole('button', { name: '切换到 对话', exact: true }).click();
+  await main.getByRole('button', { name: '切换到 API', exact: true }).click();
+  const reusedUiApi = await fetch(`${base}/api/gen_image`, {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ toolId: 'bing-create', prompt: 'reuse Svelte worker', timeoutMs: 15000 }),
+  }).then(r => r.json());
+  expect(reusedUiApi.success, JSON.stringify(reusedUiApi)).toBe(true);
+  expect(await main.evaluate(() =>
+    document.querySelector('#page-api-webview [data-thread-id]')?.getWebContentsId?.())).toBe(workerId);
+  await main.screenshot({ path: resolve(profile, 'native-svelte-api.png') });
   console.log('Native integration passed: Node service, HTTP API, guest input, screenshots, preset lifecycle, isolation, settings, update configuration, cache.');
 } catch (error) {
-  console.error(logs);
+  await writeFile(resolve(profile, 'native-backend.log'), logs);
+  console.error(logs.slice(-12000));
   throw error;
 } finally {
   await browser?.close().catch(() => {});

@@ -6,6 +6,7 @@ allowBuilds:
   sharp: true
 minimumReleaseAgeExclude:
   - vite@8.1.3
+  - '@lucide/svelte@1.57.0'
 onlyBuiltDependencies:
   - esbuild
   - sharp

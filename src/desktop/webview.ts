@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { TauriWebViewElement } from '../components/TauriWebView';
+import type { TauriWebViewElement } from '../types/ui';
 
 interface NativeState {
   id: number; label: string; kind: string; url?: string;

@@ -95,8 +95,8 @@
   background: color-mix(in srgb, var(--color-primary) 9%, transparent);
 }
 
-.label:focus-visible,
-.groupLabel:focus-visible {
+.label:focus-within,
+.groupLabel:focus-within {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }

@@ -9,7 +9,8 @@
 
 ## release 分支实现
 
-本分支保留 **React 19 + TypeScript + Vite**，不使用 main 分支的 Svelte 页面。
+前端使用 **Svelte 5 + TypeScript + Vite**，原有 React 页面和 Hooks 已迁移为
+Svelte 组件及 `src/state/*.svelte.ts` 响应式状态模块，不再依赖 React 或 Ant Design。
 桌面运行时为 **Tauri 2**，原有业务模块作为随安装包分发的 Node 后台运行，
 不需要用户另行安装 Node，也不再启动 Electron。
 
@@ -58,7 +59,11 @@ pnpm test:desktop
 
 Windows 原生集成测试使用隐藏窗口和 `.cache` 下的独立数据目录，
 验证多 Preset、原生输入、会话隔离、截图、缓存、LLM、GPS、API 并发/SSE，
-以及真实 React API 页面。测试网站和 LLM 均为本地 fixture，不调用付费 AI 服务。
+以及真实 Svelte API 页面。测试网站和 LLM 均为本地 fixture，不调用付费 AI 服务。
+
+页面按需加载并保留已访问实例，切换页面不会丢失草稿、参考图或原生 WebView 会话。
+汇总面板支持鼠标拖拽和键盘调整宽度；Markdown 使用 `marked` 解析，再由
+DOMPurify 清理 HTML。`pnpm type-check` 同时检查 Svelte 组件和前后端 TypeScript。
 
 ## API 与升级
 

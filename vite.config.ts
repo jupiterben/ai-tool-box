@@ -1,25 +1,19 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   base: './',
   clearScreen: false,
-  plugins: [react()],
+  plugins: [svelte()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'react-vendor';
-          }
-          if (id.includes('node_modules/lucide-react')) {
+          if (id.includes('/@lucide/svelte/')) {
             return 'icons';
-          }
-          if (id.includes('node_modules/react-transition-group')) {
-            return 'transitions';
           }
           if (id.includes('node_modules')) {
             return 'vendor';
@@ -37,8 +31,5 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     watch: { ignored: ['**/src-tauri/**', '**/.cache/**', '**/test-results/**'] },
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom'],
   },
 });

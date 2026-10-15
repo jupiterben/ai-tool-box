@@ -1,0 +1,455 @@
+<script lang="ts">
+  import { untrack } from 'svelte';
+
+  import type { AITool } from '../types/ai-tool';
+  import type { InputDeliveryState } from '../types/input-delivery';
+  import { getSiteHandler } from '../webview-handlers';
+  import { preInjectScript } from './WebviewInputHandler';
+  import TauriWebView from './TauriWebView.svelte';
+  import type { TauriWebViewElement } from '../types/ui.ts';
+  import { getPresetPartition } from '../utils/toolPartition';
+  import { createPresetId } from '../state/presetContext.svelte';
+  import {
+    getFaviconFallbackUrl,
+    getLoadableFaviconUrl,
+  } from '../utils/favicon';
+  import { ACTIVATE_IMAGE_TOOL_EVENT } from '../services/imageGenBridge';
+  import Icon from './ui/Icon.svelte';
+  import styles from './MultiWebviewGrid.module.css';
+  type PageFaviconUpdatedEvent = Event & { favicons?: string[] };
+  type WebviewElement = TauriWebViewElement;
+  interface MultiWebviewGridProps {
+    tools: AITool[];
+    selectedToolIds: string[];
+    deliveryStates: Record<string, InputDeliveryState>;
+    proxyRevision?: number;
+    onRetry?: (toolId: string) => void;
+    onWebviewRef?: (toolId: string, element: HTMLElement | null) => void;
+  }
+  let {
+    tools,
+    selectedToolIds,
+    deliveryStates,
+    proxyRevision = 0,
+    onRetry,
+    onWebviewRef,
+  }: MultiWebviewGridProps = $props();
+  const presetId = createPresetId();
+  const webviewRefs: { current: Record<string, WebviewElement> } = {
+    current: {},
+  };
+  const webviewReadyRef: { current: Record<string, boolean> } = { current: {} };
+  const listenerCleanups: { current: Record<string, () => void> } = {
+    current: {},
+  };
+  const activeTabIdRef = { current: '' };
+  let activeTabId: string = $state.raw('');
+  function setActiveTabId(
+    next:
+      | typeof activeTabId
+      | ((previous: typeof activeTabId) => typeof activeTabId),
+  ) {
+    activeTabId =
+      typeof next === 'function' ? untrack(() => next(activeTabId)) : next;
+  }
+  let favicons: Record<string, string> = $state.raw({});
+  function setFavicons(
+    next: typeof favicons | ((previous: typeof favicons) => typeof favicons),
+  ) {
+    favicons =
+      typeof next === 'function' ? untrack(() => next(favicons)) : next;
+  }
+  let canGoBack = $state.raw(false);
+  function setCanGoBack(
+    next: typeof canGoBack | ((previous: typeof canGoBack) => typeof canGoBack),
+  ) {
+    canGoBack =
+      typeof next === 'function' ? untrack(() => next(canGoBack)) : next;
+  }
+  let canGoForward = $state.raw(false);
+  function setCanGoForward(
+    next:
+      | typeof canGoForward
+      | ((previous: typeof canGoForward) => typeof canGoForward),
+  ) {
+    canGoForward =
+      typeof next === 'function' ? untrack(() => next(canGoForward)) : next;
+  }
+  let isClearingData = $state.raw(false);
+  function setIsClearingData(
+    next:
+      | typeof isClearingData
+      | ((previous: typeof isClearingData) => typeof isClearingData),
+  ) {
+    isClearingData =
+      typeof next === 'function' ? untrack(() => next(isClearingData)) : next;
+  }
+  const syncNavState = (toolId: string) => {
+    const webview = webviewRefs.current[toolId];
+    if (!webview || !webviewReadyRef.current[toolId]) {
+      setCanGoBack(false);
+      setCanGoForward(false);
+      return;
+    }
+    try {
+      setCanGoBack(Boolean(webview.canGoBack?.()));
+      setCanGoForward(Boolean(webview.canGoForward?.()));
+    } catch {
+      setCanGoBack(false);
+      setCanGoForward(false);
+    }
+  };
+  let selectedTools = $derived.by(() => {
+    return tools.filter((tool) => selectedToolIds.includes(tool.id));
+  });
+  let activeTool = $derived.by(
+    () =>
+      selectedTools.find((tool) => tool.id === activeTabId) ?? selectedTools[0],
+  );
+  $effect(() => {
+    void selectedToolIds;
+    void activeTabId;
+    return untrack(() => {
+      if (!selectedToolIds.length) {
+        setActiveTabId('');
+        return;
+      }
+      if (!activeTabId || !selectedToolIds.includes(activeTabId)) {
+        setActiveTabId(selectedToolIds[0]);
+      }
+    });
+  });
+  $effect(() => {
+    void activeTabId;
+    void syncNavState;
+    return untrack(() => {
+      activeTabIdRef.current = activeTabId;
+      if (activeTabId) {
+        syncNavState(activeTabId);
+      }
+    });
+  });
+  $effect(() => {
+    return untrack(() => {
+      const onActivateTool = (event: Event) => {
+        const toolId = (event as CustomEvent<{ toolId: string }>).detail
+          ?.toolId;
+        if (!toolId) {
+          return;
+        }
+        setActiveTabId(toolId);
+      };
+
+      window.addEventListener(ACTIVATE_IMAGE_TOOL_EVENT, onActivateTool);
+      return () =>
+        window.removeEventListener(ACTIVATE_IMAGE_TOOL_EVENT, onActivateTool);
+    });
+  });
+  const handleWebviewRef = (
+    toolId: string,
+    toolName: string,
+    element: HTMLElement | null,
+  ) => {
+    listenerCleanups.current[toolId]?.();
+    delete listenerCleanups.current[toolId];
+
+    if (element) {
+      const webview = element as WebviewElement;
+      webviewRefs.current[toolId] = webview;
+      webviewReadyRef.current[toolId] = false;
+      onWebviewRef?.(toolId, element);
+
+      const onDomReady = () => {
+        webviewReadyRef.current[toolId] = true;
+        if (toolId === activeTabIdRef.current) {
+          syncNavState(toolId);
+        }
+      };
+
+      const onLoad = async () => {
+        syncNavState(toolId);
+
+        const el = webviewRefs.current[toolId];
+        if (el && getSiteHandler(toolId)) {
+          try {
+            await preInjectScript(
+              el as HTMLElement & {
+                executeJavaScript?: (code: string) => Promise<unknown>;
+              },
+              toolId,
+              5000,
+            );
+          } catch (error) {
+            console.error(
+              `[MultiWebviewGrid] ${toolName} 预注入脚本失败:`,
+              error,
+            );
+          }
+        }
+
+        try {
+          await window.desktopAPI?.applyToolGeolocation(toolId);
+        } catch (error) {
+          console.warn(
+            `[MultiWebviewGrid] ${toolName} 应用 GPS 设置失败:`,
+            error,
+          );
+        }
+      };
+
+      const onFaviconUpdated = (event: Event) => {
+        const faviconUrl = (event as PageFaviconUpdatedEvent).favicons?.[0];
+        const loadableUrl = faviconUrl ? getLoadableFaviconUrl(faviconUrl) : '';
+        if (loadableUrl) {
+          setFavicons((prev) => ({ ...prev, [toolId]: loadableUrl }));
+        }
+      };
+
+      const onNavigate = () => {
+        if (toolId === activeTabIdRef.current) {
+          syncNavState(toolId);
+        }
+      };
+
+      webview.addEventListener?.('dom-ready', onDomReady);
+      webview.addEventListener?.('did-finish-load', onLoad);
+      webview.addEventListener?.('did-navigate', onNavigate);
+      webview.addEventListener?.('did-navigate-in-page', onNavigate);
+      webview.addEventListener?.('page-favicon-updated', onFaviconUpdated);
+      listenerCleanups.current[toolId] = () => {
+        webview.removeEventListener?.('dom-ready', onDomReady);
+        webview.removeEventListener?.('did-finish-load', onLoad);
+        webview.removeEventListener?.('did-navigate', onNavigate);
+        webview.removeEventListener?.('did-navigate-in-page', onNavigate);
+        webview.removeEventListener?.('page-favicon-updated', onFaviconUpdated);
+      };
+    } else {
+      delete webviewRefs.current[toolId];
+      delete webviewReadyRef.current[toolId];
+      onWebviewRef?.(toolId, null);
+    }
+  };
+  const handleRefresh = (toolId: string, url: string) => {
+    const webview = webviewRefs.current[toolId];
+    if (!webview) {
+      return;
+    }
+
+    if (typeof webview.reload === 'function') {
+      webview.reload();
+      return;
+    }
+
+    webview.src = '';
+    setTimeout(() => {
+      webview.src = url;
+    }, 100);
+  };
+  const handleGoBack = (toolId: string) => {
+    const webview = webviewRefs.current[toolId];
+    if (!webview || !webviewReadyRef.current[toolId]) {
+      return;
+    }
+    try {
+      webview.goBack?.();
+      syncNavState(toolId);
+    } catch {
+      // webview 尚未就绪
+    }
+  };
+  const handleGoForward = (toolId: string) => {
+    const webview = webviewRefs.current[toolId];
+    if (!webview || !webviewReadyRef.current[toolId]) {
+      return;
+    }
+    try {
+      webview.goForward?.();
+      syncNavState(toolId);
+    } catch {
+      // webview 尚未就绪
+    }
+  };
+  const handleClearCache = async (
+    toolId: string,
+    toolName: string,
+    url: string,
+  ) => {
+    void toolId;
+    void toolName;
+    const confirmed = window.confirm(
+      `确定清理当前 Preset 的所有缓存数据吗？\n\n将清除本工作区内所有站点的 Cookie、本地存储与网络缓存，可能需要重新登录。`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    if (!window.desktopAPI?.clearToolWebviewData) {
+      window.alert('当前环境不支持清理缓存');
+      return;
+    }
+
+    setIsClearingData(true);
+    try {
+      const result = await window.desktopAPI.clearToolWebviewData();
+      if (!result.success) {
+        window.alert(result.error ?? '清理缓存失败');
+        return;
+      }
+
+      const webview = webviewRefs.current[activeTabId];
+      if (webview) {
+        webview.src = url;
+      }
+      syncNavState(activeTabId);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : '清理缓存失败');
+    } finally {
+      setIsClearingData(false);
+    }
+  };
+</script>
+
+{#snippet renderTabStatus(status: InputDeliveryState['status'] | 'pending')}
+  {#if status === 'sending'}
+    <span class={styles.tabStatus} aria-label="发送中">
+      <Icon name="LoaderCircle" size={14}></Icon>
+    </span>
+  {:else}
+    {#if status === 'success'}
+      <span class={styles.tabStatus} aria-label="发送成功">
+        <Icon name="CircleCheck" size={14}></Icon>
+      </span>
+    {:else}
+      {#if status === 'error'}
+        <span class={styles.tabStatus} aria-label="发送失败">
+          <Icon name="CircleX" size={14}></Icon>
+        </span>
+      {/if}
+    {/if}
+  {/if}
+{/snippet}
+
+{#if !selectedTools.length}
+  <div class={styles.emptyState}>
+    <span class={styles.emptyIcon}
+      ><Icon name="PanelsTopLeft" size={24}></Icon></span
+    >
+    <div>
+      <strong>还没有选择平台</strong>
+      <p>请在下方创作台中至少选择一个 AI 工具。</p>
+    </div>
+  </div>
+{:else}
+  <div class={styles.tabsRoot}>
+    <div class={styles.tabBar} role="tablist" aria-label="AI 工具标签页">
+      {#each selectedTools as tool (tool.id)}
+        {@const deliveryState = deliveryStates[tool.id]}
+        {@const status = deliveryState?.status || 'pending'}
+        {@const isActive = tool.id === activeTabId}
+        {@const faviconUrl =
+          favicons[tool.id] || tool.icon || getFaviconFallbackUrl(tool.url)}
+        <button
+          type="button"
+          role="tab"
+          id={`tab-${tool.id}`}
+          aria-selected={isActive}
+          aria-controls={`panel-${tool.id}`}
+          class={`${styles.tab} ${isActive ? styles.tabActive : ''}`}
+          onclick={() => setActiveTabId(tool.id)}
+        >
+          {#if faviconUrl}<img
+              src={faviconUrl}
+              alt=""
+              class={styles.tabIcon}
+              aria-hidden="true"
+            />{/if} <span class={styles.tabLabel}>{tool.name}</span>
+          {@render renderTabStatus(status)}
+        </button>
+      {/each}
+      {#if activeTool}<div class={styles.tabBarActions}>
+          {#if deliveryStates[activeTool.id]?.status === 'error' && onRetry}<button
+              type="button"
+              class={styles.retryButton}
+              onclick={() => onRetry(activeTool.id)}
+              aria-label={`重试 ${activeTool.name}`}
+            >
+              重试
+            </button>{/if}
+          <button
+            type="button"
+            class={styles.toolbarButton}
+            onclick={() => handleGoBack(activeTool.id)}
+            disabled={!canGoBack}
+            aria-label={`后退 ${activeTool.name}`}
+            title="后退"
+          >
+            <Icon name="ArrowLeft" size={16}></Icon>
+          </button>
+          <button
+            type="button"
+            class={styles.toolbarButton}
+            onclick={() => handleGoForward(activeTool.id)}
+            disabled={!canGoForward}
+            aria-label={`前进 ${activeTool.name}`}
+            title="前进"
+          >
+            <Icon name="ArrowRight" size={16}></Icon>
+          </button>
+          <button
+            type="button"
+            class={styles.toolbarButton}
+            onclick={() => handleRefresh(activeTool.id, activeTool.url)}
+            aria-label={`刷新 ${activeTool.name}`}
+            title="刷新当前页面"
+          >
+            <Icon name="RefreshCw" size={16}></Icon>
+          </button>
+          <button
+            type="button"
+            class={`${styles.toolbarButton} ${styles.toolbarButtonDanger}`}
+            onclick={() =>
+              handleClearCache(activeTool.id, activeTool.name, activeTool.url)}
+            disabled={isClearingData}
+            aria-label="清理当前 Preset 缓存"
+            title="清理当前 Preset 缓存"
+          >
+            <Icon name="Eraser" size={16}></Icon>
+          </button>
+        </div>{/if}
+    </div>
+    <div class={styles.tabPanels}>
+      {#each selectedTools as tool (tool.id)}
+        {@const deliveryState = deliveryStates[tool.id]}
+        {@const isActive = tool.id === activeTabId}
+        <div
+          id={`panel-${tool.id}`}
+          role="tabpanel"
+          aria-labelledby={`tab-${tool.id}`}
+          class={`${styles.tabPane} ${isActive ? styles.tabPaneActive : styles.tabPaneHidden}`}
+          aria-hidden={!isActive}
+        >
+          <div
+            class={styles.webviewContainer}
+            aria-label={`${tool.name} 内容区域`}
+          >
+            {#key `${tool.id}-${proxyRevision}`}<TauriWebView
+                ref={(el) => handleWebviewRef(tool.id, tool.name, el)}
+                partition={getPresetPartition(presetId)}
+                data-tool-id={tool.id}
+                src={tool.url}
+                style="width: 100%; height: 100%; display: inline-flex"
+                webpreferences="allowRunningInsecureContent=true, javascript=yes"
+                aria-label={`${tool.name} Webview`}
+              ></TauriWebView>{/key}
+          </div>
+          {#if isActive && deliveryState?.status === 'error' && deliveryState.errorMessage}<div
+              class={styles.errorMessage}
+              role="alert"
+            >
+              {deliveryState.errorMessage}
+            </div>{/if}
+        </div>
+      {/each}
+    </div>
+  </div>
+{/if}

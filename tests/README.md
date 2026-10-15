@@ -3,14 +3,19 @@
 ## Tauri release branch regression
 
 - `pnpm test`: existing provider/partition/registry tests plus authenticated proxy relay isolation.
-- `pnpm test:ui`: all six React pages, setting categories, draft preservation and layout.
+- `pnpm test:ui`: all six Svelte pages, settings, draft/reference-image preservation,
+  tool-selection persistence, IME input, summary resizing, auto-save and sanitized Markdown.
 - `pnpm test:desktop`: Windows native WebView2, private Node service, Preset lifecycle/isolation,
   native trusted input, screenshots, credentials/LLM/GPS, concurrent HTTP generation, SSE,
-  network capture and the real React API worker page.
+  network capture and the real Svelte API worker page, including native guest retention.
 
 For native tests, first run `pnpm desktop:compile`, `cargo build --manifest-path src-tauri/Cargo.toml`,
 and keep `pnpm dev:web` running. These tests use local fixtures and a separate `.cache` profile.
 They do not install Agent CLIs or call real AI providers.
+
+Set `PLAYWRIGHT_PORT` to test an alternate Vite port. For native tests on an alternate port,
+build with `TAURI_CONFIG={"build":{"devUrl":"http://127.0.0.1:5174"}}` and set
+`AI_TOOLBOX_TEST_UI_URL=http://127.0.0.1:5174/` when running the test.
 
 ## Fast Bing unit tests
 
